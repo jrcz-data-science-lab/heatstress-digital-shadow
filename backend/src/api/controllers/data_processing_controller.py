@@ -20,7 +20,7 @@ class DataProcessingController(ABC):
         endpoint = f"{self.QGIS_API_BASE_URL}/pet/update"
         payload = req.model_dump(mode="json")
 
-        async with httpx.AsyncClient(timeout=200.0) as client:
+        async with httpx.AsyncClient(timeout=None) as client:
             try:
                 response = await client.post(endpoint, json=payload, params={"session_id": session_id})
                 response.raise_for_status()
