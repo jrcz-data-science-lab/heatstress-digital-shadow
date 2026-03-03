@@ -233,6 +233,148 @@ class RasterService:
             raise Exception("NoData filling failed — could not load output raster.")
 
         return filled_raster
+
+    def fill_nodata_with_value(
+        self,
+        input_raster_path: str,
+        output_path: str,
+        fill_value: float = 0,
+        band: int = 1,
+    ) -> QgsRasterLayer:
+        """
+        Fills NoData pixels in a raster with a constant value.
+
+        :param str input_raster_path: Input raster layer path with NoData pixels
+        :param str output_path: Path to save the filled raster
+        :param float fill_value: Value to fill NoData pixels with (default: 0)
+        :param int band: Band number to process (default: 1)
+        :return: QgsRasterLayer of the filled raster
+        :rtype: QgsRasterLayer
+        """
+        import processing
+        from qgis.core import QgsProcessingFeedback
+
+        feedback = QgsProcessingFeedback()
+
+        params = {
+            'INPUT': input_raster_path,
+            'BAND': band,
+            'FILL_VALUE': fill_value,
+            'OUTPUT': output_path
+        }
+
+        result = processing.run("native:fillnodata", params, feedback=feedback)
+        filled_raster = QgsRasterLayer(result['OUTPUT'], os.path.basename(output_path))
+
+        if not filled_raster.isValid():
+            raise Exception("NoData filling with value failed — could not load output raster.")
+
+        return filled_raster
+
+    def gdal_raster_calculator(
+        self,
+        formula: str,
+        input_rasters: dict[str, str] | list[str],
+        output_path: str,
+        no_data: float | None = None,
+        rtype: int = 5,
+    ) -> QgsRasterLayer:
+        """
+        Performs raster calculator operations using GDAL.
+
+        :param str formula: GDAL calculator formula using A, B, C, etc. (e.g., 'A-B', '(A<0)*0 + (A>=0)*A')
+        :param dict[str, str] | list[str] input_rasters: Dictionary mapping letter to path {'A': path1, 'B': path2}
+                                                         or list of paths (assigned to A, B, C, etc. in order)
+        :param str output_path: Path to save the output raster
+        :param float | None no_data: NoData value for output (None = no NoData)
+        :param int rtype: Output data type (0=Byte, 1=Int16, 2=UInt16, 3=UInt32, 4=Int32, 5=Float32, 6=Float64)
+        :return: QgsRasterLayer of the calculated raster
+        :rtype: QgsRasterLayer
+        """
+        import processing
+        from qgis.core import QgsProcessingFeedback
+
+        feedback = QgsProcessingFeedback()
+
+        # Convert list to dict if needed
+        if isinstance(input_rasters, list):
+            letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            input_rasters = {letters[i]: path for i, path in enumerate(input_rasters)}
+
+        params = {
+            'FORMULA': formula,
+            'NO_DATA': no_data,
+            'RTYPE': rtype,
+            'OUTPUT': output_path
+        }
+
+        for letter, path in input_rasters.items():
+            params[f'INPUT_{letter}'] = path
+            params[f'BAND_{letter}'] = 1
+
+        try:
+            result = processing.run("gdal:rastercalculator", params, feedback=feedback)
+        except Exception as e:
+            raise Exception(f"GDAL raster calculation failed: {str(e)}")
+
+        if not result or 'OUTPUT' not in result:
+            raise Exception(f"GDAL raster calculation did not produce output")
+
+        output_file = result['OUTPUT']
+        
+        if not os.path.exists(output_file):
+            raise Exception(f"Output raster file was not created at: {output_file}")
+
+        output_raster = QgsRasterLayer(output_file, os.path.basename(output_path))
+
+        if not output_raster.isValid():
+            error_msg = output_raster.error().message() if output_raster.error() else "Unknown error"
+            raise Exception(f"Failed to load output raster from {output_file}: {error_msg}")
+
+        return output_raster
+
+    def raster_calculator(
+        self,
+        expression: str,
+        layers: list,
+        output_path: str,
+        cellsize: float = 0,
+        extent = None,
+        crs = None,
+    ) -> QgsRasterLayer:
+        """
+        Performs raster calculator operations on input layers using QGIS.
+
+        :param str expression: Raster calculator expression (e.g., '"Layer@1" - "Layer2@1"')
+        :param list layers: List of QgsRasterLayer objects to use in the calculation
+        :param str output_path: Path to save the output raster
+        :param float cellsize: Cell size for output (0 = use input resolution)
+        :param extent: Output extent (None = use input extent)
+        :param crs: Output CRS (None = use input CRS)
+        :return: QgsRasterLayer of the calculated raster
+        :rtype: QgsRasterLayer
+        """
+        import processing
+        from qgis.core import QgsProcessingFeedback
+
+        feedback = QgsProcessingFeedback()
+
+        params = {
+            'EXPRESSION': expression,
+            'LAYERS': layers,
+            'CELLSIZE': cellsize,
+            'EXTENT': extent,
+            'CRS': crs,
+            'OUTPUT': output_path
+        }
+
+        result = processing.run("qgis:rastercalculator", params, feedback=feedback)
+        output_raster = QgsRasterLayer(result['OUTPUT'], os.path.basename(output_path))
+
+        if not output_raster.isValid():
+            raise Exception("Raster calculation failed — could not load output raster.")
+
+        return output_raster
       
     def adjust_raster_pixel_resolution(
         self,
@@ -241,6 +383,7 @@ class RasterService:
         resampled_output_path: str,
         resampling: int = 0,
         target_resolution: float = 1,
+        nodata_value: float = -9999,
     )-> str:
         import processing
         feedback = QgsProcessingFeedback()
@@ -252,6 +395,7 @@ class RasterService:
         :param resampled_output_path: output file path for the warped raster
         :param resampling: resampling method index (0=nearest, 1=bilinear, etc.)
         :param target_resolution: target resolution in map units
+        :param nodata_value: NoData value to use in output (default: -9999)
         """
 
         warp_params = {
@@ -259,6 +403,7 @@ class RasterService:
             'TARGET_CRS': target_layer_obj.crs().authid(),
             'RESAMPLING': resampling,  
             'TARGET_RESOLUTION': target_resolution,
+            'NODATA': nodata_value,
             'OPTIONS': '',     
             'DATA_TYPE': 5,     
             'TARGET_ALIGN': True, 

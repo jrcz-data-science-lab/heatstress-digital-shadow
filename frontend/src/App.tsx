@@ -13,6 +13,8 @@ import { TreeIcon } from "./components/icons/TreeIcon";
 import { HeatStressMeasuresPanel } from "./components/panels/HeatStressMeasuresPanel";
 import { BuildingIcon } from "./components/icons/BuildingIcon";
 import { BuildingsPanel } from "./components/panels/BuildingsPanel";
+import { WindIcon } from "./components/icons/WindIcon";
+import { WindPanel } from "./components/panels/WindPanel";
 import { BuildingInfoCard } from "./components/infoCards/BuildingInfoCard";
 import { FeatureInfoCard } from "./components/infoCards/FeatureInfoCard";
 import { LoadingIndicator } from "./components/loading/LoadingIndicator";
@@ -145,6 +147,12 @@ export default function App() {
           onToggleBuildings={setShowBuildings}
         />
       ),
+    },
+    {
+      id: "wind",
+      icon: <WindIcon />,
+      label: "Wind (Debug)",
+      panel: <WindPanel />,
     },
   ];
 
