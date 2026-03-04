@@ -12,7 +12,7 @@ class ShadowService:
         current_dt = start_dt
         out_path = ''
         while current_dt <= end_dt:
-            az, alt = get_solar_position(lat, lon, "Middelburg", "Netherlands", "Europe/Amsterdam", current_dt)
+            az, alt = get_solar_position(lat, lon, "Kapelle", "Netherlands", "Europe/Amsterdam", current_dt)
             print(f"{current_dt}: Azimuth={az:.2f}, Altitude={alt:.2f}")
 
             hour_str = current_dt.strftime("%Y%m%d_%H%M")

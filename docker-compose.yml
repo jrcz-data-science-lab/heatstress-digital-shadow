@@ -1,39 +1,42 @@
 services:
   nginx:
-    image: "nginx"
+    image: nginx:latest
     volumes:
-      - ./server/conf/nginx-fcgi-sample.conf:/etc/nginx/nginx.conf
+      - ./server/conf/nginx-fcgi-sample.conf:/etc/nginx/nginx.conf:ro
     ports:
       - "8010:80"
-    networks: 
+    networks:
       - qgis-server-net
     restart: always
     depends_on:
       - qgis-server
- 
+
   qgis-server:
-    image: "qgis/qgis-server:stable"
+    image: qgis/qgis-server:stable
+    platform: linux/amd64
     environment:
-      # Do not run the embedded copy of nginx
       SKIP_NGINX: "true"
-      # Improve rendering performance
+      QT_QPA_PLATFORM: "offscreen"
+      DISPLAY: ":99"
       QGIS_SERVER_PARALLEL_RENDERING: "true"
-      QGIS_SERVER_MAX_THREADS: 4
-      # Limit the maximum size returned by a GetMap
-      QGIS_SERVER_WMS_MAX_HEIGHT: 5000
-      QGIS_SERVER_WMS_MAX_WIDTH: 5000
+      QGIS_SERVER_MAX_THREADS: "4"
+      QGIS_SERVER_WMS_MAX_HEIGHT: "5000"
+      QGIS_SERVER_WMS_MAX_WIDTH: "5000"
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        /usr/bin/Xvfb :99 -ac -screen 0 1280x1024x16 +extension GLX +render -noreset >/dev/null 2>&1 &
+        exec spawn-fcgi -n -a 0.0.0.0 -p 9993 -u www-data -g www-data -d /var/lib/qgis -- /usr/lib/cgi-bin/qgis_mapserv.fcgi
     networks:
       - qgis-server-net
     volumes:
-     # Data should be mount RO when working
-     # with GeoPackages and more than one QGIS container
       - ./data:/io/data:rw
       - ./plugins:/io/plugins
-      - ./fonts:/usr/share/fonts
-      - ./svg:/var/lib/qgis/.local/share/QGIS/QGIS3/profiles/default/svg
-     # - ./conf/pg_service.conf:/etc/postgresql-common/pg_service.conf:ro
+      - ./fonts:/usr/share/fonts:ro
+      - ./svg:/var/lib/qgis/.local/share/QGIS/QGIS3/profiles/default/svg:rw
     restart: always
-  
+
   qgis:
     container_name: qgis
     build: ./qgis
@@ -43,12 +46,9 @@ services:
       - ./qgis:/app
       - ./data:/data
     environment:
-      - QT_QPA_PLATFORM=offscreen
-      - QGIS_PREFIX_PATH=/usr
-      - PYTHONPATH=/usr/share/qgis/python
-      - LD_LIBRARY_PATH=/usr/lib/qgis
-      - DATA_PATH=/data
-    networks: 
+      QT_QPA_PLATFORM: offscreen
+      DATA_PATH: /data
+    networks:
       - qgis-server-net
 
   backend:
@@ -73,7 +73,8 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - NODE_ENV=development
-    
+      NODE_ENV: development
+
 networks:
   qgis-server-net:
+    driver: bridge
