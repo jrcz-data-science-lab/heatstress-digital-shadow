@@ -1,25 +1,15 @@
 import os
-from qgis.core import QgsRasterLayer, QgsProcessingFeedback
+from qgis.core import QgsRasterLayer
 from src.services.raster_service import RasterService
+from src.utils.layer_utils import load_raster_layer
 
 
-class WindService:
-    """Service class for wind-related processing, including height map generation from DSM and DTM layers."""
+class HeightService:
+    """Service class for height map generation and height extraction operations."""
     
     def __init__(self):
-        """Initialize the WindService with a RasterService instance."""
+        """Initialize the HeightService with a RasterService instance."""
         self.raster_service = RasterService()
-    
-    def _validate_layer(self, layer: QgsRasterLayer, path: str, layer_type: str) -> None:
-        """Validate that a raster layer was loaded successfully."""
-        if not layer.isValid():
-            raise ValueError(f"Failed to load {layer_type} from {path}")
-    
-    def _cleanup_temp_files(self, *file_paths: str) -> None:
-        """Remove temporary files if they exist."""
-        for file_path in file_paths:
-            if os.path.exists(file_path):
-                os.remove(file_path)
     
     def create_height_map(
         self,
@@ -51,16 +41,8 @@ class WindService:
         """
         import tempfile
         
-        # Ensure output directory exists
-        output_dir = os.path.dirname(corrected_height_output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir, exist_ok=True)
-        
-        # Load and validate input rasters
-        dsm_layer = QgsRasterLayer(dsm_input_path, dsm_name)
-        dtm_layer = QgsRasterLayer(dtm_input_path, dtm_name)
-        self._validate_layer(dsm_layer, dsm_input_path, "DSM")
-        self._validate_layer(dtm_layer, dtm_input_path, "DTM")
+        dsm_layer = load_raster_layer(dsm_input_path, dsm_name)
+        dtm_layer = load_raster_layer(dtm_input_path, dtm_name)
         
         # Create temporary file paths for intermediate layers
         temp_dir = tempfile.gettempdir()
@@ -94,8 +76,7 @@ class WindService:
         try:
             self.raster_service.fill_nodata_with_value(
                 input_raster_path=dtm_filled_temp1,
-                output_path=dtm_filled_temp2,
-                fill_value=0
+                output_path=dtm_filled_temp2
             )
         except Exception as e:
             # If no NoData values remain, just use the GDAL-filled version
@@ -112,9 +93,8 @@ class WindService:
             output_path=height_temp
         )
         
-        # Load height layer
         height_layer = QgsRasterLayer(height_temp, "Height")
-        self._validate_layer(height_layer, height_temp, "height raster")
+        self.raster_service.validate_layer(height_layer, height_temp, "height raster")
         
         # Correct negative values
         self.raster_service.gdal_raster_calculator(
@@ -123,14 +103,70 @@ class WindService:
             output_path=corrected_height_output_path
         )
         
-        # Load and validate final height layer
         height_layer_final = QgsRasterLayer(corrected_height_output_path, "Height")
-        self._validate_layer(height_layer_final, corrected_height_output_path, "height raster")
+        self.raster_service.validate_layer(height_layer_final, corrected_height_output_path, "height raster")
         
-        # Clean up all temporary files
-        self._cleanup_temp_files(dsm_warped_temp, dtm_warped_temp, dtm_filled_temp1, dtm_filled_temp2, height_temp)
+        self.raster_service.cleanup_temp_files(dsm_warped_temp, dtm_warped_temp, dtm_filled_temp1, dtm_filled_temp2, height_temp)
         
         return {
             "height_path": corrected_height_output_path,
             "height_layer": height_layer_final,
+        }
+    
+    def extract_height_buildings(
+        self,
+        height_map_path: str,
+        buildings_mask_path: str,
+        output_path: str,
+    ) -> dict:
+        """
+        Extract building heights from height map using buildings mask.
+        
+        Formula: (corrected DSM-DTM) * (mask == 1)
+        
+        :param str height_map_path: Path to corrected height map (DSM-DTM)
+        :param str buildings_mask_path: Path to buildings mask raster
+        :param str output_path: Path for output buildings-height raster
+        :return: Dictionary with output path and layer object
+        """
+        self.raster_service.gdal_raster_calculator(
+            formula='A * (B == 1)',
+            input_rasters={'A': height_map_path, 'B': buildings_mask_path},
+            output_path=output_path
+        )
+        
+        height_layer = load_raster_layer(output_path, "Buildings Height")
+        
+        return {
+            "height_path": output_path,
+            "height_layer": height_layer,
+        }
+    
+    def extract_height_trees(
+        self,
+        height_map_path: str,
+        trees_mask_path: str,
+        output_path: str,
+    ) -> dict:
+        """
+        Extract tree heights from height map using trees mask.
+        
+        Formula: (corrected DSM-DTM) * (mask == 1)
+        
+        :param str height_map_path: Path to corrected height map (DSM-DTM)
+        :param str trees_mask_path: Path to trees mask raster
+        :param str output_path: Path for output trees-height raster
+        :return: Dictionary with output path and layer object
+        """
+        self.raster_service.gdal_raster_calculator(
+            formula='A * (B == 1)',
+            input_rasters={'A': height_map_path, 'B': trees_mask_path},
+            output_path=output_path
+        )
+        
+        height_layer = load_raster_layer(output_path, "Trees Height")
+        
+        return {
+            "height_path": output_path,
+            "height_layer": height_layer,
         }

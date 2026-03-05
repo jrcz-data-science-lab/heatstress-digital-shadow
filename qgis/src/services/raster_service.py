@@ -12,8 +12,62 @@ import math
 import random
 
 class RasterService:
+    def validate_layer(self, layer: QgsRasterLayer, path: str, layer_type: str) -> None:
+        """Validate that a raster layer was loaded successfully."""
+        if not layer.isValid():
+            raise ValueError(f"Failed to load {layer_type} from {path}")
+    
+    def cleanup_temp_files(self, *file_paths: str) -> None:
+        """Remove temporary files if they exist."""
+        for file_path in file_paths:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
     def load_raster_layer(self, path: str, layer: str) -> QgsRasterLayer:
         return QgsRasterLayer(path, layer)
+    
+    def buffer_vector_layer(
+        self,
+        vector_layer: QgsVectorLayer,
+        distance: float = 3.0,
+        output_path: str | None = None,
+        segments: int = 16,
+        dissolve: bool = False,
+    ) -> QgsVectorLayer:
+        """
+        Buffer a vector layer.
+        
+        :param QgsVectorLayer vector_layer: Input vector layer to buffer
+        :param float distance: Buffer distance in map units
+        :param str output_path: Optional output path (uses temp file if not provided)
+        :param int segments: Number of segments for circular buffers (default: 16)
+        :param bool dissolve: Whether to dissolve overlapping buffers (default: False)
+        :return: Buffered vector layer
+        """
+        import processing
+        
+        if not output_path:
+            output_path = os.path.join(tempfile.gettempdir(), f"buffered_{hash(vector_layer)}.gpkg")
+        
+        processing.run(
+            "native:buffer",
+            {
+                "INPUT": vector_layer,
+                "DISTANCE": distance,
+                "SEGMENTS": segments,
+                "END_CAP_STYLE": 0,
+                "JOIN_STYLE": 0,
+                "MITER_LIMIT": 2,
+                "DISSOLVE": dissolve,
+                "OUTPUT": output_path,
+            },
+        )
+        
+        buffered_layer = QgsVectorLayer(output_path, "Buffered", "ogr")
+        if not buffered_layer.isValid():
+            raise ValueError(f"Failed to create buffered layer at {output_path}")
+        
+        return buffered_layer
 
     def burn_points_to_raster(
         self,
@@ -47,21 +101,8 @@ class RasterService:
             pr.addFeature(feat)
         vl.updateExtents()
 
-        # Buffer for the point (in order to have actual dimensions)
-        buffer_layer_path = os.path.join(tempfile.gettempdir(), "buffered_point.gpkg") 
-        processing.run(
-            "native:buffer",
-            {
-                "INPUT": vl,
-                "DISTANCE": buffer_distance,
-                "SEGMENTS": 16,
-                "END_CAP_STYLE": 0,
-                "JOIN_STYLE": 0,
-                "MITER_LIMIT": 2,
-                "DISSOLVE": False,  # Merge overlapping buffers
-                "OUTPUT": buffer_layer_path,
-            },
-        )
+        buffer_layer_path = os.path.join(tempfile.gettempdir(), "buffered_point.gpkg")
+        self.buffer_vector_layer(vl, buffer_distance, buffer_layer_path)
 
         if output_path:
             shutil.copyfile(raster, output_path)
@@ -104,6 +145,7 @@ class RasterService:
         output_path: str,
         resolution: float = 1.0,
         no_data_value: float = 0.0,
+        extent=None,
     ) -> QgsRasterLayer:
         """
         Rasterizes a vector layer based on a specific attribute field using georeferenced units.
@@ -113,12 +155,16 @@ class RasterService:
         :param str output_path: Path to the output raster (e.g., '/tmp/output.tif').
         :param float resolution: The raster resolution in georeferenced units
         :param float no_data_value: Value for pixels with no data.
+        :param extent: Optional extent to use for rasterization (default: vector_layer.extent())
         :return: The rasterized layer as a QgsRasterLayer.
         :rtype: QgsRasterLayer
         """
         import processing
 
         feedback = QgsProcessingFeedback()
+
+        if extent is None:
+            extent = vector_layer.extent()
 
         # Define raster extent and resolution in georeferenced units
         params = {
@@ -129,7 +175,7 @@ class RasterService:
             'UNITS': 1,  # 1 = Georeferenced units (map units)
             'WIDTH': resolution,
             'HEIGHT': resolution,
-            'EXTENT': vector_layer.extent(),
+            'EXTENT': extent,
             'NODATA': no_data_value,
             'DATA_TYPE': 5,  # Float32
             'OUTPUT': output_path
@@ -386,6 +432,8 @@ class RasterService:
         nodata_value: float = -9999,
     )-> str:
         import processing
+        from qgis.core import QgsProcessingFeedback
+
         feedback = QgsProcessingFeedback()
         """
         Reprojects and resamples a raster to match the CRS and alignment of a target layer.
