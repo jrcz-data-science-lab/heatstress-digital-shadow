@@ -102,45 +102,34 @@ class RasterService:
         vector_layer: QgsVectorLayer,
         attribute_field: str,
         output_path: str,
-        resolution: float = 1.0,
+        resolution: float = 5.0,
         no_data_value: float = 0.0,
+        extent_layer: QgsRasterLayer | None = None,
     ) -> QgsRasterLayer:
-        """
-        Rasterizes a vector layer based on a specific attribute field using georeferenced units.
-
-        :param QgsVectorLayer vector_layer: Input vector layer to rasterize.
-        :param str attribute_field: The attribute field whose values will be burned into the raster.
-        :param str output_path: Path to the output raster (e.g., '/tmp/output.tif').
-        :param float resolution: The raster resolution in georeferenced units
-        :param float no_data_value: Value for pixels with no data.
-        :return: The rasterized layer as a QgsRasterLayer.
-        :rtype: QgsRasterLayer
-        """
         import processing
-
         feedback = QgsProcessingFeedback()
 
-        # Define raster extent and resolution in georeferenced units
+        extent = extent_layer.extent() if extent_layer else vector_layer.extent()
+
         params = {
-            'INPUT': vector_layer,
-            'FIELD': attribute_field,
-            'BURN': 1, #  Source trust me (ui qgis)
-            'USE_Z': False,
-            'UNITS': 1,  # 1 = Georeferenced units (map units)
-            'WIDTH': resolution,
-            'HEIGHT': resolution,
-            'EXTENT': vector_layer.extent(),
-            'NODATA': no_data_value,
-            'DATA_TYPE': 5,  # Float32
-            'OUTPUT': output_path
+            "INPUT": vector_layer,
+            "FIELD": attribute_field,
+            "BURN": 1,
+            "USE_Z": False,
+            "UNITS": 1,
+            "WIDTH": resolution,
+            "HEIGHT": resolution,
+            "EXTENT": extent,
+            "NODATA": no_data_value,
+            "DATA_TYPE": 5,  # Float32
+            "OUTPUT": output_path,
         }
 
         result = processing.run("gdal:rasterize", params, feedback=feedback)
-        raster_layer = QgsRasterLayer(result['OUTPUT'], os.path.basename(output_path))
-
+        raster_layer = QgsRasterLayer(result["OUTPUT"], os.path.basename(output_path))
         if not raster_layer.isValid():
             raise Exception(f"Rasterization failed — could not load output: {output_path}")
-
+            
         return raster_layer
 
     def clip_raster_by_extent(
@@ -240,32 +229,34 @@ class RasterService:
         target_layer_obj: QgsRasterLayer,
         resampled_output_path: str,
         resampling: int = 0,
-        target_resolution: float = 1,
-    )-> str:
+    ) -> str:
         import processing
         feedback = QgsProcessingFeedback()
-        """
-        Reprojects and resamples a raster to match the CRS and alignment of a target layer.
 
-        :param input_raster_path: file path or QgsRasterLayer to warp
-        :param target_layer_objr: QgsRasterLayer whose CRS/resolution/alignment will be matched
-        :param resampled_output_path: output file path for the warped raster
-        :param resampling: resampling method index (0=nearest, 1=bilinear, etc.)
-        :param target_resolution: target resolution in map units
-        """
+        ext = target_layer_obj.extent()
+        xmin, xmax, ymin, ymax = ext.xMinimum(), ext.xMaximum(), ext.yMinimum(), ext.yMaximum()
+        xres = float(target_layer_obj.rasterUnitsPerPixelX())
+        yres = float(target_layer_obj.rasterUnitsPerPixelY())
 
-        warp_params = {
-            'INPUT': input_raster,
-            'TARGET_CRS': target_layer_obj.crs().authid(),
-            'RESAMPLING': resampling,  
-            'TARGET_RESOLUTION': target_resolution,
-            'OPTIONS': '',     
-            'DATA_TYPE': 5,     
-            'TARGET_ALIGN': True, 
-            'OUTPUT': resampled_output_path
+        params = {
+            "INPUT": input_raster,
+            "SOURCE_CRS": None,
+            "TARGET_CRS": target_layer_obj.crs(),
+            "RESAMPLING": resampling,
+            "NODATA": None,
+            "TARGET_RESOLUTION": True,
+            "TR": [xres, yres],
+            "TARGET_EXTENT": [xmin, xmax, ymin, ymax],
+            "TARGET_EXTENT_CRS": target_layer_obj.crs(),
+            "TARGET_ALIGNED_PIXELS": True,
+            "MULTITHREADING": False,
+            "OPTIONS": "",
+            "DATA_TYPE": 0,  # use input type; avoids Int32 surprises
+            "EXTRA": "",
+            "OUTPUT": resampled_output_path,
         }
-        
-        processing.run("gdal:warpreproject", warp_params, feedback=feedback)
+
+        processing.run("gdal:warpreproject", params, feedback=feedback)
 
         if not os.path.exists(resampled_output_path):
             raise Exception(f"Warped raster was not created at: {resampled_output_path}")
