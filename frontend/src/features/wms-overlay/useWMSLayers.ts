@@ -1,6 +1,4 @@
-import { useEffect, useMemo } from 'react';
-import type { Layer, PickingInfo } from '@deck.gl/core';
-import { makeWmsLayer } from './lib/wmsLayer';
+import { useEffect } from 'react';
 import { useQgisFeatureInfo } from "./lib/qgisFeatureInfo";
 import type { QgisLayerId } from './lib/qgisLayers';
 import { useWMSLegend } from './useWMSLegend';
@@ -21,23 +19,8 @@ type UseWMSLayersOpts = {
     objectsVersion: number;
 };
 
-export function useWMSLayers({ showOverlay, overlayLayerId, objectsVersion }: UseWMSLayersOpts) {
-    const WMS_BASE_URL = "/backend/qgis/wms"; 
-    const wmsLayer = useMemo<Layer | null>(() => {
-        if (!showOverlay) return null;
-
-        return makeWmsLayer({
-            id: `wms-overlay-${overlayLayerId}-${objectsVersion}`,
-            baseUrl: WMS_BASE_URL,
-            layerName: overlayLayerId,
-            bounds: WMS_BOUNDS,
-            minZoom: 0,
-            maxZoom: 24,
-            transparent: true,
-            opacity: 1,
-            cacheBuster: objectsVersion,
-        });
-    }, [showOverlay, overlayLayerId, objectsVersion]);
+export function useWMSLayers({ showOverlay, overlayLayerId, objectsVersion: _objectsVersion }: UseWMSLayersOpts) {
+    const WMS_BASE_URL = "/backend/qgis/wms";
 
     const { legend, isLoading: isLegendLoading, error: legendError } = useWMSLegend({
         enabled: true,
@@ -57,16 +40,12 @@ export function useWMSLayers({ showOverlay, overlayLayerId, objectsVersion }: Us
         }
     }, [showOverlay, clear]);
 
-    const handleMapClick = (info: PickingInfo): void => {
+    const handleMapClick = (lon: number, lat: number): void => {
         if (!showOverlay) return;
-        if (!info.coordinate) return;
-
-        const [lon, lat] = info.coordinate as [number, number];
         void request(lon, lat);
-    }
+    };
 
     return {
-        wmsLayer,
         featureInfo,
         legend,
         isLegendLoading,

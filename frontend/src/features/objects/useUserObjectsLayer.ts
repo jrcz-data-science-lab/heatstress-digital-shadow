@@ -1,10 +1,9 @@
-import type { Layer, PickingInfo } from '@deck.gl/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { makeObjectsLayer, type ObjectInstance, type MeasureType } from './lib/objectLayer';
 import { LOCAL_STORAGE_KEY } from '../../map/utils/deckUtils';
 import { lonLatToRd } from '../../map/utils/crs';
+import type { MeasureType, ObjectInstance } from './lib/objectLayer';
 
-type LayerMap = Record<string, Layer>;
+export type { MeasureType, ObjectInstance };
 
 export function useUserObjectsLayer(
     showObjects: boolean,
@@ -13,7 +12,6 @@ export function useUserObjectsLayer(
     setSelectedObjectType: (type: string) => void,
 ) {
     const [isProcessing, setIsProcessing] = useState(false);
-
     const [objectTypes, setObjectTypes] = useState<MeasureType[]>([]);
 
     useEffect(() => {
@@ -23,17 +21,12 @@ export function useUserObjectsLayer(
                 const response = await fetch('/backend/measures');
                 if (!response.ok) throw new Error(response.statusText);
                 const data: MeasureType[] = await response.json();
-
-                if (!cancelled) {
-                    setObjectTypes(data);
-                }
+                if (!cancelled) setObjectTypes(data);
             } catch (e) {
                 console.error("Failed to fetch measure types", e);
             }
         }
-
         fetchTypes();
-
         return () => { cancelled = true; };
     }, [setSelectedObjectType]);
 
@@ -54,39 +47,32 @@ export function useUserObjectsLayer(
     const [objectsVersion, setObjectsVersion] = useState(0);
     const [error, setError] = useState<Error | null>(null);
 
-    // Sync objectsToSave when userObjects changes (on initial load/save commit)
     useEffect(() => {
         setObjectsToSave(userObjects);
     }, [userObjects]);
 
     const getSelectedTypeProperties = useCallback((): MeasureType | undefined => {
         if (objectTypes.length === 0) return undefined;
-
         return objectTypes.find(t => t.name === selectedObjectType);
     }, [objectTypes, selectedObjectType]);
 
-    const handleInteraction = useCallback((info: PickingInfo) => {
+    /**
+     * Handle a map click for placing/removing user objects.
+     * @param lon  Longitude of the click
+     * @param lat  Latitude of the click
+     * @param pickedEntityId  Cesium entity id string, if any entity was picked
+     */
+    const handleInteraction = useCallback((lon: number, lat: number, pickedEntityId?: string) => {
         if (!isEditingMode) return;
 
-        if (info.object) {
-            const clickedObject = info.object as ObjectInstance;
-            const clickedLayerId = info.layer?.id;
-            const objectIdToRemove = clickedObject.id;
-
-            if (clickedLayerId?.startsWith('user-objects')) {
-                if (objectIdToRemove && objectIdToRemove.startsWith('CLIENT-')) {
-                    setObjectsToSave(prev => prev.filter(t => t.id !== objectIdToRemove));
-                    return true;
-                } else {
-                    return; // Not a client-placed object
-                }
-            }
-            return;
+        // If a user-placed entity was picked, remove it
+        if (pickedEntityId?.startsWith('user-obj-CLIENT-')) {
+            const objectId = pickedEntityId.replace(/^user-obj-/, '');
+            setObjectsToSave(prev => prev.filter(t => t.id !== objectId));
+            return true;
         }
 
-        if (!info.coordinate) return;
-        const [lon, lat] = info.coordinate;
-
+        // Otherwise place a new object at the clicked location
         const selectedType = getSelectedTypeProperties();
         if (!selectedType) {
             console.warn("Cannot place object: Type properties not yet loaded or selected type is invalid.");
@@ -107,89 +93,37 @@ export function useUserObjectsLayer(
         };
 
         setObjectsToSave(prev => [...prev, newObject]);
-
         return true;
     }, [
         isEditingMode,
         selectedObjectType,
         nextClientId,
         getSelectedTypeProperties,
-        setObjectsToSave
     ]);
 
-    const userObjectLayers = useMemo<LayerMap | null>(() => {
-        if (!showObjects || objectsToSave.length === 0 || objectTypes.length === 0) return null;
-
-        const groupedObjects = objectsToSave.reduce((acc, obj) => {
-            if (!acc[obj.objectType]) {
-                acc[obj.objectType] = [];
-            }
-            acc[obj.objectType].push(obj);
-            return acc;
-        }, {} as Record<string, ObjectInstance[]>);
-
-        const objectTypesMap = objectTypes.reduce((acc, type) => {
-            acc[type.name] = type;
-            return acc;
-        }, {} as Record<string, MeasureType>);
-
-        const layers: LayerMap = {};
-
-        for (const typeName in groupedObjects) {
-            const type = objectTypesMap[typeName];
-
-            if (!type) {
-                console.warn(`Missing properties for saved object type: ${typeName}. Skipping layer.`);
-                continue;
-            }
-
-            layers[typeName] = makeObjectsLayer(
-                `user-objects-${typeName}`,
-                groupedObjects[typeName],
-                type.model,
-                {
-                    orientation: type.rotation
-                }
-            );
-        }
-
-        return layers;
-    }, [objectsToSave, showObjects, objectTypes]);
+    // Suppress unused warning — showObjects is kept as a param for API symmetry
+    void showObjects;
 
     const hasUnsavedChanges = useMemo(() => {
-        // If the references happen to be the same, content is definitely the same
-        if (userObjects === objectsToSave) {
-            return false;
-        }
-
-        // If lengths are different, changes exist
-        if (userObjects.length !== objectsToSave.length) {
-            return true;
-        }
-
+        if (userObjects === objectsToSave) return false;
+        if (userObjects.length !== objectsToSave.length) return true;
         const sortedUser = [...userObjects].sort((a, b) => a.id.localeCompare(b.id));
         const sortedDraft = [...objectsToSave].sort((a, b) => a.id.localeCompare(b.id));
-
-        // Serialize and compare the strings
         return JSON.stringify(sortedUser) !== JSON.stringify(sortedDraft);
-
     }, [userObjects, objectsToSave]);
-
 
     const saveObjects = useCallback(async (objectsToSave: ObjectInstance[]) => {
         setIsProcessing(true);
-
         try {
             const payload = {
                 points: objectsToSave.map(obj => {
                     const [lon, lat] = obj.position;
                     const [x, y] = lonLatToRd(lon, lat);
-
                     return {
                         x,
                         y,
-                        height: obj.height ? obj.height : 0.4,
-                        radius: obj.radius ? obj.radius : 5.0,
+                        height: obj.height ?? 0.4,
+                        radius: obj.radius ?? 5.0,
                         geometry: obj.geometry,
                     };
                 }),
@@ -197,9 +131,7 @@ export function useUserObjectsLayer(
 
             const response = await fetch('/backend/update-pet', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
@@ -212,47 +144,41 @@ export function useUserObjectsLayer(
                 setUserObjects(objectsToSave);
                 setObjectsVersion(v => v + 1);
             });
-
         } catch (e) {
-            console.error('Error saving objects to local storage:', e);
+            console.error('Error saving objects:', e);
             setError(e instanceof Error ? e : new Error(String(e)));
         } finally {
             setIsProcessing(false);
         }
     }, []);
 
-
     const handleImport = useCallback((importedObjects: ObjectInstance[]) => {
         if (importedObjects.length === 0) {
             alert("Imported file contains no objects.");
             return;
         }
-
         const confirmReplace = window.confirm(
             `This action will replace all current objects with ${importedObjects.length} imported objects and re-calculate PET map. Are you sure?`
         );
-
         if (confirmReplace) {
             saveObjects(importedObjects);
         }
     }, [saveObjects]);
-
 
     const discardChanges = useCallback(() => {
         setObjectsToSave(userObjects);
     }, [userObjects]);
 
     return {
-        userObjectLayers: userObjectLayers ? Object.values(userObjectLayers) : [],
+        objectsToSave,
+        objectTypes,
         handleInteraction,
         saveObjects,
         discardChanges,
         error,
         hasUnsavedChanges,
         objectsVersion,
-        objectTypes,
         isProcessing,
-        objectsToSave,
-        handleImport
+        handleImport,
     };
 }

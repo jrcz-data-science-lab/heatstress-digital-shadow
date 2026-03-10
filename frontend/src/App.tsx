@@ -1,11 +1,16 @@
 import type { MeasureType } from "./features/objects/lib/objectLayer";
-import type { PickingInfo } from "@deck.gl/core";
 import type { SideMenuItem } from "./components/sideMenu/SideMenuItem";
 import React, { useCallback, useEffect, useState } from "react";
-import DeckMap from "./map/DeckMap";
-import { useDeckLayers } from "./map/hooks/useDeckLayers";
-import { QGIS_OVERLAY_LAYERS, type QgisLayerId } from "./features/wms-overlay/lib/qgisLayers";
+import CesiumMap, { type CesiumClickInfo } from "./map/CesiumMap";
+import { BasemapLayer } from "./features/basemap/BasemapLayer";
+import { WMSOverlayLayer } from "./features/wms-overlay/WMSOverlayLayer";
+import { StaticTreesEntities } from "./features/objects/StaticTreesEntities";
+import { UserObjectsEntities } from "./features/objects/UserObjectsEntities";
+import { BuildingHighlightEntity } from "./features/buildings-3d/BuildingHighlightEntity";
+import { useUserObjectsLayer } from "./features/objects/useUserObjectsLayer";
+import { useWMSLayers } from "./features/wms-overlay/useWMSLayers";
 import { useBuildingHighlight } from "./features/buildings-3d/useBuildingHighlight";
+import { QGIS_OVERLAY_LAYERS, type QgisLayerId } from "./features/wms-overlay/lib/qgisLayers";
 import { SideMenu } from "./components/sideMenu/SideMenu";
 import { LayersIcon } from "./components/icons/LayersIcon";
 import { OverlayLayersPanel } from "./components/panels/OverlayLayersPanel";
@@ -20,13 +25,11 @@ import { LegendCard } from "./components/legend/LegendCard";
 
 export default function App() {
   const [showBuildings, setShowBuildings] = React.useState(false);
-
   const [showObjects, setShowObjects] = useState(false);
   const [editingIntent, setEditingIntent] = useState(false);
   const [activeSideMenuId, setActiveSideMenuId] = useState<string | null>(null);
   const isEditingMode = editingIntent && activeSideMenuId === "heatstressmeasures";
-  const [selectedObjectType, setSelectedObjectType] =
-    useState<string | null>(null);
+  const [selectedObjectType, setSelectedObjectType] = useState<string | null>(null);
   const loaderLeft = activeSideMenuId ? "25.5rem" : "4rem";
 
   const [showOverlay, setShowOverlay] = useState(true);
@@ -35,47 +38,48 @@ export default function App() {
   );
 
   const {
-    layers,
-    onViewStateClick,
+    objectsToSave,
+    objectTypes,
+    handleInteraction,
     saveObjects,
     discardChanges,
     hasUnsavedChanges,
-    featureInfo,
-    legend,
-    handleMapClick,
-    objectTypes,
+    objectsVersion,
     isProcessing,
-    objectsToSave,
-    handleImport
-  } = useDeckLayers({
-    showBuildings,
+    handleImport,
+  } = useUserObjectsLayer(
     showObjects,
     isEditingMode,
     selectedObjectType,
     setSelectedObjectType,
-    objPath: 'data/10-72-338-LoD22-3D_leveled.obj',
+  );
+
+  const {
+    featureInfo,
+    legend,
+    handleMapClick,
+  } = useWMSLayers({
     showOverlay,
     overlayLayerId,
+    objectsVersion,
+  });
+
+  const { highlight, handleBuildingClick, buildingInfo } = useBuildingHighlight({
+    enabled: showBuildings,
   });
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!hasUnsavedChanges) return;
-
       event.preventDefault();
       event.returnValue = "";
     };
-
     window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
   const handleToggleObjects = (value: boolean) => {
     setShowObjects(value);
-
     if (!value) {
       setSelectedObjectType(null);
       setEditingIntent(false);
@@ -88,17 +92,38 @@ export default function App() {
       setEditingIntent(false);
       return;
     }
-
     const typeExists = objectTypes.find(t => t.name === type.name) ? true : false;
-
     if (!typeExists) {
       console.warn("Selected object type not found.");
       return;
     }
-
     setSelectedObjectType(type.name);
     setEditingIntent(typeExists);
   };
+
+  const handleCesiumClick = useCallback(
+    ({ coordinate, pickedEntityId }: CesiumClickInfo) => {
+      if (!coordinate) return;
+      const [lon, lat] = coordinate;
+
+      if (showBuildings) {
+        handleBuildingClick(lon, lat);
+      }
+
+      handleInteraction(lon, lat, pickedEntityId);
+      handleMapClick(lon, lat);
+    },
+    [showBuildings, handleBuildingClick, handleInteraction, handleMapClick]
+  );
+
+  const activeVbos =
+    buildingInfo?.verblijfsobject_data?.filter(
+      (vbo) => vbo.status === "Verblijfsobject in gebruik"
+    ) ?? [];
+
+  const usageFunctions = Array.from(
+    new Set(activeVbos.flatMap((vbo) => vbo.usage_function ?? []))
+  );
 
   const items: SideMenuItem[] = [
     {
@@ -148,50 +173,36 @@ export default function App() {
     },
   ];
 
-  const { highlightLayer, handleBuildingClick, buildingInfo } = useBuildingHighlight({
-    enabled: showBuildings,
-  });
-
-  const activeVbos =
-    buildingInfo?.verblijfsobject_data?.filter(
-      (vbo) => vbo.status === "Verblijfsobject in gebruik"
-    ) ?? [];
-
-  const usageFunctions = Array.from(
-    new Set(activeVbos.flatMap((vbo) => vbo.usage_function ?? []))
-  );
-
-  const deckClickHandler = useCallback(
-    (info: PickingInfo) => {
-      handleBuildingClick(info);
-
-      const handledByInteraction = onViewStateClick(info);
-
-      handleMapClick(info);
-
-      return handledByInteraction;
-    },
-    [handleBuildingClick, onViewStateClick, handleMapClick]
-  );
-
   const menuNode = React.useRef<HTMLDivElement>(null);
 
   return (
     <div style={{ position: "relative", height: "100dvh", width: "100%" }}>
- 
-      
-      <DeckMap
-        layers={highlightLayer ? [...layers, highlightLayer] : layers}
-        initialViewState={{
-          longitude: 3.613,
-          latitude: 51.5,
-          zoom: 14,
-          pitch: 45,
-          bearing: 0,
-        }}
-        onMapInteraction={deckClickHandler}
-        isEditingMode={isEditingMode}
-      />
+      <CesiumMap onLeftClick={handleCesiumClick} isEditingMode={isEditingMode}>
+        <BasemapLayer />
+
+        {showOverlay && (
+          <WMSOverlayLayer
+            layerId={overlayLayerId}
+            objectsVersion={objectsVersion}
+          />
+        )}
+
+        {showObjects && <StaticTreesEntities />}
+
+        {showObjects && (
+          <UserObjectsEntities
+            objectsToSave={objectsToSave}
+            objectTypes={objectTypes}
+          />
+        )}
+
+        {showBuildings && highlight && (
+          <BuildingHighlightEntity
+            polygon={highlight.polygon}
+            height={highlight.height}
+          />
+        )}
+      </CesiumMap>
 
       {isProcessing && (
         <LoadingIndicator
@@ -233,9 +244,10 @@ export default function App() {
           <SideMenu
             items={items}
             activeId={activeSideMenuId}
-            onChange={setActiveSideMenuId} />
+            onChange={setActiveSideMenuId}
+          />
         </div>
       </div>
     </div>
-  )
+  );
 }
