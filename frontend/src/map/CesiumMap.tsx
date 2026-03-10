@@ -146,6 +146,8 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap({ childr
         }}
       >
         © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors
+        {' · '}
+        © <a href="https://3dbag.nl" target="_blank" rel="noreferrer">3D BAG</a> by TU Delft
       </div>
     </div>
   );

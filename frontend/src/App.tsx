@@ -7,6 +7,7 @@ import { WMSOverlayLayer } from "./features/wms-overlay/WMSOverlayLayer";
 import { StaticTreesEntities } from "./features/objects/StaticTreesEntities";
 import { UserObjectsEntities } from "./features/objects/UserObjectsEntities";
 import { BuildingHighlightEntity } from "./features/buildings-3d/BuildingHighlightEntity";
+import { BAG3DTileset } from "./features/buildings-3d/BAG3DTileset";
 import { useUserObjectsLayer } from "./features/objects/useUserObjectsLayer";
 import { useWMSLayers } from "./features/wms-overlay/useWMSLayers";
 import { useBuildingHighlight } from "./features/buildings-3d/useBuildingHighlight";
@@ -206,6 +207,8 @@ export default function App() {
             objectTypes={objectTypes}
           />
         )}
+
+        {showBuildings && <BAG3DTileset />}
 
         {showBuildings && highlight && (
           <BuildingHighlightEntity
