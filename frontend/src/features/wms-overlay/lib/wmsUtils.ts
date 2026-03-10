@@ -22,7 +22,8 @@ export function buildGetFeatureInfoUrl({
   const [west, south, east, north] = bounds;
   const [lon, lat] = coord;
 
-  const bboxParam = `${south},${west},${north},${east}`;
+  // CRS:84 (used server-side) uses lon,lat axis order — same as WMS 1.1.1 EPSG:4326
+  const bboxParam = `${west},${south},${east},${north}`;
 
   const xFrac = (lon - west) / (east - west);
   const yFrac = (north - lat) / (north - south);

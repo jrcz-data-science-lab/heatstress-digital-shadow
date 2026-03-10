@@ -16,10 +16,9 @@ export const WMS_HEIGHT = 2048;
 type UseWMSLayersOpts = {
     showOverlay: boolean;
     overlayLayerId: QgisLayerId;
-    objectsVersion: number;
 };
 
-export function useWMSLayers({ showOverlay, overlayLayerId, objectsVersion: _objectsVersion }: UseWMSLayersOpts) {
+export function useWMSLayers({ showOverlay, overlayLayerId }: UseWMSLayersOpts) {
     const WMS_BASE_URL = "/backend/qgis/wms";
 
     const { legend, isLoading: isLegendLoading, error: legendError } = useWMSLegend({

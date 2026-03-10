@@ -1,6 +1,7 @@
-import { type ReactNode, useEffect, useRef } from 'react';
-import { Viewer } from 'resium';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { Viewer, CameraFlyTo } from 'resium';
 import {
+  Cartesian3,
   Cartographic,
   Math as CesiumMath,
   ScreenSpaceEventHandler,
@@ -22,9 +23,17 @@ type Props = {
   isEditingMode?: boolean;
 };
 
+// Zeeland/Kapelle overview
+const INITIAL_LON = 3.83;
+const INITIAL_LAT = 50.45;
+const INITIAL_HEIGHT = 100000;
+const PITCH_3D = CesiumMath.toRadians(-45);  // tilted perspective
+const PITCH_2D = CesiumMath.toRadians(-90);  // straight down
+
 export default function CesiumMap({ children, onLeftClick, isEditingMode = false }: Props) {
   const viewerRef = useRef<{ cesiumElement: import('cesium').Viewer } | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [isPerspective, setIsPerspective] = useState(true);
+  const [initialFlyDone, setInitialFlyDone] = useState(false);
 
   // Set up click handler
   useEffect(() => {
@@ -36,12 +45,10 @@ export default function CesiumMap({ children, onLeftClick, isEditingMode = false
     handler.setInputAction((movement: { position: import('cesium').Cartesian2 }) => {
       const scene = viewer.scene;
 
-      // Pick entity at click position
       const picked = scene.pick(movement.position);
       const pickedEntityId: string | undefined =
         picked?.id?.id ?? picked?.id ?? undefined;
 
-      // Convert screen position to lon/lat
       const cartesian = viewer.camera.pickEllipsoid(movement.position);
       if (!cartesian) {
         onLeftClick({ coordinate: null, pickedEntityId });
@@ -55,10 +62,15 @@ export default function CesiumMap({ children, onLeftClick, isEditingMode = false
       onLeftClick({ coordinate: [lon, lat], pickedEntityId });
     }, ScreenSpaceEventType.LEFT_CLICK);
 
-    return () => {
-      handler.destroy();
-    };
+    return () => { handler.destroy(); };
   }, [onLeftClick]);
+
+  // Remove default Cesium imagery layer on mount
+  useEffect(() => {
+    const viewer = viewerRef.current?.cesiumElement;
+    if (!viewer) return;
+    viewer.imageryLayers.removeAll();
+  }, []);
 
   // Update cursor style
   useEffect(() => {
@@ -67,8 +79,25 @@ export default function CesiumMap({ children, onLeftClick, isEditingMode = false
     canvas.style.cursor = isEditingMode ? 'crosshair' : 'default';
   }, [isEditingMode]);
 
+  const handleTogglePerspective = () => {
+    const viewer = viewerRef.current?.cesiumElement;
+    if (!viewer) return;
+
+    const pos = viewer.camera.positionCartographic;
+    viewer.camera.flyTo({
+      destination: Cartesian3.fromRadians(pos.longitude, pos.latitude, pos.height),
+      orientation: {
+        heading: viewer.camera.heading,
+        pitch: isPerspective ? PITCH_2D : PITCH_3D,
+        roll: 0,
+      },
+      duration: 0.8,
+    });
+    setIsPerspective(prev => !prev);
+  };
+
   return (
-    <div ref={containerRef} style={{ position: 'absolute', inset: 0 }}>
+    <div style={{ position: 'absolute', inset: 0 }}>
       <Viewer
         ref={viewerRef}
         full
@@ -82,21 +111,40 @@ export default function CesiumMap({ children, onLeftClick, isEditingMode = false
         fullscreenButton={false}
         infoBox={false}
         selectionIndicator={false}
-        // Disable default Ion imagery — children provide their own
-        imageryProvider={false as never}
-        camera={{
-          position: {
-            longitude: CesiumMath.toRadians(3.613),
-            latitude: CesiumMath.toRadians(51.5),
-            height: 3000,
-          },
-          heading: 0,
-          pitch: CesiumMath.toRadians(-45),
-          roll: 0,
-        }}
       >
+        {/* Set initial camera position once — removed after completion so re-renders don't re-trigger it */}
+        {!initialFlyDone && (
+          <CameraFlyTo
+            duration={0}
+            destination={Cartesian3.fromDegrees(INITIAL_LON, INITIAL_LAT, INITIAL_HEIGHT)}
+            orientation={{ heading: 0, pitch: PITCH_3D, roll: 0 }}
+            onComplete={() => setInitialFlyDone(true)}
+          />
+        )}
         {children}
       </Viewer>
+
+      {/* Perspective / top-down toggle */}
+      <button
+        onClick={handleTogglePerspective}
+        title={isPerspective ? 'Switch to top-down view' : 'Switch to perspective view'}
+        style={{
+          position: 'absolute',
+          right: 8,
+          bottom: 36,
+          background: 'rgba(255,255,255,0.9)',
+          color: 'black',
+          border: '1px solid rgba(0,0,0,0.2)',
+          padding: '4px 10px',
+          borderRadius: 6,
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: 'pointer',
+          zIndex: 1,
+        }}
+      >
+        {isPerspective ? '2D' : '3D'}
+      </button>
 
       <div
         style={{

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, Cookie, Query
+from fastapi import APIRouter, Depends, Request, Response, Cookie, Query
 from typing import Optional, List
 from src.api.controllers import WMSController, DataProcessingController, SessionController, WFSController, LegendController
 from src.api.models import WFSParams, WMSParams
@@ -40,9 +40,13 @@ async def get_objects_by_type(
 
 @api_router.get("/qgis/wms")
 async def get_wms(
-    params: WMSParams = Depends(),
+    request: Request,
     session_id: Optional[str] = Cookie(default=None)
 ):
+    # Normalize query param keys to uppercase — Cesium sends lowercase (request, layers, bbox…)
+    # but WMSParams and QGIS Server expect uppercase (REQUEST, LAYERS, BBOX…)
+    raw = {k.upper(): v for k, v in request.query_params.items()}
+    params = WMSParams(**raw)
     return await wms_controller.get_wms(params, session_id)
 
 @api_router.get("/session/init")

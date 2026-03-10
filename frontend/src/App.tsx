@@ -61,7 +61,6 @@ export default function App() {
   } = useWMSLayers({
     showOverlay,
     overlayLayerId,
-    objectsVersion,
   });
 
   const { highlight, handleBuildingClick, buildingInfo } = useBuildingHighlight({
