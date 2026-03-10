@@ -16,6 +16,7 @@ export const WMS_HEIGHT = 2048;
 type UseWMSLayersOpts = {
     showOverlay: boolean;
     overlayLayerId: QgisLayerId;
+    objectsVersion: number;
 };
 
 export function useWMSLayers({ showOverlay, overlayLayerId }: UseWMSLayersOpts) {
