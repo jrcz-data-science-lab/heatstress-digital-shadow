@@ -1,7 +1,7 @@
 import type { MeasureType } from "./features/objects/lib/objectLayer";
 import type { SideMenuItem } from "./components/sideMenu/SideMenuItem";
-import React, { useCallback, useEffect, useState } from "react";
-import CesiumMap, { type CesiumClickInfo } from "./map/CesiumMap";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import CesiumMap, { type CesiumClickInfo, type CesiumMapHandle } from "./map/CesiumMap";
 import { BasemapLayer } from "./features/basemap/BasemapLayer";
 import { WMSOverlayLayer } from "./features/wms-overlay/WMSOverlayLayer";
 import { StaticTreesEntities } from "./features/objects/StaticTreesEntities";
@@ -22,6 +22,7 @@ import { BuildingInfoCard } from "./components/infoCards/BuildingInfoCard";
 import { FeatureInfoCard } from "./components/infoCards/FeatureInfoCard";
 import { LoadingIndicator } from "./components/loading/LoadingIndicator";
 import { LegendCard } from "./components/legend/LegendCard";
+import { PerspectiveIcon } from "./components/icons/PerspectiveIcon";
 
 export default function App() {
   const [showBuildings, setShowBuildings] = React.useState(false);
@@ -124,6 +125,8 @@ export default function App() {
     new Set(activeVbos.flatMap((vbo) => vbo.usage_function ?? []))
   );
 
+  const cesiumMapRef = useRef<CesiumMapHandle>(null);
+
   const items: SideMenuItem[] = [
     {
       id: "overlayLayers",
@@ -170,13 +173,22 @@ export default function App() {
         />
       ),
     },
+    {
+      id: "togglePerspective",
+      icon: <PerspectiveIcon />,
+      label: "Toggle Perspective",
+      onClick: () => {
+        cesiumMapRef.current?.togglePerspective();
+      },
+      panel: undefined
+    }
   ];
 
   const menuNode = React.useRef<HTMLDivElement>(null);
 
   return (
     <div style={{ position: "relative", height: "100dvh", width: "100%" }}>
-      <CesiumMap onLeftClick={handleCesiumClick} isEditingMode={isEditingMode}>
+      <CesiumMap ref={cesiumMapRef} onLeftClick={handleCesiumClick} isEditingMode={isEditingMode}>
         <BasemapLayer />
 
         {showOverlay && (
@@ -215,8 +227,8 @@ export default function App() {
       {/* TOP RIGHT INFO PANEL */}
       <div style={{
         position: "absolute",
-        top: 20,
-        right: 20,
+        bottom: 40,
+        right: 10,
         zIndex: 1000,
         pointerEvents: "none",
         display: "flex",

@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Viewer, CameraFlyTo } from 'resium';
 import {
   Cartesian3,
@@ -17,20 +17,25 @@ export type CesiumClickInfo = {
   pickedEntityId?: string;
 };
 
+
+export type CesiumMapHandle = {
+  togglePerspective: () => void;
+};
+
 type Props = {
   children?: ReactNode;
   onLeftClick?: (info: CesiumClickInfo) => void;
   isEditingMode?: boolean;
 };
 
-// Zeeland/Kapelle overview
+// Zeeland overview
 const INITIAL_LON = 3.83;
 const INITIAL_LAT = 50.45;
 const INITIAL_HEIGHT = 100000;
 const PITCH_3D = CesiumMath.toRadians(-45);  // tilted perspective
 const PITCH_2D = CesiumMath.toRadians(-90);  // straight down
 
-export default function CesiumMap({ children, onLeftClick, isEditingMode = false }: Props) {
+const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap({ children, onLeftClick, isEditingMode = false }, ref) {
   const viewerRef = useRef<{ cesiumElement: import('cesium').Viewer } | null>(null);
   const [isPerspective, setIsPerspective] = useState(true);
   const [initialFlyDone, setInitialFlyDone] = useState(false);
@@ -91,10 +96,12 @@ export default function CesiumMap({ children, onLeftClick, isEditingMode = false
         pitch: isPerspective ? PITCH_2D : PITCH_3D,
         roll: 0,
       },
-      duration: 0.8,
+      duration: 0.2,
     });
     setIsPerspective(prev => !prev);
   };
+
+  useImperativeHandle(ref, () => ({ togglePerspective: handleTogglePerspective }), [isPerspective]);
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
@@ -103,14 +110,14 @@ export default function CesiumMap({ children, onLeftClick, isEditingMode = false
         full
         baseLayerPicker={false}
         geocoder={false}
-        homeButton={false}
+        homeButton={true}
         sceneModePicker={false}
-        navigationHelpButton={false}
+        navigationHelpButton={true}
         animation={false}
         timeline={false}
         fullscreenButton={false}
         infoBox={false}
-        selectionIndicator={false}
+        selectionIndicator={true}
       >
         {/* Set initial camera position once — removed after completion so re-renders don't re-trigger it */}
         {!initialFlyDone && (
@@ -123,28 +130,6 @@ export default function CesiumMap({ children, onLeftClick, isEditingMode = false
         )}
         {children}
       </Viewer>
-
-      {/* Perspective / top-down toggle */}
-      <button
-        onClick={handleTogglePerspective}
-        title={isPerspective ? 'Switch to top-down view' : 'Switch to perspective view'}
-        style={{
-          position: 'absolute',
-          right: 8,
-          bottom: 36,
-          background: 'rgba(255,255,255,0.9)',
-          color: 'black',
-          border: '1px solid rgba(0,0,0,0.2)',
-          padding: '4px 10px',
-          borderRadius: 6,
-          fontSize: 12,
-          fontWeight: 600,
-          cursor: 'pointer',
-          zIndex: 1,
-        }}
-      >
-        {isPerspective ? '2D' : '3D'}
-      </button>
 
       <div
         style={{
@@ -164,4 +149,6 @@ export default function CesiumMap({ children, onLeftClick, isEditingMode = false
       </div>
     </div>
   );
-}
+});
+
+export default CesiumMap;
