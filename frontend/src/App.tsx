@@ -208,7 +208,7 @@ export default function App() {
           />
         )}
 
-        {showBuildings && <BAG3DTileset />}
+        {showBuildings && <BAG3DTileset heightOffset={-43} />}
 
         {showBuildings && highlight && (
           <BuildingHighlightEntity

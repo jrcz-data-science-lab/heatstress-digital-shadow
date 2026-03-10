@@ -1,21 +1,50 @@
 import { useMemo } from 'react';
 import { Cesium3DTileset } from 'resium';
-import { Cesium3DTileStyle } from 'cesium';
+import {
+  Cesium3DTileStyle,
+  Cartesian3,
+  Matrix4,
+} from 'cesium';
 
 // 3D BAG — LoD2.2 3D Tiles (Netherlands national building dataset)
 // Docs: https://docs.3dbag.nl/en/delivery/webservices/
 const LOD22_URL = 'https://data.3dbag.nl/v20250903/cesium3dtiles/lod22/tileset.json';
 
+// Geographic center of the Netherlands — used to compute the ECEF radial direction
+// for the height offset translation.
+const NL_LON = 5.3;
+const NL_LAT = 52.1;
+
 type Props = {
-  // Any CSS color string: '#d4b896', 'rgba(200,150,100,0.8)', 'orange', etc.
+  // Any CSS color string: '#d4b896', 'rgba(200,150,100,0.8)', 'white', etc.
   color?: string;
+  // Vertical offset in meters applied to the entire tileset.
+  // Positive = up, negative = down. Use a negative value if buildings float above the ground.
+  // Example: heightOffset={-43} shifts all buildings 43 m downward.
+  heightOffset?: number;
 };
 
-export function BAG3DTileset({ color = '#5fff87' }: Props) {
+export function BAG3DTileset({ color = '#d4b896', heightOffset = 0 }: Props) {
   const style = useMemo(
     () => new Cesium3DTileStyle({ color: `color('${color}')` }),
     [color]
   );
 
-  return <Cesium3DTileset url={LOD22_URL} style={style} />;
+  // Translate the tileset radially (along the ECEF up-direction at the NL center).
+  // Matrix4.IDENTITY when heightOffset is 0 so no transform is applied.
+  const modelMatrix = useMemo(() => {
+    if (heightOffset === 0) return Matrix4.IDENTITY.clone();
+    const surface = Cartesian3.fromDegrees(NL_LON, NL_LAT, 0);
+    const shifted  = Cartesian3.fromDegrees(NL_LON, NL_LAT, heightOffset);
+    const translation = Cartesian3.subtract(shifted, surface, new Cartesian3());
+    return Matrix4.fromTranslation(translation);
+  }, [heightOffset]);
+
+  return (
+    <Cesium3DTileset
+      url={LOD22_URL}
+      style={style}
+      modelMatrix={modelMatrix}
+    />
+  );
 }

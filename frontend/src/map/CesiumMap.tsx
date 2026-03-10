@@ -6,11 +6,7 @@ import {
   Math as CesiumMath,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
-  Ion,
 } from 'cesium';
-
-// Disable Cesium Ion — we use only self-hosted data
-Ion.defaultAccessToken = '';
 
 export type CesiumClickInfo = {
   coordinate: [lon: number, lat: number] | null;
