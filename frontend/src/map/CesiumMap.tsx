@@ -1,37 +1,43 @@
-import { type ReactNode, forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { Viewer, CameraFlyTo } from 'resium';
 import {
-  Cartesian3,
-  Cartographic,
-  Math as CesiumMath,
-  ScreenSpaceEventHandler,
-  ScreenSpaceEventType,
-  Camera,
-  Rectangle
-} from 'cesium';
+	type ReactNode,
+	forwardRef,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
+import { Viewer, CameraFlyTo } from "resium";
+import {
+	Cartesian3,
+	Cartographic,
+	Math as CesiumMath,
+	ScreenSpaceEventHandler,
+	ScreenSpaceEventType,
+	Camera,
+	Rectangle,
+} from "cesium";
 
 export type CesiumClickInfo = {
-  coordinate: [lon: number, lat: number] | null;
-  pickedEntityId?: string;
+	coordinate: [lon: number, lat: number] | null;
+	pickedEntityId?: string;
 };
 
-
 export type CesiumMapHandle = {
-  togglePerspective: () => void;
+	togglePerspective: () => void;
 };
 
 type Props = {
-  children?: ReactNode;
-  onLeftClick?: (info: CesiumClickInfo) => void;
-  isEditingMode?: boolean;
+	children?: ReactNode;
+	onLeftClick?: (info: CesiumClickInfo) => void;
+	isEditingMode?: boolean;
 };
 
 // Home button position and default view rectangle are set to cover the Netherlands by default, but can be adjusted as needed.
 Camera.DEFAULT_VIEW_RECTANGLE = Rectangle.fromDegrees(
-  3.58,   // west
-  51.36,  // south
-  3.97,   // east
-  51.60   // north
+	3.58, // west
+	51.36, // south
+	3.97, // east
+	51.6, // north
 );
 Camera.DEFAULT_VIEW_FACTOR = 0.05;
 
@@ -39,124 +45,160 @@ Camera.DEFAULT_VIEW_FACTOR = 0.05;
 const INITIAL_LON = 3.83;
 const INITIAL_LAT = 50.45;
 const INITIAL_HEIGHT = 100000;
-const PITCH_3D = CesiumMath.toRadians(-45);  // tilted perspective
-const PITCH_2D = CesiumMath.toRadians(-90);  // straight down
+const PITCH_3D = CesiumMath.toRadians(-45); // tilted perspective
+const PITCH_2D = CesiumMath.toRadians(-90); // straight down
 
-const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap({ children, onLeftClick }, ref) {
-  const viewerRef = useRef<{ cesiumElement: import('cesium').Viewer } | null>(null);
-  const [isPerspective, setIsPerspective] = useState(true);
-  const [initialFlyDone, setInitialFlyDone] = useState(false);
+const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
+	{ children, onLeftClick },
+	ref,
+) {
+	const viewerRef = useRef<{ cesiumElement: import("cesium").Viewer } | null>(
+		null,
+	);
+	const [isPerspective, setIsPerspective] = useState(true);
+	const [initialFlyDone, setInitialFlyDone] = useState(false);
 
+	// Set up click handler
+	useEffect(() => {
+		const viewer = viewerRef.current?.cesiumElement;
 
-  // Set up click handler
-  useEffect(() => {
+		// Set default base layer
+		if (!viewer) return;
+		const viewModels =
+			viewer.baseLayerPicker.viewModel.imageryProviderViewModels;
+		const osm = viewModels.find((vm) => vm.name === "Stadia Alidade Smooth");
+		if (osm) viewer.baseLayerPicker.viewModel.selectedImagery = osm;
 
-    const viewer = viewerRef.current?.cesiumElement;
+		// Handle PET legend clicks
 
-    // Set default base layer
-    if (!viewer) return;
-    const viewModels = viewer.baseLayerPicker.viewModel.imageryProviderViewModels;
-    const osm = viewModels.find(vm => vm.name === 'Stadia Alidade Smooth');
-    if (osm) viewer.baseLayerPicker.viewModel.selectedImagery = osm;
+		if (!viewer || !onLeftClick) return;
 
-    // Handle PET legend clicks
+		const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
 
-    if (!viewer || !onLeftClick) return;
+		handler.setInputAction(
+			(movement: { position: import("cesium").Cartesian2 }) => {
+				const scene = viewer.scene;
 
-    const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+				const picked = scene.pick(movement.position);
+				const pickedEntityId: string | undefined =
+					picked?.id?.id ?? picked?.id ?? undefined;
 
-    handler.setInputAction((movement: { position: import('cesium').Cartesian2 }) => {
-      const scene = viewer.scene;
+				const cartesian = viewer.camera.pickEllipsoid(movement.position);
+				if (!cartesian) {
+					onLeftClick({ coordinate: null, pickedEntityId });
+					return;
+				}
 
-      const picked = scene.pick(movement.position);
-      const pickedEntityId: string | undefined =
-        picked?.id?.id ?? picked?.id ?? undefined;
+				const cartographic = Cartographic.fromCartesian(cartesian);
+				const lon = CesiumMath.toDegrees(cartographic.longitude);
+				const lat = CesiumMath.toDegrees(cartographic.latitude);
 
-      const cartesian = viewer.camera.pickEllipsoid(movement.position);
-      if (!cartesian) {
-        onLeftClick({ coordinate: null, pickedEntityId });
-        return;
-      }
+				onLeftClick({ coordinate: [lon, lat], pickedEntityId });
+			},
+			ScreenSpaceEventType.LEFT_CLICK,
+		);
 
-      const cartographic = Cartographic.fromCartesian(cartesian);
-      const lon = CesiumMath.toDegrees(cartographic.longitude);
-      const lat = CesiumMath.toDegrees(cartographic.latitude);
+		return () => {
+			handler.destroy();
+		};
+	}, [onLeftClick]);
 
-      onLeftClick({ coordinate: [lon, lat], pickedEntityId });
-    }, ScreenSpaceEventType.LEFT_CLICK);
+	const handleTogglePerspective = () => {
+		const viewer = viewerRef.current?.cesiumElement;
+		if (!viewer) return;
 
-    return () => { handler.destroy(); };
-  }, [onLeftClick]);
+		const pos = viewer.camera.positionCartographic;
+		viewer.camera.flyTo({
+			destination: Cartesian3.fromRadians(
+				pos.longitude,
+				pos.latitude,
+				pos.height,
+			),
+			orientation: {
+				heading: viewer.camera.heading,
+				pitch: isPerspective ? PITCH_2D : PITCH_3D,
+				roll: 0,
+			},
+			duration: 0.2,
+		});
+		setIsPerspective((prev) => !prev);
+	};
 
+	useImperativeHandle(
+		ref,
+		() => ({ togglePerspective: handleTogglePerspective }),
+		[isPerspective],
+	);
 
-  const handleTogglePerspective = () => {
-    const viewer = viewerRef.current?.cesiumElement;
-    if (!viewer) return;
+	return (
+		<div
+			style={{
+				position: "absolute",
+				height: "100dvh",
+				width: "100dvw",
+			}}
+		>
+			<Viewer
+				ref={viewerRef}
+				full
+				baseLayerPicker={true}
+				geocoder={false}
+				homeButton={true}
+				sceneModePicker={false}
+				navigationHelpButton={true}
+				animation={false}
+				timeline={false}
+				fullscreenButton={false}
+				infoBox={false}
+				selectionIndicator={false}
+			>
+				{/* Set initial camera position once — removed after completion so re-renders don't re-trigger it */}
+				{!initialFlyDone && (
+					<CameraFlyTo
+						duration={0}
+						destination={Cartesian3.fromDegrees(
+							INITIAL_LON,
+							INITIAL_LAT,
+							INITIAL_HEIGHT,
+						)}
+						orientation={{ heading: 0, pitch: PITCH_3D, roll: 0 }}
+						onComplete={() => setInitialFlyDone(true)}
+					/>
+				)}
+				{children}
+			</Viewer>
 
-    const pos = viewer.camera.positionCartographic;
-    viewer.camera.flyTo({
-      destination: Cartesian3.fromRadians(pos.longitude, pos.latitude, pos.height),
-      orientation: {
-        heading: viewer.camera.heading,
-        pitch: isPerspective ? PITCH_2D : PITCH_3D,
-        roll: 0,
-      },
-      duration: 0.2,
-      
-    });
-    setIsPerspective(prev => !prev);
-  };
-
-  useImperativeHandle(ref, () => ({ togglePerspective: handleTogglePerspective }), [isPerspective]);
-
-  return (
-    <div>
-      <Viewer
-        ref={viewerRef}
-        full
-        baseLayerPicker={true}
-        geocoder={false}
-        homeButton={true}
-        sceneModePicker={false}
-        navigationHelpButton={true}
-        animation={false}
-        timeline={false}
-        fullscreenButton={false}
-        infoBox={false}
-        selectionIndicator={false}
-      >
-        {/* Set initial camera position once — removed after completion so re-renders don't re-trigger it */}
-        {!initialFlyDone && (
-          <CameraFlyTo
-            duration={0}
-            destination={Cartesian3.fromDegrees(INITIAL_LON, INITIAL_LAT, INITIAL_HEIGHT)}
-            orientation={{ heading: 0, pitch: PITCH_3D, roll: 0 }}
-            onComplete={() => setInitialFlyDone(true)}
-          />
-        )}
-        {children}
-      </Viewer>
-
-      <div
-        style={{
-          position: 'absolute',
-          right: 8,
-          bottom: 8,
-          background: 'rgba(255,255,255,0.8)',
-          color: 'black',
-          padding: '2px 6px',
-          borderRadius: 6,
-          fontSize: 12,
-          zIndex: 1,
-          pointerEvents: 'auto',
-        }}
-      >
-        © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors
-        {' · '}
-        © <a href="https://3dbag.nl" target="_blank" rel="noreferrer">3D BAG</a> by TU Delft
-      </div>
-    </div>
-  );
+			<div
+				style={{
+					position: "absolute",
+					left: 60,
+					bottom: 8,
+					background: "rgba(255,255,255,0.8)",
+					color: "black",
+					padding: "2px 6px",
+					borderRadius: 6,
+					fontSize: 12,
+					zIndex: 1,
+					pointerEvents: "auto",
+				}}
+			>
+				©{" "}
+				<a
+					href="https://www.openstreetmap.org/copyright"
+					target="_blank"
+					rel="noreferrer"
+				>
+					OpenStreetMap
+				</a>{" "}
+				contributors
+				{" · "}©{" "}
+				<a href="https://3dbag.nl" target="_blank" rel="noreferrer">
+					3D BAG
+				</a>{" "}
+				by TU Delft
+			</div>
+		</div>
+	);
 });
 
 export default CesiumMap;
