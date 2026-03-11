@@ -1,8 +1,8 @@
 ## Frontend Architecture
 
-The frontend uses a **feature-based structure**.  
-Each map capability (buildings, trees, WMS overlay, etc.) lives in its own folder under `src/features/`.  
-A single hook (`useDeckLayers`) composes all features into Deck.gl layers.
+The frontend uses a **feature-based structure**.
+Each map capability (buildings, trees, WMS overlay, etc.) lives in its own folder under `src/features/`.
+The map is rendered with **CesiumJS + Resium** — layers are React components (JSX children of `<Viewer>`).
 
 ### Structure
 
@@ -10,74 +10,88 @@ A single hook (`useDeckLayers`) composes all features into Deck.gl layers.
 src/
   App.tsx
   map/
-    DeckMap.tsx               # Renders DeckGL map (dumb component)
-    hooks/
-      useDeckLayers.ts        # Combines all feature layers
+    CesiumMap.tsx             # <Viewer> wrapper, click/pick via ScreenSpaceEventHandler
     utils/
-      deckUtils.ts            # Shared map helpers
+      crs.ts                  # RD ↔ WGS84 coordinate transforms (proj4)
+      deckUtils.ts            # Shared constants (BBOX, LOCAL_STORAGE_KEY, etc.)
 
   features/
-    base-map/
-      lib/
-        osmLayer.ts           # OSM tile layer
+    basemap/
+      BasemapLayer.tsx        # CartoDB OSM tiles (UrlTemplateImageryProvider)
 
     buildings-3d/
-      useBuildingLayer.ts
+      BuildingHighlightEntity.tsx   # Polygon highlight for selected building
+      BAG3DTileset.tsx              # 3D Tiles from BAG dataset
+      useBuildingHighlight.ts
       lib/
-        buildingsLayer.ts
-        crs.ts
         bbox.ts
+        buildingMetadataApi.ts
 
     wms-overlay/
+      WMSOverlayLayer.tsx     # QGIS WMS tiles (WebMapServiceImageryProvider)
       useWMSLayers.ts
+      useWMSLegend.ts
       lib/
-        wmsLayer.ts
-        qgisFeatureInfo.ts
+        wmsUtils.ts           # buildGetFeatureInfoUrl, LonLatBBox
+        qgisFeatureInfo.ts    # useQgisFeatureInfo hook
         qgisLayers.ts
 
-    trees/
-      useStaticTreesLayer.ts  # trees from dataset
-      useUserTreesLayer.ts    # user-placed trees
+    objects/
+      StaticTreesEntities.tsx       # Dataset trees (<Entity> + <ModelGraphics>)
+      UserObjectsEntities.tsx       # User-placed objects
+      useUserObjectsLayer.ts
       lib/
-        treeLayer.ts
+        objectLayer.ts        # ObjectInstance + MeasureType types
+        fileIOUtils.ts
 ```
 
 ### Principles
 
-- **Each domain feature has its own folder**  
-  (`buildings-3d`, `trees`, `wms-overlay`, `base-map`).
+- **Each domain feature has its own folder**
+  (`buildings-3d`, `objects`, `wms-overlay`, `basemap`).
 
-- **Hooks = feature API**  
-  Each feature exposes a hook that returns:
-  - a Deck.gl `Layer` (or `null`),
-  - optional `error`,
-  - optional handlers (e.g. `handleInteraction`, `saveTrees`, etc.).
+- **Layers are React components**
+  Each feature renders Resium entities/imagery as JSX children of `<Viewer>` in `CesiumMap.tsx`. There is no central layer array — composition is declarative.
 
-- **Layer factories live in `lib/` and contain no React code**
+- **Pure logic lives in `lib/` with no React code**
+  URL builders, coordinate helpers, and API calls are isolated and unit-tested.
 
-- **`useDeckLayers` only composes features**  
-  It calls feature hooks and builds the final `layers[]` array.
+- **`CesiumMap` handles all map interaction**
+  Click events are caught via `ScreenSpaceEventHandler`, which picks entities and fires `onLeftClick({ coordinate, pickedEntityId? })` to the parent.
 
-- **`DeckMap` stays dumb**  
-  It only receives:
-  - `layers`
-  - `initialViewState`
-  - `onMapInteraction`
+- **No Cesium Ion**
+  All imagery is self-hosted. `Ion.defaultAccessToken = ''`. Basemap is CartoDB, WMS is QGIS.
 
-- **UI (Menu, buttons, toggles) does not contain map logic**  
-  It only updates state via props.
+- **UI components do not contain map logic**
+  Panels and controls update state via props/callbacks only.
 
 ### Adding a new feature (example)
 
-1. Create a folder:  
+1. Create a folder:
    `src/features/<name>/`
 
-2. Add a hook:  
-   `use<Name>Layer.ts`
+2. Add a Resium component:
+   `<Name>Entities.tsx` or `<Name>Layer.tsx` — renders `<Entity>`, `<ImageryLayer>`, etc.
 
-3. Put Deck.gl layer logic in:  
-   `lib/<name>Layer.ts`
+3. Add it as a child of `<Viewer>` in `CesiumMap.tsx`.
 
-4. Import the hook in `useDeckLayers` and add its layer to the list.
+4. Put any pure logic (data fetching, URL building) in:
+   `lib/<name>Api.ts` or `lib/<name>Utils.ts`
 
 This keeps the frontend modular, predictable, and easy to extend.
+
+### Testing
+
+We use **Jest + babel-jest** for unit tests. Only pure utility functions are tested — Resium component rendering is not unit-tested.
+
+Tested modules:
+
+- `map/utils/crs.ts` — RD ↔ WGS84 round-trip accuracy
+- `features/wms-overlay/lib/wmsUtils.ts` — GetFeatureInfo URL construction
+- `features/wms-overlay/lib/qgisFeatureInfo.ts` — feature info hook behaviour
+
+Run tests:
+
+```bash
+npm test
+```
