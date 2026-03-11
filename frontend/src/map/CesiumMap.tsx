@@ -42,14 +42,25 @@ const INITIAL_HEIGHT = 100000;
 const PITCH_3D = CesiumMath.toRadians(-45);  // tilted perspective
 const PITCH_2D = CesiumMath.toRadians(-90);  // straight down
 
-const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap({ children, onLeftClick, isEditingMode = false }, ref) {
+const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap({ children, onLeftClick }, ref) {
   const viewerRef = useRef<{ cesiumElement: import('cesium').Viewer } | null>(null);
   const [isPerspective, setIsPerspective] = useState(true);
   const [initialFlyDone, setInitialFlyDone] = useState(false);
 
+
   // Set up click handler
   useEffect(() => {
+
     const viewer = viewerRef.current?.cesiumElement;
+
+    // Set default base layer
+    if (!viewer) return;
+    const viewModels = viewer.baseLayerPicker.viewModel.imageryProviderViewModels;
+    const osm = viewModels.find(vm => vm.name === 'Stadia Alidade Smooth');
+    if (osm) viewer.baseLayerPicker.viewModel.selectedImagery = osm;
+
+    // Handle PET legend clicks
+
     if (!viewer || !onLeftClick) return;
 
     const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
@@ -91,6 +102,7 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap({ childr
         roll: 0,
       },
       duration: 0.2,
+      
     });
     setIsPerspective(prev => !prev);
   };
@@ -102,7 +114,7 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap({ childr
       <Viewer
         ref={viewerRef}
         full
-        baseLayerPicker={false}
+        baseLayerPicker={true}
         geocoder={false}
         homeButton={true}
         sceneModePicker={false}

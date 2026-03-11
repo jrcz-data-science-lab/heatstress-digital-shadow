@@ -190,8 +190,6 @@ export default function App() {
   return (
     <div style={{ position: "relative", height: "100dvh", width: "100%" }}>
       <CesiumMap ref={cesiumMapRef} onLeftClick={handleCesiumClick} isEditingMode={isEditingMode}>
-        <BasemapLayer />
-
         {showOverlay && (
           <WMSOverlayLayer
             layerId={overlayLayerId}
