@@ -208,7 +208,7 @@ export default function App() {
           />
         )}
 
-        {showBuildings && <BAG3DTileset heightOffset={-43} />}
+        {showBuildings && <BAG3DTileset heightOffset={-45} />}
 
         {showBuildings && highlight && (
           <BuildingHighlightEntity
@@ -227,7 +227,7 @@ export default function App() {
         />
       )}
 
-      {/* TOP RIGHT INFO PANEL */}
+      {/* BOTTOM RIGHT INFO PANEL */}
       <div style={{
         position: "absolute",
         bottom: 40,

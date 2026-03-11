@@ -24,7 +24,7 @@ type Props = {
   heightOffset?: number;
 };
 
-export function BAG3DTileset({ color = '#d4b896', heightOffset = 0 }: Props) {
+export function BAG3DTileset({ color = '#ffffff', heightOffset = 0 }: Props) {
   const style = useMemo(
     () => new Cesium3DTileStyle({ color: `color('${color}')` }),
     [color]

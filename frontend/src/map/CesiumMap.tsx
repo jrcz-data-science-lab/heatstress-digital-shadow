@@ -6,6 +6,8 @@ import {
   Math as CesiumMath,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
+  Camera,
+  Rectangle
 } from 'cesium';
 
 export type CesiumClickInfo = {
@@ -23,6 +25,15 @@ type Props = {
   onLeftClick?: (info: CesiumClickInfo) => void;
   isEditingMode?: boolean;
 };
+
+// Home button position and default view rectangle are set to cover the Netherlands by default, but can be adjusted as needed.
+Camera.DEFAULT_VIEW_RECTANGLE = Rectangle.fromDegrees(
+  3.58,   // west
+  51.36,  // south
+  3.97,   // east
+  51.60   // north
+);
+Camera.DEFAULT_VIEW_FACTOR = 0.05;
 
 // Zeeland overview
 const INITIAL_LON = 3.83;
@@ -66,19 +77,6 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap({ childr
     return () => { handler.destroy(); };
   }, [onLeftClick]);
 
-  // Remove default Cesium imagery layer on mount
-  useEffect(() => {
-    const viewer = viewerRef.current?.cesiumElement;
-    if (!viewer) return;
-    viewer.imageryLayers.removeAll();
-  }, []);
-
-  // Update cursor style
-  useEffect(() => {
-    const canvas = viewerRef.current?.cesiumElement?.scene?.canvas;
-    if (!canvas) return;
-    canvas.style.cursor = isEditingMode ? 'crosshair' : 'default';
-  }, [isEditingMode]);
 
   const handleTogglePerspective = () => {
     const viewer = viewerRef.current?.cesiumElement;
@@ -100,7 +98,7 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap({ childr
   useImperativeHandle(ref, () => ({ togglePerspective: handleTogglePerspective }), [isPerspective]);
 
   return (
-    <div style={{ position: 'absolute', inset: 0 }}>
+    <div>
       <Viewer
         ref={viewerRef}
         full
@@ -113,7 +111,7 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap({ childr
         timeline={false}
         fullscreenButton={false}
         infoBox={false}
-        selectionIndicator={true}
+        selectionIndicator={false}
       >
         {/* Set initial camera position once — removed after completion so re-renders don't re-trigger it */}
         {!initialFlyDone && (
