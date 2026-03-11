@@ -1,6 +1,6 @@
 # Frontend – Heatstress Digital Shadow
 
-A React + TypeScript frontend using Vite, deck.gl for mapping, and Jest for unit testing.
+A React + TypeScript frontend using Vite, Cesium for mapping, and Jest for unit testing.
 
 ---
 
@@ -40,7 +40,7 @@ npm run preview
 
 ## Testing (Jest)
 
-We use **Jest + babel-jest** to test TypeScript/React code and ESM dependencies like deck.gl.
+We use **Jest + babel-jest** to test TypeScript/React code and ESM dependencies like Cesium.
 
 #### Run all tests
 
@@ -60,11 +60,11 @@ npm run test:watch
 
 `package.json` provides:
 
-* `dev` – Vite dev server
-* `build` – production build
-* `preview` – preview the build
-* `test` – run Jest once
-* `test:watch` – run Jest in watch mode
+- `dev` – Vite dev server
+- `build` – production build
+- `preview` – preview the build
+- `test` – run Jest once
+- `test:watch` – run Jest in watch mode
 
 ---
 
