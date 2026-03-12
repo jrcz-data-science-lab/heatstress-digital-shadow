@@ -32,7 +32,7 @@ type Props = {
 	isEditingMode?: boolean;
 };
 
-// Home button position and default view rectangle are set to cover the Netherlands by default, but can be adjusted as needed.
+// Home button position and default view rectangle are set to cover Zeeland by default, but can be adjusted as needed.
 Camera.DEFAULT_VIEW_RECTANGLE = Rectangle.fromDegrees(
 	3.58, // west
 	51.36, // south

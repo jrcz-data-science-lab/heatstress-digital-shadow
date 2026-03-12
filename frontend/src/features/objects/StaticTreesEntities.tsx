@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Entity, ModelGraphics } from "resium";
 import { Cartesian3 } from "cesium";
 import { rdToLonLat } from "../../map/utils/crs";
-import { BBOX, DEFAULT_OBJECT_TYPE } from "../../map/utils/deckUtils";
+import { BBOX } from "../../map/utils/deckUtils";
 
 type TreeData = {
 	id: string;
@@ -56,9 +56,6 @@ export function StaticTreesEntities({
 			cancelled = true;
 		};
 	}, []);
-
-	// DEFAULT_OBJECT_TYPE is imported to keep the constant used (same as before)
-	void DEFAULT_OBJECT_TYPE;
 
 	return (
 		<>

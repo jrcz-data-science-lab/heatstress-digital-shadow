@@ -42,6 +42,9 @@ export default function App() {
 	);
 	const loaderLeft = activeSideMenuId ? "25.5rem" : "4rem";
 
+	// Height offset for the BAG 3D Tileset to align better with the terrain. Adjust as needed based on visual inspection.
+	const BAG_3D_HEIGHT_OFFSET = -45;
+
 	const [showOverlay, setShowOverlay] = useState(true);
 	const [overlayLayerId, setOverlayLayerId] = useState<QgisLayerId>(
 		QGIS_OVERLAY_LAYERS[0].id,
@@ -218,7 +221,7 @@ export default function App() {
 					/>
 				)}
 
-				{showBuildings && <BAG3DTileset heightOffset={-45} />}
+				{showBuildings && <BAG3DTileset heightOffset={BAG_3D_HEIGHT_OFFSET} />}
 
 				{showBuildings && highlight && (
 					<BuildingHighlightEntity

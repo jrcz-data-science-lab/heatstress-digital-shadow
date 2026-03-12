@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Response, Cookie, Query
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 from typing import Optional, List
 from src.api.controllers import WMSController, DataProcessingController, SessionController, WFSController, LegendController
 from src.api.models import WFSParams, WMSParams
@@ -38,15 +40,20 @@ async def get_objects_by_type(
         params=params,
     )
 
-@api_router.get("/qgis/wms")
-async def get_wms(
-    request: Request,
-    session_id: Optional[str] = Cookie(default=None)
-):
+def get_wms_params(request: Request) -> WMSParams:
     # Normalize query param keys to uppercase — Cesium sends lowercase (request, layers, bbox…)
     # but WMSParams and QGIS Server expect uppercase (REQUEST, LAYERS, BBOX…)
     raw = {k.upper(): v for k, v in request.query_params.items()}
-    params = WMSParams(**raw)
+    try:
+        return WMSParams(**raw)
+    except ValidationError as e:
+        raise RequestValidationError(e.errors())
+
+@api_router.get("/qgis/wms")
+async def get_wms(
+    params: WMSParams = Depends(get_wms_params),
+    session_id: Optional[str] = Cookie(default=None)
+):
     return await wms_controller.get_wms(params, session_id)
 
 @api_router.get("/session/init")

@@ -13,18 +13,15 @@ const NL_LON = 5.3;
 const NL_LAT = 52.1;
 
 type Props = {
-	// Any CSS color string: '#d4b896', 'rgba(200,150,100,0.8)', 'white', etc.
 	color?: string;
-	// Vertical offset in meters applied to the entire tileset.
-	// Positive = up, negative = down. Use a negative value if buildings float above the ground.
-	// Example: heightOffset={-43} shifts all buildings 43 m downward.
 	heightOffset?: number;
 };
 
 export function BAG3DTileset({ color = "#ffffff", heightOffset = 0 }: Props) {
+	const sanitizedColor = color.replace(/'/g, "\\'");
 	const style = useMemo(
-		() => new Cesium3DTileStyle({ color: `color('${color}')` }),
-		[color],
+		() => new Cesium3DTileStyle({ color: `color('${sanitizedColor}')` }),
+		[sanitizedColor],
 	);
 
 	// Translate the tileset radially (along the ECEF up-direction at the NL center).
