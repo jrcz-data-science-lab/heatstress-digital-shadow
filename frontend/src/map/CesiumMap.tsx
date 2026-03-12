@@ -49,7 +49,7 @@ const PITCH_3D = CesiumMath.toRadians(-45); // tilted perspective
 const PITCH_2D = CesiumMath.toRadians(-90); // straight down
 
 const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
-	{ children, onLeftClick },
+	{ children, onLeftClick, isEditingMode },
 	ref,
 ) {
 	const viewerRef = useRef<{ cesiumElement: import("cesium").Viewer } | null>(
@@ -136,6 +136,7 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 				position: "absolute",
 				height: "100dvh",
 				width: "100dvw",
+				cursor: isEditingMode ? "crosshair" : "default",
 			}}
 		>
 			<Viewer

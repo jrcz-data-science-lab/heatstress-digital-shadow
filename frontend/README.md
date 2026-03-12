@@ -17,7 +17,7 @@ src/
 
   features/
     basemap/
-      BasemapLayer.tsx        # CartoDB OSM tiles (UrlTemplateImageryProvider)
+      BasemapLayer.tsx        # Cesium BaseLayerPicker (e.g. Stadia Alidade Smooth)
 
     buildings-3d/
       BuildingHighlightEntity.tsx   # Polygon highlight for selected building
@@ -59,8 +59,8 @@ src/
 - **`CesiumMap` handles all map interaction**
   Click events are caught via `ScreenSpaceEventHandler`, which picks entities and fires `onLeftClick({ coordinate, pickedEntityId? })` to the parent.
 
-- **No Cesium Ion**
-  All imagery is self-hosted. `Ion.defaultAccessToken = ''`. Basemap is CartoDB, WMS is QGIS.
+- **Cesium Ion integration**
+  The basemap is provided via Cesium's BaseLayerPicker with cloud-hosted imagery providers (e.g. Stadia Maps). A valid Ion access token is configured in Cesium's initialization.
 
 - **UI components do not contain map logic**
   Panels and controls update state via props/callbacks only.

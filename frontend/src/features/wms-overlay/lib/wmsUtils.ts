@@ -27,8 +27,8 @@ export function buildGetFeatureInfoUrl({
 
   const xFrac = (lon - west) / (east - west);
   const yFrac = (north - lat) / (north - south);
-  const I = Math.round(xFrac * width);
-  const J = Math.round(yFrac * height);
+  const I = Math.min(Math.floor(xFrac * width), width - 1);
+  const J = Math.min(Math.floor(yFrac * height), height - 1);
 
   const p = new URLSearchParams({
     REQUEST: 'GetFeatureInfo',
