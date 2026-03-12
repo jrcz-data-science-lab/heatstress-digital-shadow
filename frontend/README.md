@@ -59,8 +59,8 @@ src/
 - **`CesiumMap` handles all map interaction**
   Click events are caught via `ScreenSpaceEventHandler`, which picks entities and fires `onLeftClick({ coordinate, pickedEntityId? })` to the parent.
 
-- **Cesium Ion integration**
-  The basemap is provided via Cesium's BaseLayerPicker with cloud-hosted imagery providers (e.g. Stadia Maps). A valid Ion access token is configured in Cesium's initialization.
+- **Cesium Ion integration (optional)**
+  The basemap is provided via Cesium's BaseLayerPicker with publicly accessible imagery providers (e.g. Stadia Maps), which do not require a Cesium Ion token. If you add Cesium Ion–hosted assets (imagery, 3D Tiles, etc.), configure `Ion.defaultAccessToken` (or pass an `accessToken` to the relevant providers) during Cesium initialization as described in the CesiumJS documentation.
 
 - **UI components do not contain map logic**
   Panels and controls update state via props/callbacks only.
