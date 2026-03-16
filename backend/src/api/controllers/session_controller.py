@@ -3,8 +3,41 @@ from fastapi import Cookie, Response
 from typing import Optional
 import os
 import shutil
+import zipfile
+import tempfile
 
 from src.api.session import create_session
+
+
+def _copy_and_fix_qgz(src: str, dst: str) -> None:
+    """
+    Copy starting-map.qgz to a session dst, rewriting datasource paths.
+
+    QGIS Desktop saves paths relative to wherever starting-map.qgz lives
+    (data/server/), so new layers get stored as e.g. ./pet-version-kapelle.tif.
+    Sessions sit two levels deeper (data/server/sessions/{id}/map.qgz), so
+    those same files need to be referenced as ../../pet-version-kapelle.tif.
+
+    This function rewrites every <datasource>./ occurrence to <datasource>../../
+    inside the embedded .qgs file so the session map works without any manual
+    path juggling.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with zipfile.ZipFile(src, 'r') as z:
+            z.extractall(tmpdir)
+
+        for fname in os.listdir(tmpdir):
+            if fname.endswith('.qgs'):
+                fpath = os.path.join(tmpdir, fname)
+                with open(fpath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                content = content.replace('<datasource>./', '<datasource>../../')
+                with open(fpath, 'w', encoding='utf-8') as f:
+                    f.write(content)
+
+        with zipfile.ZipFile(dst, 'w', zipfile.ZIP_DEFLATED) as z:
+            for fname in os.listdir(tmpdir):
+                z.write(os.path.join(tmpdir, fname), fname)
 
 
 class SessionController(ABC):
@@ -45,6 +78,6 @@ class SessionController(ABC):
         os.makedirs(dst_dir, exist_ok=True)
 
         if os.path.exists(src) and not os.path.exists(dst):
-            shutil.copyfile(src, dst)
+            _copy_and_fix_qgz(src, dst)
 
         return sid
