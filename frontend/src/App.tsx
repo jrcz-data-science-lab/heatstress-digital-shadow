@@ -1,11 +1,22 @@
 import type { MeasureType } from "./features/objects/lib/objectLayer";
-import type { PickingInfo } from "@deck.gl/core";
 import type { SideMenuItem } from "./components/sideMenu/SideMenuItem";
-import React, { useCallback, useEffect, useState } from "react";
-import DeckMap from "./map/DeckMap";
-import { useDeckLayers } from "./map/hooks/useDeckLayers";
-import { QGIS_OVERLAY_LAYERS, type QgisLayerId } from "./features/wms-overlay/lib/qgisLayers";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import CesiumMap, {
+	type CesiumClickInfo,
+	type CesiumMapHandle,
+} from "./map/CesiumMap";
+import { WMSOverlayLayer } from "./features/wms-overlay/WMSOverlayLayer";
+import { StaticTreesEntities } from "./features/objects/StaticTreesEntities";
+import { UserObjectsEntities } from "./features/objects/UserObjectsEntities";
+import { BuildingHighlightEntity } from "./features/buildings-3d/BuildingHighlightEntity";
+import { BAG3DTileset } from "./features/buildings-3d/BAG3DTileset";
+import { useUserObjectsLayer } from "./features/objects/useUserObjectsLayer";
+import { useWMSLayers } from "./features/wms-overlay/useWMSLayers";
 import { useBuildingHighlight } from "./features/buildings-3d/useBuildingHighlight";
+import {
+	QGIS_OVERLAY_LAYERS,
+	type QgisLayerId,
+} from "./features/wms-overlay/lib/qgisLayers";
 import { SideMenu } from "./components/sideMenu/SideMenu";
 import { LayersIcon } from "./components/icons/LayersIcon";
 import { OverlayLayersPanel } from "./components/panels/OverlayLayersPanel";
@@ -17,225 +28,270 @@ import { BuildingInfoCard } from "./components/infoCards/BuildingInfoCard";
 import { FeatureInfoCard } from "./components/infoCards/FeatureInfoCard";
 import { LoadingIndicator } from "./components/loading/LoadingIndicator";
 import { LegendCard } from "./components/legend/LegendCard";
+import { PerspectiveIcon } from "./components/icons/PerspectiveIcon";
 
 export default function App() {
-  const [showBuildings, setShowBuildings] = React.useState(false);
+	const [showBuildings, setShowBuildings] = React.useState(false);
+	const [showObjects, setShowObjects] = useState(false);
+	const [editingIntent, setEditingIntent] = useState(false);
+	const [activeSideMenuId, setActiveSideMenuId] = useState<string | null>(null);
+	const isEditingMode =
+		editingIntent && activeSideMenuId === "heatstressmeasures";
+	const [selectedObjectType, setSelectedObjectType] = useState<string | null>(
+		null,
+	);
+	const loaderLeft = activeSideMenuId ? "25.5rem" : "4rem";
 
-  const [showObjects, setShowObjects] = useState(false);
-  const [editingIntent, setEditingIntent] = useState(false);
-  const [activeSideMenuId, setActiveSideMenuId] = useState<string | null>(null);
-  const isEditingMode = editingIntent && activeSideMenuId === "heatstressmeasures";
-  const [selectedObjectType, setSelectedObjectType] =
-    useState<string | null>(null);
-  const loaderLeft = activeSideMenuId ? "25.5rem" : "4rem";
+	// Height offset for the BAG 3D Tileset to align better with the terrain. Adjust as needed based on visual inspection.
+	const BAG_3D_HEIGHT_OFFSET = -45;
 
-  const [showOverlay, setShowOverlay] = useState(true);
-  const [overlayLayerId, setOverlayLayerId] = useState<QgisLayerId>(
-    QGIS_OVERLAY_LAYERS[0].id
-  );
+	const [showOverlay, setShowOverlay] = useState(true);
+	const [overlayLayerId, setOverlayLayerId] = useState<QgisLayerId>(
+		QGIS_OVERLAY_LAYERS[0].id,
+	);
 
-  const {
-    layers,
-    onViewStateClick,
-    saveObjects,
-    discardChanges,
-    hasUnsavedChanges,
-    featureInfo,
-    legend,
-    handleMapClick,
-    objectTypes,
-    isProcessing,
-    objectsToSave,
-    handleImport
-  } = useDeckLayers({
-    showBuildings,
-    showObjects,
-    isEditingMode,
-    selectedObjectType,
-    setSelectedObjectType,
-    objPath: 'data/10-72-338-LoD22-3D_leveled.obj',
-    showOverlay,
-    overlayLayerId,
-  });
+	const {
+		objectsToSave,
+		objectTypes,
+		handleInteraction,
+		saveObjects,
+		discardChanges,
+		hasUnsavedChanges,
+		objectsVersion,
+		isProcessing,
+		handleImport,
+	} = useUserObjectsLayer(
+		showObjects,
+		isEditingMode,
+		selectedObjectType,
+		setSelectedObjectType,
+	);
 
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!hasUnsavedChanges) return;
+	const { featureInfo, legend, handleMapClick } = useWMSLayers({
+		showOverlay,
+		overlayLayerId,
+	});
 
-      event.preventDefault();
-      event.returnValue = "";
-    };
+	const { highlight, handleBuildingClick, buildingInfo } = useBuildingHighlight(
+		{
+			enabled: showBuildings,
+		},
+	);
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
+	useEffect(() => {
+		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+			if (!hasUnsavedChanges) return;
+			event.preventDefault();
+			event.returnValue = "";
+		};
+		window.addEventListener("beforeunload", handleBeforeUnload);
+		return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+	}, [hasUnsavedChanges]);
 
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [hasUnsavedChanges]);
+	const handleToggleObjects = (value: boolean) => {
+		setShowObjects(value);
+		if (!value) {
+			setSelectedObjectType(null);
+			setEditingIntent(false);
+		}
+	};
 
-  const handleToggleObjects = (value: boolean) => {
-    setShowObjects(value);
+	const handleSelectObjectType = (type: MeasureType | null) => {
+		if (!type) {
+			setSelectedObjectType(null);
+			setEditingIntent(false);
+			return;
+		}
+		const typeExists = objectTypes.find((t) => t.name === type.name)
+			? true
+			: false;
+		if (!typeExists) {
+			console.warn("Selected object type not found.");
+			return;
+		}
+		setSelectedObjectType(type.name);
+		setEditingIntent(typeExists);
+	};
 
-    if (!value) {
-      setSelectedObjectType(null);
-      setEditingIntent(false);
-    }
-  };
+	const handleCesiumClick = useCallback(
+		({ coordinate, pickedEntityId }: CesiumClickInfo) => {
+			const lon = coordinate?.[0];
+			const lat = coordinate?.[1];
 
-  const handleSelectObjectType = (type: MeasureType | null) => {
-    if (!type) {
-      setSelectedObjectType(null);
-      setEditingIntent(false);
-      return;
-    }
+			if (showBuildings && lon != null && lat != null) {
+				handleBuildingClick(lon, lat);
+			}
 
-    const typeExists = objectTypes.find(t => t.name === type.name) ? true : false;
+			if (pickedEntityId || (lon != null && lat != null)) {
+				handleInteraction(lon, lat, pickedEntityId);
+			}
 
-    if (!typeExists) {
-      console.warn("Selected object type not found.");
-      return;
-    }
+			if (lon != null && lat != null) {
+				handleMapClick(lon, lat);
+			}
+		},
+		[showBuildings, handleBuildingClick, handleInteraction, handleMapClick],
+	);
 
-    setSelectedObjectType(type.name);
-    setEditingIntent(typeExists);
-  };
+	const activeVbos =
+		buildingInfo?.verblijfsobject_data?.filter(
+			(vbo) => vbo.status === "Verblijfsobject in gebruik",
+		) ?? [];
 
-  const items: SideMenuItem[] = [
-    {
-      id: "overlayLayers",
-      icon: <LayersIcon />,
-      label: "Overlay Layers",
-      panel: (
-        <OverlayLayersPanel
-          value={overlayLayerId}
-          onChange={(id) => {
-            setShowOverlay(true);
-            setOverlayLayerId(id);
-          }}
-        />
-      ),
-    },
-    {
-      id: "heatstressmeasures",
-      icon: <TreeIcon />,
-      label: "Heat Stress Measures",
-      panel: (
-        <HeatStressMeasuresPanel
-          showObjects={showObjects}
-          onToggleObjects={handleToggleObjects}
-          objectTypes={objectTypes}
-          selectedObjectType={selectedObjectType}
-          onSelectObjectType={handleSelectObjectType}
-          hasUnsavedChanges={hasUnsavedChanges}
-          isProcessing={isProcessing}
-          onSave={saveObjects}
-          onDiscard={discardChanges}
-          currentObjects={objectsToSave}
-          onImportObjects={handleImport}
-        />
-      ),
-    },
-    {
-      id: "buildings",
-      icon: <BuildingIcon />,
-      label: "Buildings (3D View)",
-      panel: (
-        <BuildingsPanel
-          showBuildings={showBuildings}
-          onToggleBuildings={setShowBuildings}
-        />
-      ),
-    },
-  ];
+	const usageFunctions = Array.from(
+		new Set(activeVbos.flatMap((vbo) => vbo.usage_function ?? [])),
+	);
 
-  const { highlightLayer, handleBuildingClick, buildingInfo } = useBuildingHighlight({
-    enabled: showBuildings,
-  });
+	const cesiumMapRef = useRef<CesiumMapHandle>(null);
 
-  const activeVbos =
-    buildingInfo?.verblijfsobject_data?.filter(
-      (vbo) => vbo.status === "Verblijfsobject in gebruik"
-    ) ?? [];
+	const items: SideMenuItem[] = [
+		{
+			id: "overlayLayers",
+			icon: <LayersIcon />,
+			label: "Overlay Layers",
+			panel: (
+				<OverlayLayersPanel
+					value={overlayLayerId}
+					onChange={(id) => {
+						setShowOverlay(true);
+						setOverlayLayerId(id);
+					}}
+				/>
+			),
+		},
+		{
+			id: "heatstressmeasures",
+			icon: <TreeIcon />,
+			label: "Heat Stress Measures",
+			panel: (
+				<HeatStressMeasuresPanel
+					showObjects={showObjects}
+					onToggleObjects={handleToggleObjects}
+					objectTypes={objectTypes}
+					selectedObjectType={selectedObjectType}
+					onSelectObjectType={handleSelectObjectType}
+					hasUnsavedChanges={hasUnsavedChanges}
+					isProcessing={isProcessing}
+					onSave={saveObjects}
+					onDiscard={discardChanges}
+					currentObjects={objectsToSave}
+					onImportObjects={handleImport}
+				/>
+			),
+		},
+		{
+			id: "buildings",
+			icon: <BuildingIcon />,
+			label: "Buildings (3D View)",
+			panel: (
+				<BuildingsPanel
+					showBuildings={showBuildings}
+					onToggleBuildings={setShowBuildings}
+				/>
+			),
+		},
+		{
+			id: "togglePerspective",
+			icon: <PerspectiveIcon />,
+			label: "Toggle Perspective",
+			onClick: () => {
+				cesiumMapRef.current?.togglePerspective();
+			},
+			panel: undefined,
+		},
+	];
 
-  const usageFunctions = Array.from(
-    new Set(activeVbos.flatMap((vbo) => vbo.usage_function ?? []))
-  );
+	const menuNode = React.useRef<HTMLDivElement>(null);
 
-  const deckClickHandler = useCallback(
-    (info: PickingInfo) => {
-      handleBuildingClick(info);
+	return (
+		<div style={{ position: "relative", height: "100dvh", width: "100%" }}>
+			<CesiumMap
+				ref={cesiumMapRef}
+				onLeftClick={handleCesiumClick}
+				isEditingMode={isEditingMode}
+			>
+				{showOverlay && (
+					<WMSOverlayLayer
+						layerId={overlayLayerId}
+						objectsVersion={objectsVersion}
+					/>
+				)}
 
-      const handledByInteraction = onViewStateClick(info);
+				{showObjects && <StaticTreesEntities />}
 
-      handleMapClick(info);
+				{showObjects && (
+					<UserObjectsEntities
+						objectsToSave={objectsToSave}
+						objectTypes={objectTypes}
+					/>
+				)}
 
-      return handledByInteraction;
-    },
-    [handleBuildingClick, onViewStateClick, handleMapClick]
-  );
+				{showBuildings && <BAG3DTileset heightOffset={BAG_3D_HEIGHT_OFFSET} />}
 
-  const menuNode = React.useRef<HTMLDivElement>(null);
+				{showBuildings && highlight && (
+					<BuildingHighlightEntity
+						polygon={highlight.polygon}
+						height={highlight.height}
+					/>
+				)}
+			</CesiumMap>
 
-  return (
-    <div style={{ position: "relative", height: "100dvh", width: "100%" }}>
- 
-      
-      <DeckMap
-        layers={highlightLayer ? [...layers, highlightLayer] : layers}
-        initialViewState={{
-          longitude: 3.613,
-          latitude: 51.5,
-          zoom: 14,
-          pitch: 45,
-          bearing: 0,
-        }}
-        onMapInteraction={deckClickHandler}
-        isEditingMode={isEditingMode}
-      />
+			{isProcessing && (
+				<LoadingIndicator
+					label="Processing"
+					backgroundColor="white"
+					textColor="black"
+					left={loaderLeft}
+				/>
+			)}
 
-      {isProcessing && (
-        <LoadingIndicator
-          label="Processing"
-          backgroundColor="white"
-          textColor="black"
-          left={loaderLeft}
-        />
-      )}
+			{/* BOTTOM RIGHT INFO PANEL */}
+			<div
+				style={{
+					position: "absolute",
+					bottom: 40,
+					right: 10,
+					zIndex: 1000,
+					pointerEvents: "none",
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "flex-end",
+					gap: "12px",
+				}}
+			>
+				{legend && showOverlay && overlayLayerId === "pet-version-1" && (
+					<LegendCard legend={legend} title="PET Index Legend" />
+				)}
+				{buildingInfo ? (
+					<BuildingInfoCard
+						buildingInfo={buildingInfo}
+						activeVbos={activeVbos}
+						usageFunctions={usageFunctions}
+					/>
+				) : featureInfo ? (
+					<FeatureInfoCard info={featureInfo} />
+				) : null}
+			</div>
 
-      {/* TOP RIGHT INFO PANEL */}
-      <div style={{
-        position: "absolute",
-        top: 20,
-        right: 20,
-        zIndex: 1000,
-        pointerEvents: "none",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-end",
-        gap: "12px",
-      }}>
-        {legend && showOverlay && overlayLayerId === "pet-version-1" && (
-          <LegendCard legend={legend} title="PET Index Legend" />
-        )}
-        {buildingInfo ? (
-          <BuildingInfoCard
-            buildingInfo={buildingInfo}
-            activeVbos={activeVbos}
-            usageFunctions={usageFunctions}
-          />
-        ) : featureInfo ? (
-          <FeatureInfoCard info={featureInfo} />
-        ) : null}
-      </div>
-
-      <div ref={menuNode} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-        <div style={{ position: "absolute", height: "100dvh", width: 400, pointerEvents: "auto" }}>
-          <SideMenu
-            items={items}
-            activeId={activeSideMenuId}
-            onChange={setActiveSideMenuId} />
-        </div>
-      </div>
-    </div>
-  )
+			<div
+				ref={menuNode}
+				style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+			>
+				<div
+					style={{
+						position: "absolute",
+						height: "100dvh",
+						width: 400,
+						pointerEvents: "auto",
+					}}
+				>
+					<SideMenu
+						items={items}
+						activeId={activeSideMenuId}
+						onChange={setActiveSideMenuId}
+					/>
+				</div>
+			</div>
+		</div>
+	);
 }

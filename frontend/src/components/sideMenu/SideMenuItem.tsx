@@ -3,4 +3,5 @@ export interface SideMenuItem {
   icon: React.ReactNode;
   label: string;
   panel: React.ReactNode;
+  onClick?: () => void;
 }

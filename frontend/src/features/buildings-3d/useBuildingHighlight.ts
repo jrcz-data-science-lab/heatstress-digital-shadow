@@ -1,6 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { PickingInfo } from "@deck.gl/core";
-import { PolygonLayer } from "@deck.gl/layers";
+import { useCallback, useEffect, useState } from "react";
 import { lonLatToRd, rdToLonLat } from "../../map/utils/crs";
 import {
   fetchBuildingMetadataByRD,
@@ -13,16 +11,13 @@ type UseBuildingHighlightOptions = {
   enabled: boolean;
 };
 
-type HighlightState = {
+export type HighlightState = {
   polygon: LonLat[];
   height: number;
 };
 
-type PolygonData = HighlightState;
-
 function polygonAreaRD(coords: [number, number][]): number {
   if (coords.length < 3) return 0;
-
   let area = 0;
   const n = coords.length;
   for (let i = 0; i < n; i++) {
@@ -34,10 +29,7 @@ function polygonAreaRD(coords: [number, number][]): number {
 }
 
 function estimateHeightFromArea(areaM2: number): number {
-  if (!Number.isFinite(areaM2) || areaM2 <= 0) {
-    return 15;
-  }
-
+  if (!Number.isFinite(areaM2) || areaM2 <= 0) return 15;
   const base = 8;
   const extra = Math.sqrt(areaM2);
   return base + extra * 0.4;
@@ -45,8 +37,7 @@ function estimateHeightFromArea(areaM2: number): number {
 
 export function useBuildingHighlight({ enabled }: UseBuildingHighlightOptions) {
   const [highlight, setHighlight] = useState<HighlightState | null>(null);
-  const [buildingInfo, setBuildingInfo] =
-    useState<BuildingApiResponse | null>(null);
+  const [buildingInfo, setBuildingInfo] = useState<BuildingApiResponse | null>(null);
 
   useEffect(() => {
     if (!enabled) {
@@ -55,28 +46,19 @@ export function useBuildingHighlight({ enabled }: UseBuildingHighlightOptions) {
     }
   }, [enabled]);
 
+  /**
+   * Call with the clicked lon/lat whenever buildings mode is enabled.
+   * Buildings are not rendered as pickable 3D meshes, so we query the API
+   * on every click within the area to look up building metadata.
+   */
   const handleBuildingClick = useCallback(
-    (info: PickingInfo) => {
+    (lon: number, lat: number) => {
       if (!enabled) {
         setHighlight(null);
         setBuildingInfo(null);
         return;
       }
 
-      // Check if there is an object where the user clicks, otherwise dont proceed with api call.
-      if (!info.object) {
-            setHighlight(null);
-            setBuildingInfo(null);
-            return;
-        }
-
-      if (!info.coordinate) {
-        setHighlight(null);
-        setBuildingInfo(null);
-        return;
-      }
-
-      const [lon, lat] = info.coordinate as LonLat;
       const [xRD, yRD] = lonLatToRd(lon, lat);
 
       setBuildingInfo(null);
@@ -102,47 +84,20 @@ export function useBuildingHighlight({ enabled }: UseBuildingHighlightOptions) {
             rdToLonLat(x, y)
           ) as LonLat[];
 
-          setHighlight({
-            polygon: ringLonLat,
-            height: estimatedHeight,
-          });
+          setHighlight({ polygon: ringLonLat, height: estimatedHeight });
           setBuildingInfo(data);
         })
         .catch((err) => {
           console.error("Failed to fetch building metadata:", err);
-          // On error: hide highlight + card
           setHighlight(null);
           setBuildingInfo(null);
-        })
+        });
     },
     [enabled]
   );
 
-  const highlightLayer = useMemo(() => {
-    if (!highlight) return null;
-
-    const data: PolygonData[] = [highlight];
-
-    return new PolygonLayer<PolygonData>({
-      id: "building-highlight",
-      data,
-      getPolygon: (d) => d.polygon,
-      filled: true,
-      stroked: true,
-      extruded: true,
-      getElevation: (d) => d.height,
-      elevationScale: 1,
-      getFillColor: [255, 255, 0, 150],
-      getLineColor: [0, 0, 0, 255],
-      lineWidthUnits: "pixels",
-      lineWidthMinPixels: 3,
-      getLineWidth: 3,
-      pickable: false,
-    });
-  }, [highlight]);
-
   return {
-    highlightLayer,
+    highlight,
     handleBuildingClick,
     buildingInfo,
   };

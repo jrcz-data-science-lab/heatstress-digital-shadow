@@ -12,7 +12,7 @@ const SideMenuBar: React.FC<BarProps> = ({ items, activeItem, onSelect }) => {
       {items.map(item => (
         <div
           key={item.id}
-          onClick={() => onSelect(item.id)}
+          onClick={() => { item.onClick?.(); if (item.panel != null) onSelect(item.id); }}
           style={{
             cursor: "pointer",
             padding: 12,
