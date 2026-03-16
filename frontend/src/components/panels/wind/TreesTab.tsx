@@ -3,11 +3,13 @@ import { CollapsibleHelpBox } from "../../CollapsibleHelpBox";
 import { CollapsibleSection } from "../../CollapsibleSection";
 import { FormInput, LoadingButton, MessageBox, ResultBox, LockToggle } from "../../form";
 
+type WindApiResult = Record<string, string>;
+
 export function TreesTab() {
   const [treesReferencePath, setTreesReferencePath] = useState("/data/wind/height.tif");
   const [treesOutputPath, setTreesOutputPath] = useState("/data/wind/trees.geojson");
   const [isTreesLoading, setIsTreesLoading] = useState(false);
-  const [treesResult, setTreesResult] = useState<any>(null);
+  const [treesResult, setTreesResult] = useState<WindApiResult | null>(null);
   const [treesError, setTreesError] = useState<string | null>(null);
   const [isImportLocked, setIsImportLocked] = useState(true);
 
@@ -15,7 +17,7 @@ export function TreesTab() {
   const [rasterizeInput, setRasterizeInput] = useState("/data/wind/trees.geojson");
   const [rasterizeOutput, setRasterizeOutput] = useState("/data/wind/trees-mask.tif");
   const [isRasterizing, setIsRasterizing] = useState(false);
-  const [rasterizeResult, setRasterizeResult] = useState<any>(null);
+  const [rasterizeResult, setRasterizeResult] = useState<WindApiResult | null>(null);
   const [rasterizeError, setRasterizeError] = useState<string | null>(null);
   const [isRasterizeLocked, setIsRasterizeLocked] = useState(true);
 
@@ -24,7 +26,7 @@ export function TreesTab() {
   const [treesMaskPath, setTreesMaskPath] = useState("/data/wind/trees-mask.tif");
   const [treesHeightOutput, setTreesHeightOutput] = useState("/data/wind/trees-height.tif");
   const [isExtracting, setIsExtracting] = useState(false);
-  const [extractResult, setExtractResult] = useState<any>(null);
+  const [extractResult, setExtractResult] = useState<WindApiResult | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [isExtractLocked, setIsExtractLocked] = useState(true);
 
@@ -32,7 +34,7 @@ export function TreesTab() {
   const [aspectMaskPath, setAspectMaskPath] = useState("/data/wind/trees-mask.tif");
   const [aspectOutputDir, setAspectOutputDir] = useState("/data/wind");
   const [isAspectLoading, setIsAspectLoading] = useState(false);
-  const [aspectResult, setAspectResult] = useState<any>(null);
+  const [aspectResult, setAspectResult] = useState<WindApiResult | null>(null);
   const [aspectError, setAspectError] = useState<string | null>(null);
   const [isAspectLocked, setIsAspectLocked] = useState(true);
 

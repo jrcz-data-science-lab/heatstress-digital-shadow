@@ -3,18 +3,20 @@ import { CollapsibleHelpBox } from "../../CollapsibleHelpBox";
 import { CollapsibleSection } from "../../CollapsibleSection";
 import { FormInput, LoadingButton, MessageBox, ResultBox, LockToggle } from "../../form";
 
+type WindApiResult = Record<string, string>;
+
 export function BuildingsTab() {
   const [buildingsReferencePath, setBuildingsReferencePath] = useState("/data/wind/height.tif");
   const [buildingsOutputPath, setBuildingsOutputPath] = useState("/data/wind/buildings.geojson");
   const [isBuildingsLoading, setIsBuildingsLoading] = useState(false);
-  const [buildingsResult, setBuildingsResult] = useState<any>(null);
+  const [buildingsResult, setBuildingsResult] = useState<WindApiResult | null>(null);
   const [buildingsError, setBuildingsError] = useState<string | null>(null);
   const [isImportLocked, setIsImportLocked] = useState(true);
 
   const [rasterizeInput, setRasterizeInput] = useState("/data/wind/buildings.geojson");
   const [rasterizeOutput, setRasterizeOutput] = useState("/data/wind/buildings-mask.tif");
   const [isRasterizing, setIsRasterizing] = useState(false);
-  const [rasterizeResult, setRasterizeResult] = useState<any>(null);
+  const [rasterizeResult, setRasterizeResult] = useState<WindApiResult | null>(null);
   const [rasterizeError, setRasterizeError] = useState<string | null>(null);
   const [isRasterizeLocked, setIsRasterizeLocked] = useState(true);
 
@@ -22,7 +24,7 @@ export function BuildingsTab() {
   const [buildingsMaskPath, setBuildingsMaskPath] = useState("/data/wind/buildings-mask.tif");
   const [buildingsHeightOutput, setBuildingsHeightOutput] = useState("/data/wind/buildings-height.tif");
   const [isExtracting, setIsExtracting] = useState(false);
-  const [extractResult, setExtractResult] = useState<any>(null);
+  const [extractResult, setExtractResult] = useState<WindApiResult | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [isExtractLocked, setIsExtractLocked] = useState(true);
 
@@ -30,7 +32,7 @@ export function BuildingsTab() {
   const [aspectMaskPath, setAspectMaskPath] = useState("/data/wind/buildings-mask.tif");
   const [aspectOutputDir, setAspectOutputDir] = useState("/data/wind");
   const [isAspectLoading, setIsAspectLoading] = useState(false);
-  const [aspectResult, setAspectResult] = useState<any>(null);
+  const [aspectResult, setAspectResult] = useState<WindApiResult | null>(null);
   const [aspectError, setAspectError] = useState<string | null>(null);
   const [isAspectLocked, setIsAspectLocked] = useState(true);
 

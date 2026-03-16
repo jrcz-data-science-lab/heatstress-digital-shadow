@@ -3,12 +3,14 @@ import { CollapsibleHelpBox } from "../../CollapsibleHelpBox";
 import { CollapsibleSection } from "../../CollapsibleSection";
 import { FormInput, LoadingButton, MessageBox, ResultBox, LockToggle } from "../../form";
 
+type WindApiResult = Record<string, string>;
+
 export function HeightMapTab() {
   const [dsmPath, setDsmPath] = useState("/data/wind/DSM-0.5.tiff");
   const [dtmPath, setDtmPath] = useState("/data/wind/DTM-0.5.tiff");
   const [outputPath, setOutputPath] = useState("/data/wind/height.tif");
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<WindApiResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(true);
 
