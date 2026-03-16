@@ -115,15 +115,20 @@ export default function App() {
 
 	const handleCesiumClick = useCallback(
 		({ coordinate, pickedEntityId }: CesiumClickInfo) => {
-			if (!coordinate) return;
-			const [lon, lat] = coordinate;
+			const lon = coordinate?.[0];
+			const lat = coordinate?.[1];
 
-			if (showBuildings) {
+			if (showBuildings && lon != null && lat != null) {
 				handleBuildingClick(lon, lat);
 			}
 
-			handleInteraction(lon, lat, pickedEntityId);
-			handleMapClick(lon, lat);
+			if (pickedEntityId || (lon != null && lat != null)) {
+				handleInteraction(lon, lat, pickedEntityId);
+			}
+
+			if (lon != null && lat != null) {
+				handleMapClick(lon, lat);
+			}
 		},
 		[showBuildings, handleBuildingClick, handleInteraction, handleMapClick],
 	);

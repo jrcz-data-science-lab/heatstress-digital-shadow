@@ -57,21 +57,25 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 	);
 	const [isPerspective, setIsPerspective] = useState(true);
 	const [initialFlyDone, setInitialFlyDone] = useState(false);
+	const basemapSet = useRef(false);
 
-	// Set up click handler
+	// Set up click handler (also sets default base layer once, since the viewer
+	// isn't ready during the initial mount render and needs onLeftClick to be stable first)
 	useEffect(() => {
 		const viewer = viewerRef.current?.cesiumElement;
-
-		// Set default base layer
-		if (!viewer) return;
-		const viewModels =
-			viewer.baseLayerPicker.viewModel.imageryProviderViewModels;
-		const osm = viewModels.find((vm) => vm.name === "Stadia Alidade Smooth");
-		if (osm) viewer.baseLayerPicker.viewModel.selectedImagery = osm;
-
-		// Handle PET legend clicks
-
 		if (!viewer || !onLeftClick) return;
+
+		if (!basemapSet.current) {
+			const viewModels =
+				viewer.baseLayerPicker.viewModel.imageryProviderViewModels;
+			const stadia = viewModels.find(
+				(vm) => vm.name === "Stadia Alidade Smooth",
+			);
+			if (stadia) {
+				viewer.baseLayerPicker.viewModel.selectedImagery = stadia;
+				basemapSet.current = true;
+			}
+		}
 
 		const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
 
@@ -83,7 +87,10 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 				const pickedEntityId: string | undefined =
 					picked?.id?.id ?? picked?.id ?? undefined;
 
-				const cartesian = viewer.camera.pickEllipsoid(movement.position);
+				// Try pickPosition first (works for 3D entities/tiles), fall back to ellipsoid
+				const cartesian =
+					scene.pickPosition(movement.position) ??
+					viewer.camera.pickEllipsoid(movement.position);
 				if (!cartesian) {
 					onLeftClick({ coordinate: null, pickedEntityId });
 					return;

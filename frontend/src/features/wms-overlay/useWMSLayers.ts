@@ -29,7 +29,7 @@ export function useWMSLayers({
 		isLoading: isLegendLoading,
 		error: legendError,
 	} = useWMSLegend({
-		enabled: true,
+		enabled: showOverlay,
 	});
 
 	const { featureInfo, request, clear } = useQgisFeatureInfo({

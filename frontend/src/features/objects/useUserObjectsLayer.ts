@@ -66,17 +66,19 @@ export function useUserObjectsLayer(
 	 * @param pickedEntityId  Cesium entity id string, if any entity was picked
 	 */
 	const handleInteraction = useCallback(
-		(lon: number, lat: number, pickedEntityId?: string) => {
+		(lon: number | undefined, lat: number | undefined, pickedEntityId?: string) => {
 			if (!isEditingMode) return;
 
-			// If a user-placed entity was picked, remove it
+			// If a user-placed entity was picked, remove it (coords not needed)
 			if (pickedEntityId?.startsWith("user-obj-CLIENT-")) {
 				const objectId = pickedEntityId.replace(/^user-obj-/, "");
 				setObjectsToSave((prev) => prev.filter((t) => t.id !== objectId));
 				return true;
 			}
 
-			// Otherwise place a new object at the clicked location
+			// Otherwise place a new object at the clicked location (coords required)
+			if (lon == null || lat == null) return;
+
 			const selectedType = getSelectedTypeProperties();
 			if (!selectedType) {
 				console.warn(
