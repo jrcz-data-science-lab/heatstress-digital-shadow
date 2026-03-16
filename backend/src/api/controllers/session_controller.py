@@ -2,7 +2,6 @@ from abc import ABC
 from fastapi import Cookie, Response
 from typing import Optional
 import os
-import shutil
 import zipfile
 import tempfile
 
@@ -36,8 +35,10 @@ def _copy_and_fix_qgz(src: str, dst: str) -> None:
                     f.write(content)
 
         with zipfile.ZipFile(dst, 'w', zipfile.ZIP_DEFLATED) as z:
-            for fname in os.listdir(tmpdir):
-                z.write(os.path.join(tmpdir, fname), fname)
+            for root, dirs, files in os.walk(tmpdir):
+                for fname in files:
+                    fpath = os.path.join(root, fname)
+                    z.write(fpath, os.path.relpath(fpath, tmpdir))
 
 
 class SessionController(ABC):
@@ -56,10 +57,12 @@ class SessionController(ABC):
         """
 
         # 1. Get or create session id
+        created = False
         if session_id:
             sid = session_id
         else:
             sid = create_session()
+            created = True
             response.set_cookie(
                 key="session_id",
                 value=sid,
@@ -77,7 +80,7 @@ class SessionController(ABC):
 
         os.makedirs(dst_dir, exist_ok=True)
 
-        if os.path.exists(src) and not os.path.exists(dst):
+        if os.path.exists(src) and (created or not os.path.exists(dst)):
             _copy_and_fix_qgz(src, dst)
 
         return sid
