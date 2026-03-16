@@ -28,6 +28,14 @@ export function TreesTab() {
   const [extractError, setExtractError] = useState<string | null>(null);
   const [isExtractLocked, setIsExtractLocked] = useState(true);
 
+  const [aspectHeightPath, setAspectHeightPath] = useState("/data/wind/trees-height.tif");
+  const [aspectMaskPath, setAspectMaskPath] = useState("/data/wind/trees-mask.tif");
+  const [aspectOutputDir, setAspectOutputDir] = useState("/data/wind");
+  const [isAspectLoading, setIsAspectLoading] = useState(false);
+  const [aspectResult, setAspectResult] = useState<any>(null);
+  const [aspectError, setAspectError] = useState<string | null>(null);
+  const [isAspectLocked, setIsAspectLocked] = useState(true);
+
   const handleImportTrees = async () => {
     setIsTreesLoading(true);
     setTreesError(null);
@@ -88,6 +96,35 @@ export function TreesTab() {
       setRasterizeError(err instanceof Error ? err.message : "Unknown error occurred");
     } finally {
       setIsRasterizing(false);
+    }
+  };
+
+  const handleTreesAspect = async () => {
+    setIsAspectLoading(true);
+    setAspectError(null);
+    setAspectResult(null);
+
+    try {
+      const response = await fetch("http://localhost:9000/wind/aspect-trees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          height_path: aspectHeightPath,
+          mask_path: aspectMaskPath,
+          output_dir: aspectOutputDir,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to calculate trees aspect");
+      }
+
+      setAspectResult(await response.json());
+    } catch (err) {
+      setAspectError(err instanceof Error ? err.message : "Unknown error occurred");
+    } finally {
+      setIsAspectLoading(false);
     }
   };
 
@@ -312,6 +349,61 @@ export function TreesTab() {
             This output layer contains only the heights of trees, which can be used
             for wind flow calculations, vegetation analysis, and urban forestry planning.
           </p>
+        </CollapsibleHelpBox>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Trees Aspect" separator>
+        <LockToggle isLocked={isAspectLocked} onToggle={() => setIsAspectLocked(!isAspectLocked)} />
+        <FormInput
+          label="Trees Height Path:"
+          value={aspectHeightPath}
+          onChange={setAspectHeightPath}
+          disabled={isAspectLocked}
+        />
+        <FormInput
+          label="Trees Mask Path:"
+          value={aspectMaskPath}
+          onChange={setAspectMaskPath}
+          disabled={isAspectLocked}
+        />
+        <FormInput
+          label="Output Directory:"
+          value={aspectOutputDir}
+          onChange={setAspectOutputDir}
+          disabled={isAspectLocked}
+        />
+
+        <LoadingButton
+          onClick={handleTreesAspect}
+          isLoading={isAspectLoading}
+          loadingText="Calculating..."
+          text="Calculate Trees Aspect"
+          color="#E91E63"
+        />
+
+        {aspectError && <MessageBox message={aspectError} type="error" />}
+
+        {aspectResult && (
+          <ResultBox
+            status={aspectResult.status}
+            outputPath={aspectResult.aspect_separated_path}
+            outputLabel="Aspect Separated:"
+            message={aspectResult.message}
+          />
+        )}
+
+        <CollapsibleHelpBox
+          title="Help: Trees Aspect"
+          backgroundColor="#fce4ec"
+          borderColor="#E91E63"
+        >
+          <p>Calculates which compass direction each tree is facing and produces 4 binary direction masks (N/E/S/W).</p>
+          <ul style={{ marginLeft: "1rem" }}>
+            <li>Runs GDAL Aspect on the trees height layer (0–360°, true north)</li>
+            <li>Bins into N=1 (315–45°), E=2 (45–135°), S=3 (135–225°), W=4 (225–315°)</li>
+            <li>Multiplies each band by the trees mask to isolate only tree pixels</li>
+            <li>Outputs: aspect, aspect-separated, and north/east/south/west masks</li>
+          </ul>
         </CollapsibleHelpBox>
       </CollapsibleSection>
     </div>

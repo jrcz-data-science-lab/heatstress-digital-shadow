@@ -3,6 +3,7 @@ from qgis.core import QgsRasterLayer
 from src.services.wind.wfs_service import WfsService
 from src.services.wind.height_service import HeightService
 from src.services.wind.rasterization_service import RasterizationService
+from src.services.wind.aspect_service import AspectService
 from src.utils.layer_utils import load_raster_layer
 
 
@@ -24,6 +25,7 @@ class WindService:
         self.height = HeightService()
         self.wfs = WfsService()
         self.rasterization = RasterizationService()
+        self.aspect = AspectService()
     
     def generate_wind_reduction_map(
         self,
@@ -42,7 +44,9 @@ class WindService:
         5. Rasterize trees to create mask
         6. Extract building heights from height map
         7. Extract tree heights from height map
-        8. Calculate wind reduction factors (TODO: implement)
+        8. Calculate aspect for buildings (N/E/S/W direction masks)
+        9. Calculate aspect for trees (N/E/S/W direction masks)
+        10. Calculate wind reduction factors (TODO: implement)
         
         :param str dsm_path: Path to input DSM raster
         :param str dtm_path: Path to input DTM raster
@@ -113,10 +117,21 @@ class WindService:
             output_path=trees_height_path
         )
         results["trees_height"] = trees_height_result
-        
-        # TODO: Step 8: Calculate wind reduction factors
-        # This will be implemented based on the specific wind reduction algorithm
-        
+
+        results["buildings_aspect"] = self.aspect.calculate_buildings_aspect(
+            buildings_height_path=buildings_height_path,
+            buildings_mask_path=buildings_mask_path,
+            output_dir=output_dir,
+        )
+
+        results["trees_aspect"] = self.aspect.calculate_trees_aspect(
+            trees_height_path=trees_height_path,
+            trees_mask_path=trees_mask_path,
+            output_dir=output_dir,
+        )
+
+        # todo calculate wind reduction factors and grid
+
         return {
             "status": "success",
             "message": "Wind reduction map workflow completed successfully",
@@ -129,5 +144,7 @@ class WindService:
                 "trees_mask": trees_mask_path,
                 "buildings_height": buildings_height_path,
                 "trees_height": trees_height_path,
+                "buildings_aspect": os.path.join(output_dir, "buildings-aspect-separated.tif"),
+                "trees_aspect": os.path.join(output_dir, "trees-aspect-separated.tif"),
             }
         }

@@ -432,8 +432,6 @@ class RasterService:
         nodata_value: float = -9999,
     )-> str:
         import processing
-        from qgis.core import QgsProcessingFeedback
-
         feedback = QgsProcessingFeedback()
         """
         Reprojects and resamples a raster to match the CRS and alignment of a target layer.
@@ -517,6 +515,45 @@ class RasterService:
         )
 
         return target
+
+    def gdal_aspect(
+        self,
+        input_raster_path: str,
+        output_path: str,
+    ) -> QgsRasterLayer:
+        """
+        Calculates the aspect of a raster using GDAL.
+
+        :param str input_raster_path: Path to input height raster
+        :param str output_path: Path to save the output aspect raster
+        :return: QgsRasterLayer of the aspect raster
+        :rtype: QgsRasterLayer
+        """
+        import processing
+        from qgis.core import QgsProcessingFeedback
+
+        feedback = QgsProcessingFeedback()
+
+        params = {
+            'INPUT': input_raster_path,
+            'BAND': 1,
+            'TRIG_ANGLE': False,
+            'ZERO_FLAT': False,
+            'COMPUTE_EDGES': True,
+            'ZEVENBERGEN': False,
+            'OPTIONS': '',
+            'EXTRA': '',
+            'OUTPUT': output_path,
+        }
+
+        result = processing.run("gdal:aspect", params, feedback=feedback)
+        aspect_raster = QgsRasterLayer(result['OUTPUT'], os.path.basename(output_path))
+
+
+        if not aspect_raster.isValid():
+            raise Exception(f"Aspect calculation failed - could not load output raster: {output_path}")
+
+        return aspect_raster
 
     def _generate_leaf_points(self, x, y, radius, density, jitter):
         pts = []

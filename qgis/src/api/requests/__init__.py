@@ -4,7 +4,8 @@ from .wind import (
     WindMapRequest,
     ImportGeoJSONRequest,
     RasterizeGeoJSONRequest,
-    ExtractHeightRequest
+    ExtractHeightRequest,
+    AspectRequest,
 )
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "WindMapRequest",
     "ImportGeoJSONRequest",
     "RasterizeGeoJSONRequest",
-    "ExtractHeightRequest"
+    "ExtractHeightRequest",
+    "AspectRequest",
 ]

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from src.api.requests import WindMapRequest, ImportGeoJSONRequest, RasterizeGeoJSONRequest, ExtractHeightRequest
+from src.api.requests import WindMapRequest, ImportGeoJSONRequest, RasterizeGeoJSONRequest, ExtractHeightRequest, AspectRequest
 from src.services.wind import WindService
 from src.utils.layer_utils import load_raster_layer
 
@@ -118,10 +118,7 @@ def rasterize_buildings(req: RasterizeGeoJSONRequest):
     Returns: JSON with output path and processing status
     """
     try:
-        # Load reference layer if provided
-        reference_layer = None
-        if req.height_map_path:
-            reference_layer = load_raster_layer(req.height_map_path, "Height Map Reference")
+        reference_layer = load_raster_layer(req.height_map_path, "Height Map Reference")
         
         result = wind_service.rasterization.rasterize_buildings(
             buildings_geojson_path=req.input_geojson_path,
@@ -154,10 +151,7 @@ def rasterize_trees(req: RasterizeGeoJSONRequest):
     Returns: JSON with output path and processing status
     """
     try:
-        # Load reference layer if provided
-        reference_layer = None
-        if req.height_map_path:
-            reference_layer = load_raster_layer(req.height_map_path, "Height Map Reference")
+        reference_layer = load_raster_layer(req.height_map_path, "Height Map Reference")
         
         result = wind_service.rasterization.rasterize_trees(
             trees_geojson_path=req.input_geojson_path,
@@ -228,3 +222,55 @@ def extract_height_trees(req: ExtractHeightRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error extracting tree heights: {str(e)}")
+
+
+@router.post("/aspect-buildings")
+def aspect_buildings(req: AspectRequest):
+    """Calculate aspect for buildings and extract N/E/S/W direction masks."""
+    try:
+        result = wind_service.aspect.calculate_buildings_aspect(
+            buildings_height_path=req.height_path,
+            buildings_mask_path=req.mask_path,
+            output_dir=req.output_dir,
+        )
+
+        return {
+            "status": "success",
+            "aspect_path": result["aspect"]["path"],
+            "aspect_separated_path": result["aspect_separated"]["path"],
+            "north_path": result["north"]["path"],
+            "east_path": result["east"]["path"],
+            "south_path": result["south"]["path"],
+            "west_path": result["west"]["path"],
+            "message": "Successfully calculated buildings aspect",
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating buildings aspect: {str(e)}")
+
+
+@router.post("/aspect-trees")
+def aspect_trees(req: AspectRequest):
+    """Calculate aspect for trees and extract N/E/S/W direction masks."""
+    try:
+        result = wind_service.aspect.calculate_trees_aspect(
+            trees_height_path=req.height_path,
+            trees_mask_path=req.mask_path,
+            output_dir=req.output_dir,
+        )
+
+        return {
+            "status": "success",
+            "aspect_path": result["aspect"]["path"],
+            "aspect_separated_path": result["aspect_separated"]["path"],
+            "north_path": result["north"]["path"],
+            "east_path": result["east"]["path"],
+            "south_path": result["south"]["path"],
+            "west_path": result["west"]["path"],
+            "message": "Successfully calculated trees aspect",
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating trees aspect: {str(e)}")
