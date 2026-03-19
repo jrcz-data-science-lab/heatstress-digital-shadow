@@ -33,16 +33,7 @@ def update_pet_layer_in_project(
     # ── 1. Read .qgz ─────────────────────────────────────────────────────────
     with zipfile.ZipFile(project_path, "r") as z:
         all_names = z.namelist()
-        
-        try:
-            qgs_name = next(n for n in all_names if n.endswith(".qgs"))
-        except StopIteration:
-            raise RuntimeError(
-                f"No .qgs file found inside {project_path!r}; "
-
-                "ensure this is a valid QGIS .qgz project."
-            )
-        
+        qgs_name = next(n for n in all_names if n.endswith(".qgs"))
         qgs_bytes = z.read(qgs_name)
         other_files = {n: z.read(n) for n in all_names if n != qgs_name}
 
