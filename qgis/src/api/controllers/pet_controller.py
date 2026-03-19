@@ -170,44 +170,38 @@ def burn_point_to_raster(req: PlacedObjectsRequest, session_id: Optional[str] = 
     )
 
     # 4) Hillshade from UPDATED DSM
-    try:
-        _status["message"] = "Generating shadow map..."
-        output_folder = "/data/shadow-maps"
-        lat, lon = 51.498, 3.613
-        start_dt = datetime(2015, 7, 1, 15, 0, 0)
-        end_dt = datetime(2015, 7, 1, 15, 0, 0)
+    _status["message"] = "Generating shadow map..."
+    output_folder = "/data/shadow-maps"
+    lat, lon = 51.498, 3.613
+    start_dt = datetime(2015, 7, 1, 15, 0, 0)
+    end_dt = datetime(2015, 7, 1, 15, 0, 0)
 
-        shadow_path = shadow_service.generate_hillshade_maps(
-            output_raster, output_folder, lat, lon, start_dt, end_dt
-        )
+    shadow_path = shadow_service.generate_hillshade_maps(
+        output_raster, output_folder, lat, lon, start_dt, end_dt
+    )
 
-        # 5) Combine sun/shadow PET into final PET
-        _status["message"] = "Combining sun & shadow PET..."
-        pet_service.calculate_total_pet_map(
-            shadow_path,
-            sun_pet_updated,
-            "/data/uhi/shadow-pet.tif",
-            pet_raster,
-        )
+    # 5) Combine sun/shadow PET into final PET
+    _status["message"] = "Combining sun & shadow PET..."
+    pet_service.calculate_total_pet_map(
+        shadow_path,
+        sun_pet_updated,
+        "/data/uhi/shadow-pet.tif",
+        pet_raster,
+    )
 
-        # 6) Fill nodata for display
-        _status["message"] = "Finalising and updating map..."
-        raster_service.fill_nodata_gdal(pet_raster, filled_pet_raster)
+    # 6) Fill nodata for display
+    _status["message"] = "Finalising and updating map..."
+    raster_service.fill_nodata_gdal(pet_raster, filled_pet_raster)
 
-        update_pet_layer_in_project(
-            f"/data/server/sessions/{session_id}/map.qgz",
-            filled_pet_raster,
-            f"pet_{timestamp}_filled",
-        )
+    update_pet_layer_in_project(
+        f"/data/server/sessions/{session_id}/map.qgz",
+        filled_pet_raster,
+        f"pet_{timestamp}_filled",
+    )
 
-        return {
-            "status": "success",
-            "message": f"Burned {len(req.points)} point(s) into raster.",
-            "params": {"points": [p.dict() for p in req.points]},
-            "output": pet_raster,
-        }
-    except Exception as exc:
-        _status["message"] = f"Error: {exc}"
-        raise
-    finally:
-        _status["message"] = "Idle"
+    return {
+        "status": "success",
+        "message": f"Burned {len(req.points)} point(s) into raster.",
+        "params": {"points": [p.dict() for p in req.points]},
+        "output": pet_raster,
+    }
