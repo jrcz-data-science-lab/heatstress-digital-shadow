@@ -14,6 +14,13 @@ raster_service = RasterService()
 shadow_service = ShadowService()
 geojson_service = GeoJSONService()
 
+_status: dict = {"message": "Idle"}
+
+
+@router.get("/status")
+def get_status():
+    return _status
+
 
 @router.get("/full-map-generation")
 def get_uhi_zone():
@@ -24,7 +31,7 @@ def get_uhi_zone():
     vegetation = "/data/kapelle/vegetation-kapelle-5m.tif"
     svf = "/data/kapelle/SVF-Kapelle-5m.tif"
     svf_filled = "/data/kapelle/SVF-Kapelle-5m-filled.tif"
-    bowen_5m = "/data/raster/br-kapelle-5m.tif"
+    bowen_5m = "/data/raster/kapelle/br-kapelle-5m.tif"
 
     # Output paths
     sun_bbox = "/data/uhi/sun-bbox.tif"
@@ -101,6 +108,7 @@ def get_uhi_zone():
     return {"status": "success", "message": "Map(s) generated successfully"}
 
 
+
 @router.post("/update")
 def burn_point_to_raster(req: PlacedObjectsRequest, session_id: Optional[str] = None):
     """
@@ -110,6 +118,7 @@ def burn_point_to_raster(req: PlacedObjectsRequest, session_id: Optional[str] = 
     - Recomputes session sun PET
     - Recomputes hillshade from updated DSM
     - Combines sun/shadow PET into final PET
+    - Make sure to edit path for reference files if working with another area than Kapelle!
     """
     # IMPORTANT: use 5m DSM as update base (NOT /data/dsm.TIF which is likely 1m)
     base_dsm_5m = "/data/kapelle/dsm-kapelle-5m.tif"
@@ -120,11 +129,12 @@ def burn_point_to_raster(req: PlacedObjectsRequest, session_id: Optional[str] = 
     pet_raster = f"/data/server/sessions/{session_id}/pet_{timestamp}.tif"
     filled_pet_raster = f"/data/server/sessions/{session_id}/pet_{timestamp}_filled.tif"
 
-    bowen_raster_5m = "/data/raster/br-kapelle-5m.tif"
+    bowen_raster_5m = "/data/raster/kapelle/br-kapelle-5m.tif"
     bowen_updated_raster = f"/data/server/sessions/{session_id}/bowen_{timestamp}.tif"
     sun_pet_updated = f"/data/server/sessions/{session_id}/sun_pet_{timestamp}.tif"
 
     # 1) Burn objects into DSM + Bowen (both 5m)
+    _status["message"] = "Burning objects into terrain model..."
     raster_service.burn_points_to_raster_pixel_cloud(
         base_dsm_5m, req.points, output_path=output_raster
     )
@@ -137,6 +147,7 @@ def burn_point_to_raster(req: PlacedObjectsRequest, session_id: Optional[str] = 
     )
 
     # 2) Ensure sun-bbox matches UPDATED DSM grid (session-specific bbox)
+    _status["message"] = "Aligning sun exposure grid..."
     reference = raster_service.load_raster_layer(output_raster, "dsm_updated")
 
     # If /data/uhi/sun-bbox.tif is already 5m and aligned, this is fast and effectively a no-op.
@@ -148,6 +159,7 @@ def burn_point_to_raster(req: PlacedObjectsRequest, session_id: Optional[str] = 
     )
 
     # 3) Recompute session sun PET (SVF must be 5m-filled)
+    _status["message"] = "Computing sun PET..."
     svf_filled = "/data/kapelle/SVF-Kapelle-5m-filled.tif"
 
     pet_service.calculate_total_pet_sun(
@@ -158,6 +170,7 @@ def burn_point_to_raster(req: PlacedObjectsRequest, session_id: Optional[str] = 
     )
 
     # 4) Hillshade from UPDATED DSM
+    _status["message"] = "Generating shadow map..."
     output_folder = "/data/shadow-maps"
     lat, lon = 51.498, 3.613
     start_dt = datetime(2015, 7, 1, 15, 0, 0)
@@ -168,7 +181,7 @@ def burn_point_to_raster(req: PlacedObjectsRequest, session_id: Optional[str] = 
     )
 
     # 5) Combine sun/shadow PET into final PET
-    # Uses global shadow-pet (computed in full generation) + session sun PET + session hillshade
+    _status["message"] = "Combining sun & shadow PET..."
     pet_service.calculate_total_pet_map(
         shadow_path,
         sun_pet_updated,
@@ -177,6 +190,7 @@ def burn_point_to_raster(req: PlacedObjectsRequest, session_id: Optional[str] = 
     )
 
     # 6) Fill nodata for display
+    _status["message"] = "Finalising and updating map..."
     raster_service.fill_nodata_gdal(pet_raster, filled_pet_raster)
 
     update_pet_layer_in_project(

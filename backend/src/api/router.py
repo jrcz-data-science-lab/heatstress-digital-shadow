@@ -66,6 +66,10 @@ async def get_session(
         session_id=session_id,
     )
 
+@api_router.get("/processing-status")
+async def get_processing_status():
+    return await dpc_controller.get_processing_status()
+
 @api_router.post("/update-pet")
 async def update_pet_map_based_on_objects(
     req: PlacedObjectsRequest,

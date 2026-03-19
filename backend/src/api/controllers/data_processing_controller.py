@@ -12,6 +12,14 @@ class DataProcessingController(ABC):
     """
     QGIS_API_BASE_URL: str = os.getenv('QGIS_URL', 'http://qgis:8000')
 
+    async def get_processing_status(self):
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            try:
+                r = await client.get(f"{self.QGIS_API_BASE_URL}/pet/status")
+                return r.json()
+            except Exception:
+                return {"message": "Idle"}
+
     async def update_map_placed_objects(
         self, 
         req: PlacedObjectsRequest,
@@ -20,7 +28,7 @@ class DataProcessingController(ABC):
         endpoint = f"{self.QGIS_API_BASE_URL}/pet/update"
         payload = req.model_dump(mode="json")
 
-        async with httpx.AsyncClient(timeout=200.0) as client:
+        async with httpx.AsyncClient(timeout=1000.0) as client:
             try:
                 response = await client.post(endpoint, json=payload, params={"session_id": session_id})
                 response.raise_for_status()
@@ -29,8 +37,17 @@ class DataProcessingController(ABC):
                     status_code=response.status_code,
                     content=response.json()
                 )
-            except ValueError:
+            except httpx.TimeoutException:
                 return JSONResponse(
-                    status_code=500,
-                    content={"detail": response.text}
+                    status_code=504,
+                    content={"detail": "PET computation timed out — the processing took too long."}
+                )
+            except httpx.HTTPStatusError as e:
+                try:
+                    detail = e.response.json()
+                except Exception:
+                    detail = e.response.text
+                return JSONResponse(
+                    status_code=e.response.status_code,
+                    content={"detail": detail}
                 )
