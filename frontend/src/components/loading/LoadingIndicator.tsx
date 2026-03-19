@@ -22,6 +22,7 @@ type LoadingIndicatorProps = {
 };
 
 export function LoadingIndicator({
+	label = "Computing PET map...",
 	backgroundColor,
 	textColor,
 	left = "26rem",
@@ -93,9 +94,7 @@ export function LoadingIndicator({
 				gap: "8px",
 			}}
 		>
-			<span style={{ fontSize: "15px", fontWeight: 700 }}>
-				Computing PET map...
-			</span>
+			<span style={{ fontSize: "15px", fontWeight: 700 }}>{label}</span>
 
 			<div className="progress-track">
 				<div className="progress-fill" style={{ width: `${progress}%` }} />

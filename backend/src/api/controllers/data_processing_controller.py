@@ -33,9 +33,17 @@ class DataProcessingController(ABC):
                 response = await client.post(endpoint, json=payload, params={"session_id": session_id})
                 response.raise_for_status()
 
+                try:
+                    content = response.json()
+                except ValueError:
+                    return JSONResponse(
+                        status_code=502,
+                        content={"detail": "Invalid JSON received from QGIS service."}
+                    )
+
                 return JSONResponse(
                     status_code=response.status_code,
-                    content=response.json()
+                    content=content
                 )
             except httpx.TimeoutException:
                 return JSONResponse(
