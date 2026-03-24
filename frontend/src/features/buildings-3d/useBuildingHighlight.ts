@@ -4,6 +4,7 @@ import {
 	fetchBuildingMetadataByBagId,
 	fetchBuildingMetadataByRD,
 	type BuildingApiResponse,
+	type TileProperties,
 } from "./lib/buildingMetadataApi";
 
 type LonLat = [number, number];
@@ -41,41 +42,35 @@ function estimateHeightFromArea(areaM2: number): number {
 
 export function useBuildingHighlight({ enabled }: UseBuildingHighlightOptions) {
 	const [highlight, setHighlight] = useState<HighlightState | null>(null);
-	const [buildingInfo, setBuildingInfo] = useState<BuildingApiResponse | null>(
-		null,
-	);
+	const [buildingInfo, setBuildingInfo] = useState<BuildingApiResponse | null>(null);
+	const [tileProperties, setTileProperties] = useState<TileProperties | null>(null);
 
 	useEffect(() => {
 		if (!enabled) {
 			setHighlight(null);
 			setBuildingInfo(null);
+			setTileProperties(null);
 		}
 	}, [enabled]);
 
 	/**
-	 * Call with the clicked lon/lat (and optional tileset-derived values) whenever
+	 * Call with the clicked lon/lat and optional tileset-derived values whenever
 	 * buildings mode is enabled.
 	 * - bagId: skips the spatial search and fetches metadata directly by ID
-	 * - roofHeight / groundHeight: real heights from the 3D BAG tileset feature
-	 *   (b3_h_dak_50p and b3_h_maaiveld, absolute metres above NAP). When provided
-	 *   the highlight polygon will perfectly match the actual building geometry.
-	 *   Falls back to an area-based estimate when not available.
+	 * - tileProperties: all 3D BAG tileset feature attributes (heights, roof type, volume…)
+	 *   read at click time from the Cesium3DTileFeature — no extra API call needed.
 	 */
 	const handleBuildingClick = useCallback(
-		(
-			lon: number,
-			lat: number,
-			bagId?: string,
-			roofHeight?: number,
-			groundHeight?: number,
-		) => {
+		(lon: number, lat: number, bagId?: string, tileProp?: TileProperties) => {
 			if (!enabled) {
 				setHighlight(null);
 				setBuildingInfo(null);
+				setTileProperties(null);
 				return;
 			}
 
 			setBuildingInfo(null);
+			setTileProperties(tileProp ?? null);
 
 			const [xRD, yRD] = lonLatToRd(lon, lat);
 			const fetchPromise = bagId
@@ -101,10 +96,10 @@ export function useBuildingHighlight({ enabled }: UseBuildingHighlightOptions) {
 					) as LonLat[];
 
 					// Use real heights from the tileset if available, otherwise estimate.
-					const resolvedGroundHeight = groundHeight ?? 0;
+					const resolvedGroundHeight = tileProp?.h_maaiveld ?? 0;
 					const resolvedRoofHeight =
-						roofHeight != null
-							? roofHeight
+						tileProp?.h_dak_50p != null
+							? tileProp.h_dak_50p
 							: resolvedGroundHeight + estimateHeightFromArea(polygonAreaRD(coordsRD));
 
 					setHighlight({
@@ -127,5 +122,6 @@ export function useBuildingHighlight({ enabled }: UseBuildingHighlightOptions) {
 		highlight,
 		handleBuildingClick,
 		buildingInfo,
+		tileProperties,
 	};
 }

@@ -23,7 +23,6 @@ import { TreeIcon } from "./components/icons/TreeIcon";
 import { HeatStressMeasuresPanel } from "./components/panels/HeatStressMeasuresPanel";
 import { BuildingIcon } from "./components/icons/BuildingIcon";
 import { BuildingsPanel } from "./components/panels/BuildingsPanel";
-import { BuildingInfoCard } from "./components/infoCards/BuildingInfoCard";
 import { FeatureInfoCard } from "./components/infoCards/FeatureInfoCard";
 import { LoadingIndicator } from "./components/loading/LoadingIndicator";
 import { LegendCard } from "./components/legend/LegendCard";
@@ -71,7 +70,7 @@ export default function App() {
 		overlayLayerId,
 	});
 
-	const { highlight, handleBuildingClick, buildingInfo } = useBuildingHighlight(
+	const { highlight, handleBuildingClick, buildingInfo, tileProperties } = useBuildingHighlight(
 		{
 			enabled: showBuildings,
 		},
@@ -113,12 +112,14 @@ export default function App() {
 	};
 
 	const handleCesiumClick = useCallback(
-		({ coordinate, pickedEntityId, bagId, roofHeight, groundHeight }: CesiumClickInfo) => {
+		({ coordinate, pickedEntityId, bagId, tileProperties }: CesiumClickInfo) => {
 			const lon = coordinate?.[0];
 			const lat = coordinate?.[1];
 
 			if (showBuildings && lon != null && lat != null) {
-				handleBuildingClick(lon, lat, bagId, roofHeight, groundHeight);
+				handleBuildingClick(lon, lat, bagId, tileProperties);
+				// Auto-open the buildings panel so the user sees the details immediately.
+				if (bagId) setActiveSideMenuId("buildings");
 			}
 
 			if (pickedEntityId || (lon != null && lat != null)) {
@@ -186,6 +187,10 @@ export default function App() {
 				<BuildingsPanel
 					showBuildings={showBuildings}
 					onToggleBuildings={setShowBuildings}
+					buildingInfo={buildingInfo}
+					activeVbos={activeVbos}
+					usageFunctions={usageFunctions}
+					tileProperties={tileProperties}
 				/>
 			),
 		},
@@ -259,13 +264,7 @@ export default function App() {
 				{legend && showOverlay && overlayLayerId === "pet-version-1" && (
 					<LegendCard legend={legend} title="PET Index Legend" />
 				)}
-				{buildingInfo ? (
-					<BuildingInfoCard
-						buildingInfo={buildingInfo}
-						activeVbos={activeVbos}
-						usageFunctions={usageFunctions}
-					/>
-				) : featureInfo ? (
+				{featureInfo && !buildingInfo ? (
 					<FeatureInfoCard info={featureInfo} />
 				) : null}
 			</div>

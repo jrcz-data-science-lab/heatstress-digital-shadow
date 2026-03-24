@@ -1,6 +1,39 @@
 const BUILDING_API_URL = "backend/3dbag/search-pand";
 const BUILDING_API_BY_ID_URL = "backend/3dbag/pand";
 
+/**
+ * Properties read directly from a clicked Cesium3DTileFeature in the 3D BAG tileset.
+ * No extra API call — they are baked into the tile at render time.
+ * All b3_ attributes follow the 3D BAG schema: https://docs.3dbag.nl/en/schema/attributes/
+ */
+export type TileProperties = {
+  // Heights (absolute metres above NAP)
+  h_maaiveld?: number;       // b3_h_maaiveld  – ground level
+  h_dak_50p?: number;        // b3_h_dak_50p   – median roof height
+  h_dak_max?: number;        // b3_h_dak_max   – highest roof point
+  // Derived (computed from the two above, metres above ground)
+  hoogte?: number;
+
+  // Roof geometry
+  dak_type?: string;         // b3_dak_type    – e.g. "slanted", "horizontal"
+  hellingshoek?: number;     // b3_hellingshoek – slope in degrees
+
+  // Building dimensions
+  bouwlagen?: number;        // b3_bouwlagen   – number of floors
+  volume_lod22?: number;     // b3_volume_lod22 – volume in m³
+  opp_grond?: number;        // b3_opp_grond   – ground floor area m²
+  opp_dak_plat?: number;     // b3_opp_dak_plat  – flat roof area m²
+  opp_dak_schuin?: number;   // b3_opp_dak_schuin – slanted roof area m²
+
+  // Reconstruction quality
+  kwaliteitsindicator?: boolean; // b3_kwaliteitsindicator – overall quality flag
+  rmse_lod22?: number;           // b3_rmse_lod22 – reconstruction accuracy (m)
+
+  // Point cloud source
+  pw_datum?: string;             // b3_pw_datum – AHN acquisition year
+  mutatie_ahn4_ahn5?: boolean;   // b3_mutatie_ahn4_ahn5 – changed between surveys
+};
+
 export type BagPolygonRD = {
   type: "Polygon";
   coordinates: number[][][];
