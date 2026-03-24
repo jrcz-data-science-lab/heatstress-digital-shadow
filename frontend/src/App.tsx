@@ -70,7 +70,7 @@ export default function App() {
 		overlayLayerId,
 	});
 
-	const { highlight, handleBuildingClick, buildingInfo, tileProperties } = useBuildingHighlight(
+	const { handleBuildingClick, buildingInfo, tileProperties } = useBuildingHighlight(
 		{
 			enabled: showBuildings,
 		},
