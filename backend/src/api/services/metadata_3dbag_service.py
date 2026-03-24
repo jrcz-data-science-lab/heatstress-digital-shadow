@@ -132,6 +132,51 @@ class Metadata3DBagService:
         except MappingError as e:
             raise HTTPException(status_code=500, detail=f"VBO data structuring failed for BAG ID {bag_id}: {str(e)}")
 
+    async def fetch_and_aggregate_by_bag_id(self, bag_id: str) -> AggregatedBagResponse:
+        """
+        Fetches and aggregates PAND and VBO data directly by BAG ID.
+        Skips the coordinate-based spatial search — use this when the BAG ID
+        is already known (e.g. read from a clicked 3D tileset feature property).
+        """
+        async with self._api_client_factory() as api_client:
+            # Fetch pand and VBOs in parallel
+            pand_task = api_client.get_pand(bag_id)
+            vbo_task = api_client.get_verblijfsobjecten(bag_id)
+            responses = await asyncio.gather(pand_task, vbo_task, return_exceptions=True)
+            pand_response, vbo_response = responses
+
+            # Handle pand exceptions
+            if isinstance(pand_response, Exception):
+                self._handle_bag_api_exceptions(pand_response, bag_id)
+            try:
+                pand_response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                self._handle_bag_api_exceptions(e, bag_id)
+
+            # Handle VBO exceptions
+            if isinstance(vbo_response, Exception):
+                self._handle_bag_api_exceptions(vbo_response, bag_id)
+            try:
+                vbo_response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                self._handle_bag_api_exceptions(e, bag_id)
+
+            try:
+                structured_pand_data = self._mapper.map_pand_data(pand_response.json())
+            except MappingError as e:
+                raise HTTPException(status_code=500, detail=f"PAND data structuring failed for BAG ID {bag_id}: {str(e)}")
+
+            try:
+                structured_vbo_data = self._mapper.map_vbo_data(vbo_response.json())
+            except MappingError as e:
+                raise HTTPException(status_code=500, detail=f"VBO data structuring failed for BAG ID {bag_id}: {str(e)}")
+
+        return AggregatedBagResponse(
+            bag_id=bag_id,
+            pand_data=structured_pand_data,
+            verblijfsobject_data=structured_vbo_data,
+        )
+
     async def fetch_and_aggregate(self, x_coord: float, y_coord: float) -> AggregatedBagResponse:
         """
         Asynchronously fetches and aggregates Pand and VBO data 

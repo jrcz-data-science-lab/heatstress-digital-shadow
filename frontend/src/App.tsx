@@ -8,7 +8,6 @@ import CesiumMap, {
 import { WMSOverlayLayer } from "./features/wms-overlay/WMSOverlayLayer";
 import { StaticTreesEntities } from "./features/objects/StaticTreesEntities";
 import { UserObjectsEntities } from "./features/objects/UserObjectsEntities";
-import { BuildingHighlightEntity } from "./features/buildings-3d/BuildingHighlightEntity";
 import { BAG3DTileset } from "./features/buildings-3d/BAG3DTileset";
 import { useUserObjectsLayer } from "./features/objects/useUserObjectsLayer";
 import { useWMSLayers } from "./features/wms-overlay/useWMSLayers";
@@ -114,12 +113,12 @@ export default function App() {
 	};
 
 	const handleCesiumClick = useCallback(
-		({ coordinate, pickedEntityId }: CesiumClickInfo) => {
+		({ coordinate, pickedEntityId, bagId, roofHeight, groundHeight }: CesiumClickInfo) => {
 			const lon = coordinate?.[0];
 			const lat = coordinate?.[1];
 
 			if (showBuildings && lon != null && lat != null) {
-				handleBuildingClick(lon, lat);
+				handleBuildingClick(lon, lat, bagId, roofHeight, groundHeight);
 			}
 
 			if (pickedEntityId || (lon != null && lat != null)) {
@@ -226,12 +225,10 @@ export default function App() {
 					/>
 				)}
 
-				{showBuildings && <BAG3DTileset heightOffset={BAG_3D_HEIGHT_OFFSET} />}
-
-				{showBuildings && highlight && (
-					<BuildingHighlightEntity
-						polygon={highlight.polygon}
-						height={highlight.height}
+				{showBuildings && (
+					<BAG3DTileset
+						heightOffset={BAG_3D_HEIGHT_OFFSET}
+						selectedBagId={buildingInfo?.bag_id ?? null}
 					/>
 				)}
 			</CesiumMap>

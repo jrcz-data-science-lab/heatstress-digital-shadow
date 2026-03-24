@@ -15,11 +15,18 @@ import {
 	ScreenSpaceEventType,
 	Camera,
 	Rectangle,
+	Cesium3DTileFeature,
 } from "cesium";
 
 export type CesiumClickInfo = {
 	coordinate: [lon: number, lat: number] | null;
 	pickedEntityId?: string;
+	/** BAG building ID (identificatie) extracted directly from a clicked 3D tileset feature */
+	bagId?: string;
+	/** Absolute roof height in metres above NAP (b3_h_dak_50p from 3D BAG tileset) */
+	roofHeight?: number;
+	/** Absolute ground level in metres above NAP (b3_h_maaiveld from 3D BAG tileset) */
+	groundHeight?: number;
 };
 
 export type CesiumMapHandle = {
@@ -87,12 +94,26 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 				const pickedEntityId: string | undefined =
 					picked?.id?.id ?? picked?.id ?? undefined;
 
+				// Extract BAG ID and real height data if a 3D tileset feature was clicked.
+				// The 3D BAG tileset exposes identificatie, b3_h_dak_50p (roof), and b3_h_maaiveld (ground).
+				let bagId: string | undefined;
+				let roofHeight: number | undefined;
+				let groundHeight: number | undefined;
+				if (picked instanceof Cesium3DTileFeature) {
+					const raw: string | undefined = picked.getProperty("identificatie");
+					// Strip "NL.IMBAG.Pand." prefix if present — Kadaster API only wants the numeric part.
+					bagId = raw?.replace(/^NL\.IMBAG\.Pand\./, "") ?? undefined;
+					// Real heights — absolute metres above NAP. Used to perfectly align the highlight polygon.
+					roofHeight = picked.getProperty("b3_h_dak_50p") ?? undefined;
+					groundHeight = picked.getProperty("b3_h_maaiveld") ?? undefined;
+				}
+
 				// Try pickPosition first (works for 3D entities/tiles), fall back to ellipsoid
 				const cartesian =
 					scene.pickPosition(movement.position) ??
 					viewer.camera.pickEllipsoid(movement.position);
 				if (!cartesian) {
-					onLeftClick({ coordinate: null, pickedEntityId });
+					onLeftClick({ coordinate: null, pickedEntityId, bagId, roofHeight, groundHeight });
 					return;
 				}
 
@@ -100,7 +121,7 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 				const lon = CesiumMath.toDegrees(cartographic.longitude);
 				const lat = CesiumMath.toDegrees(cartographic.latitude);
 
-				onLeftClick({ coordinate: [lon, lat], pickedEntityId });
+				onLeftClick({ coordinate: [lon, lat], pickedEntityId, bagId, roofHeight, groundHeight });
 			},
 			ScreenSpaceEventType.LEFT_CLICK,
 		);
