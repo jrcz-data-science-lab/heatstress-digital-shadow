@@ -205,8 +205,6 @@ export default function App() {
 		},
 	];
 
-	const menuNode = React.useRef<HTMLDivElement>(null);
-
 	return (
 		<div style={{ position: "relative", height: "100dvh", width: "100%" }}>
 			<CesiumMap
@@ -270,7 +268,6 @@ export default function App() {
 			</div>
 
 			<div
-				ref={menuNode}
 				style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
 			>
 				<div

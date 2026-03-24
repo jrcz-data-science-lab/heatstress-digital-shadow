@@ -41,6 +41,10 @@ class Metadata3DBagClient:
     async def get_verblijfsobjecten(self, bag_id: str) -> httpx.Response:
         """Fetches Verblijfsobjecten (VBO) data linked to the PAND."""
         return await self._client.get(f"verblijfsobjecten?pandIdentificatie={bag_id}")
+
+    async def get_adressen(self, bag_id: str) -> httpx.Response:
+        """Fetches all addresses (nummeraanduidingen + openbareRuimte + woonplaats) for a PAND."""
+        return await self._client.get(f"adressen?pandIdentificatie={bag_id}")
     
     async def search_pand_by_coords(
         self, 

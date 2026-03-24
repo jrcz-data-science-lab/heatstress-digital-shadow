@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     BAG_API_KEY: str
     BASE_URL: str = "https://api.bag.kadaster.nl/lvbag/individuelebevragingen/v2/"
     DB_FILE_PATH: str = "/app/db/heatstressmeasures.sqlite"
+    EP_ONLINE_API_KEY: str = ""
     
     class Config:
         env_file = ".env"

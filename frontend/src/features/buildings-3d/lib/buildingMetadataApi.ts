@@ -57,16 +57,40 @@ export type BuildingPandData = {
   geometry: BagPolygonRD;
 };
 
+/** Energy performance certificate from EP-Online, attached per VBO. */
+export type EnergieLabel = {
+  energieklasse?: string;                  // e.g. "A", "B", "A+", "A+++"
+  energie_index?: number;                  // numeric energy performance index
+  registratiedatum?: string;              // certificate registration date
+  geldig_tot?: string;                    // certificate expiry date
+  energiebehoefte?: number;              // energy demand kWh/m²/year
+  primaire_fossiele_energie?: number;    // primary fossil energy kWh/m²/year
+  aandeel_hernieuwbare_energie?: number; // renewable energy share %
+  warmtebehoefte?: number;              // heat demand kWh/m²/year
+  gebouwklasse?: string;                 // "W" = residential, "U" = utility
+};
+
 export type BuildingVerblijfsobjectData = {
   bag_object_type: "VBO";
   bag_id: string;
   usage_function: string[];
   surface_area_m2: number;
   status: string;
+  energie_label?: EnergieLabel | null;
+};
+
+export type BuildingAddressData = {
+  street?: string;
+  house_number?: number;
+  house_letter?: string;
+  house_number_addition?: string;
+  postcode?: string;
+  city?: string;
 };
 
 export type BuildingApiResponse = {
   bag_id: string;
+  address?: BuildingAddressData | null;
   pand_data: BuildingPandData;
   verblijfsobject_data: BuildingVerblijfsobjectData[];
 };

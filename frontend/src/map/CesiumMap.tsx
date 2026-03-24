@@ -117,32 +117,32 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 					const hMaaiveld: number | undefined = p("b3_h_maaiveld");
 					// Try height attrs in order of preference — complex buildings (churches,
 					// spires) often have null for the median (50p) but valid values for others.
-					const hDak50p: number | undefined  = p("b3_h_dak_50p");
-					const hDak70p: number | undefined  = p("b3_h_dak_70p");
-					const hDakMax: number | undefined  = p("b3_h_dak_max");
-					const hNok: number | undefined     = p("b3_h_nok");
+					const hDak50p: number | undefined = p("b3_h_dak_50p");
+					const hDak70p: number | undefined = p("b3_h_dak_70p");
+					const hDakMax: number | undefined = p("b3_h_dak_max");
+					const hNok: number | undefined = p("b3_h_nok");
 					const hDakBest = hDak50p ?? hDak70p ?? hDakMax ?? hNok;
 
 					tileProperties = {
-						h_maaiveld:          hMaaiveld,
-						h_dak_50p:           hDak50p,
-						h_dak_max:           hDakMax,
+						h_maaiveld: hMaaiveld,
+						h_dak_50p: hDak50p,
+						h_dak_max: hDakMax,
 						// Height above ground — use the best available roof height attr.
 						hoogte:
 							hDakBest != null && hMaaiveld != null
 								? Math.round((hDakBest - hMaaiveld) * 10) / 10
 								: undefined,
-						dak_type:            p("b3_dak_type"),
-						hellingshoek:        p("b3_hellingshoek"),
-						bouwlagen:           p("b3_bouwlagen"),
-						volume_lod22:        p("b3_volume_lod22"),
-						opp_grond:           p("b3_opp_grond"),
-						opp_dak_plat:        p("b3_opp_dak_plat"),
-						opp_dak_schuin:      p("b3_opp_dak_schuin"),
+						dak_type: p("b3_dak_type"),
+						hellingshoek: p("b3_hellingshoek"),
+						bouwlagen: p("b3_bouwlagen"),
+						volume_lod22: p("b3_volume_lod22"),
+						opp_grond: p("b3_opp_grond"),
+						opp_dak_plat: p("b3_opp_dak_plat"),
+						opp_dak_schuin: p("b3_opp_dak_schuin"),
 						kwaliteitsindicator: pBool("b3_kwaliteitsindicator"),
-						rmse_lod22:          p("b3_rmse_lod22"),
-						pw_datum:            p("b3_pw_datum"),
-						mutatie_ahn4_ahn5:   pBool("b3_mutatie_ahn4_ahn5"),
+						rmse_lod22: p("b3_rmse_lod22"),
+						pw_datum: p("b3_pw_datum"),
+						mutatie_ahn4_ahn5: pBool("b3_mutatie_ahn4_ahn5"),
 					};
 				}
 
@@ -151,7 +151,12 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 					scene.pickPosition(movement.position) ??
 					viewer.camera.pickEllipsoid(movement.position);
 				if (!cartesian) {
-					onLeftClick({ coordinate: null, pickedEntityId, bagId, tileProperties });
+					onLeftClick({
+						coordinate: null,
+						pickedEntityId,
+						bagId,
+						tileProperties,
+					});
 					return;
 				}
 
@@ -159,7 +164,12 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 				const lon = CesiumMath.toDegrees(cartographic.longitude);
 				const lat = CesiumMath.toDegrees(cartographic.latitude);
 
-				onLeftClick({ coordinate: [lon, lat], pickedEntityId, bagId, tileProperties });
+				onLeftClick({
+					coordinate: [lon, lat],
+					pickedEntityId,
+					bagId,
+					tileProperties,
+				});
 			},
 			ScreenSpaceEventType.LEFT_CLICK,
 		);
@@ -263,6 +273,11 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 					3D BAG
 				</a>{" "}
 				by TU Delft
+				{" · "}©{" "}
+				<a href="https://www.ep-online.nl/" target="_blank" rel="noreferrer">
+					EP-Online.nl
+				</a>{" "}
+				by Rijksoverheid
 			</div>
 		</div>
 	);
