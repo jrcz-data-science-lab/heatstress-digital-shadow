@@ -17,7 +17,7 @@ export function BuildingHighlightEntity({ polygon, height }: Props) {
       <PolygonGraphics
         hierarchy={hierarchy}
         extrudedHeight={height}
-        material={Color.YELLOW.withAlpha(0.6)}
+        material={Color.TRANSPARENT}
         outline={true}
         outlineColor={Color.BLACK}
         outlineWidth={2}
