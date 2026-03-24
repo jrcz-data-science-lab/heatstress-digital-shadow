@@ -1,5 +1,6 @@
 export const QGIS_OVERLAY_LAYERS = [
   { id: "pet-version-1", label: "PET" },
+  { id: "pet-session-updated", label: "PET (Updated)" },
   { id: "pet-version-kapelle", label: "PET Kapelle" },
   { id: "pet-version-1-middelburggemeente", label: "PET Middelburg" },
   { id: "wind", label: "Wind" },

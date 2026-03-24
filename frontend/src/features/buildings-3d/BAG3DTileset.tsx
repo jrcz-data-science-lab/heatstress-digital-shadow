@@ -1,6 +1,11 @@
 import { useMemo } from "react";
 import { Cesium3DTileset } from "resium";
-import { Cesium3DTileStyle, Cartesian3, Matrix4 } from "cesium";
+import {
+	Cesium3DTileStyle,
+	Cesium3DTileColorBlendMode,
+	Cartesian3,
+	Matrix4,
+} from "cesium";
 
 // 3D BAG — LoD2.2 3D Tiles (Netherlands national building dataset)
 // Docs: https://docs.3dbag.nl/en/delivery/webservices/
@@ -12,18 +17,14 @@ const LOD22_URL =
 const NL_LON = 5.3;
 const NL_LAT = 52.1;
 
+// Light grey matching the 3D BAG viewer's default building color.
+const STYLE = new Cesium3DTileStyle({ color: "color('rgb(254, 255, 255)')" });
+
 type Props = {
-	color?: string;
 	heightOffset?: number;
 };
 
-export function BAG3DTileset({ color = "#ffffff", heightOffset = 0 }: Props) {
-	const sanitizedColor = color.replace(/'/g, "\\'");
-	const style = useMemo(
-		() => new Cesium3DTileStyle({ color: `color('${sanitizedColor}')` }),
-		[sanitizedColor],
-	);
-
+export function BAG3DTileset({ heightOffset = 0 }: Props) {
 	// Translate the tileset radially (along the ECEF up-direction at the NL center).
 	// Matrix4.IDENTITY when heightOffset is 0 so no transform is applied.
 	const modelMatrix = useMemo(() => {
@@ -35,6 +36,11 @@ export function BAG3DTileset({ color = "#ffffff", heightOffset = 0 }: Props) {
 	}, [heightOffset]);
 
 	return (
-		<Cesium3DTileset url={LOD22_URL} style={style} modelMatrix={modelMatrix} />
+		<Cesium3DTileset
+			url={LOD22_URL}
+			style={STYLE}
+			modelMatrix={modelMatrix}
+			colorBlendMode={Cesium3DTileColorBlendMode.REPLACE}
+		/>
 	);
 }
