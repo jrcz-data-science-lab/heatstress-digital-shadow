@@ -18,6 +18,9 @@ const SideMenuPanel: React.FC<PanelProps> = ({ activeItem, onClose }) => {
         marginTop: 0,
         paddingTop: 0,
         position: "relative",
+        height: "100%",
+        overflowY: "auto",
+        boxSizing: "border-box",
       }}
     >
       <button
