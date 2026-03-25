@@ -13,12 +13,13 @@ from .point import Point
 
 __all__ = [
     "WFSParams",
+    "WMSParams",
+    "Point",
     "BAGPolygon",
     "RecordMetadata",
     "PandData",
     "VboData",
+    "VboAdres",
+    "PandEnergieData",
     "AggregatedBagResponse",
-    "WFSParams",
-    "WMSParams",
-    "Point"
 ]

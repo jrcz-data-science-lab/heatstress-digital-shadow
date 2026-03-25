@@ -35,7 +35,6 @@ type BuildingsPanelProps = {
 	onToggleBuildings: (value: boolean) => void;
 	buildingInfo?: BuildingInfo | null;
 	activeVbos?: VboData[];
-	usageFunctions?: string[];
 	tileProperties?: TileProperties | null;
 };
 
