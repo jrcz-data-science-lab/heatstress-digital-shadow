@@ -150,9 +150,19 @@ const LABEL_COLORS: Record<string, { bg: string; text: string }> = {
 	G: { bg: "#e8231a", text: "#fff" },
 };
 
-function LabelBadge({ klasse }: { klasse: string }) {
+const ENERGY_LABEL_INFO_URL =
+	"https://www.rijksoverheid.nl/onderwerpen/energielabel-woningen-en-gebouwen/energielabel-woning";
+
+function LabelBadge({
+	klasse,
+	href = ENERGY_LABEL_INFO_URL,
+}: {
+	klasse: string;
+	href?: string;
+}) {
 	const colors = LABEL_COLORS[klasse] ?? { bg: "#aaa", text: "#fff" };
-	return (
+
+	const badge = (
 		<div
 			style={{
 				display: "inline-flex",
@@ -170,6 +180,21 @@ function LabelBadge({ klasse }: { klasse: string }) {
 		>
 			{klasse}
 		</div>
+	);
+
+	return href ? (
+		<a
+			href={href}
+			target="_blank"
+			rel="noopener noreferrer"
+			style={{ textDecoration: "none" }}
+			aria-label={`More information about energy label ${klasse}`}
+			title="Open energy label information"
+		>
+			{badge}
+		</a>
+	) : (
+		badge
 	);
 }
 
