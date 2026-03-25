@@ -4,7 +4,9 @@ from .metadata_3dbag_model import (
     BAGPolygon,
     RecordMetadata,
     PandData,
-    VboData,    
+    VboData,
+    VboAdres,
+    PandEnergieData,
     AggregatedBagResponse,
 )
 from .point import Point

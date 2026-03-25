@@ -138,10 +138,6 @@ export default function App() {
 			(vbo) => vbo.status === "Verblijfsobject in gebruik",
 		) ?? [];
 
-	const usageFunctions = Array.from(
-		new Set(activeVbos.flatMap((vbo) => vbo.usage_function ?? [])),
-	);
-
 	const cesiumMapRef = useRef<CesiumMapHandle>(null);
 
 	const items: SideMenuItem[] = [
@@ -189,7 +185,6 @@ export default function App() {
 					onToggleBuildings={setShowBuildings}
 					buildingInfo={buildingInfo}
 					activeVbos={activeVbos}
-					usageFunctions={usageFunctions}
 					tileProperties={tileProperties}
 				/>
 			),

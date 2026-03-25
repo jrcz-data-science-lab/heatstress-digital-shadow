@@ -1,11 +1,18 @@
 import CheckboxItem from "./items/CheckboxItem";
-import type { TileProperties, EnergieLabel, BuildingAddressData } from "../../features/buildings-3d/lib/buildingMetadataApi";
+import type {
+	TileProperties,
+	EnergieLabel,
+	PandEnergieData,
+	BuildingAddressData,
+	VboAdres,
+} from "../../features/buildings-3d/lib/buildingMetadataApi";
 
 interface VboData {
 	bag_id: string;
 	usage_function?: string[];
 	surface_area_m2?: number;
 	status?: string;
+	adres?: VboAdres | null;
 	energie_label?: EnergieLabel | null;
 }
 
@@ -18,6 +25,7 @@ interface PandData {
 interface BuildingInfo {
 	bag_id?: string;
 	address?: BuildingAddressData | null;
+	pand_energie_data?: PandEnergieData | null;
 	pand_data?: PandData;
 	verblijfsobject_data?: VboData[];
 }
@@ -31,12 +39,14 @@ type BuildingsPanelProps = {
 	tileProperties?: TileProperties | null;
 };
 
+// ── Shared styles ─────────────────────────────────────────────────────────────
+
 const lbl: React.CSSProperties = {
-	color: "#666",
+	color: "#888",
 	fontSize: "10px",
 	fontWeight: 600,
 	textTransform: "uppercase",
-	letterSpacing: "0.4px",
+	letterSpacing: "0.5px",
 	display: "block",
 	marginBottom: "2px",
 };
@@ -45,6 +55,15 @@ const val: React.CSSProperties = {
 	color: "#111",
 	fontSize: "13px",
 	fontWeight: 600,
+};
+
+const sectionTitle: React.CSSProperties = {
+	fontSize: "11px",
+	fontWeight: 700,
+	color: "#444",
+	textTransform: "uppercase",
+	letterSpacing: "0.5px",
+	marginBottom: "10px",
 };
 
 const divider: React.CSSProperties = {
@@ -65,14 +84,11 @@ const grid3: React.CSSProperties = {
 	gap: "10px",
 };
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function fmt(n: number | undefined, decimals = 1, unit = ""): string {
 	if (n == null) return "—";
 	return `${n.toFixed(decimals)}${unit ? "\u202f" + unit : ""}`;
-}
-
-function fmtBool(b: boolean | undefined): string {
-	if (b == null) return "—";
-	return b ? "Yes" : "No";
 }
 
 function roofTypeLabel(type: string | undefined): string {
@@ -88,7 +104,9 @@ function roofTypeLabel(type: string | undefined): string {
 	return map[type] ?? type;
 }
 
-function fmtAddress(a: BuildingAddressData | null | undefined): { line1: string; line2: string } | null {
+function fmtAddress(
+	a: BuildingAddressData | null | undefined,
+): { line1: string; line2: string } | null {
 	if (!a) return null;
 	const num = [a.house_number, a.house_letter, a.house_number_addition]
 		.filter(Boolean)
@@ -98,90 +116,147 @@ function fmtAddress(a: BuildingAddressData | null | undefined): { line1: string;
 	return line1 || line2 ? { line1, line2 } : null;
 }
 
+/**
+ * Build a full address title for a VBO unit.
+ * Combines the building street with the unit's own number/letter/addition.
+ * e.g. "Kanaalweg 2", "Kanaalweg 2 A", "Kanaalweg 2 toev. 01"
+ */
+function fmtVboAddress(
+	street: string | undefined,
+	a: VboAdres | null | undefined,
+): string | null {
+	if (!a) return null;
+	const parts: string[] = [];
+	if (street) parts.push(street);
+	if (a.house_number != null) parts.push(String(a.house_number));
+	if (a.house_letter) parts.push(a.house_letter);
+	if (a.house_number_addition)
+		parts.push(`toev.\u00a0${a.house_number_addition}`);
+	return parts.length > 0 ? parts.join(" ") : null;
+}
+
 /** EU energy label colour scale A+++ → G */
 const LABEL_COLORS: Record<string, { bg: string; text: string }> = {
 	"A+++++": { bg: "#00893a", text: "#fff" },
-	"A++++":  { bg: "#00893a", text: "#fff" },
-	"A+++":   { bg: "#00893a", text: "#fff" },
-	"A++":    { bg: "#1aaa45", text: "#fff" },
-	"A+":     { bg: "#57b944", text: "#fff" },
-	A:        { bg: "#a8ce38", text: "#000" },
-	B:        { bg: "#cede38", text: "#000" },
-	C:        { bg: "#f5eb1a", text: "#000" },
-	D:        { bg: "#f5c31a", text: "#000" },
-	E:        { bg: "#f5961a", text: "#000" },
-	F:        { bg: "#f0631a", text: "#fff" },
-	G:        { bg: "#e8231a", text: "#fff" },
+	"A++++": { bg: "#00893a", text: "#fff" },
+	"A+++": { bg: "#00893a", text: "#fff" },
+	"A++": { bg: "#1aaa45", text: "#fff" },
+	"A+": { bg: "#57b944", text: "#fff" },
+	A: { bg: "#a8ce38", text: "#000" },
+	B: { bg: "#cede38", text: "#000" },
+	C: { bg: "#f5eb1a", text: "#000" },
+	D: { bg: "#f5c31a", text: "#000" },
+	E: { bg: "#f5961a", text: "#000" },
+	F: { bg: "#f0631a", text: "#fff" },
+	G: { bg: "#e8231a", text: "#fff" },
 };
 
+function LabelBadge({ klasse }: { klasse: string }) {
+	const colors = LABEL_COLORS[klasse] ?? { bg: "#aaa", text: "#fff" };
+	return (
+		<div
+			style={{
+				display: "inline-flex",
+				alignItems: "center",
+				justifyContent: "center",
+				background: colors.bg,
+				color: colors.text,
+				fontWeight: 800,
+				fontSize: "13px",
+				padding: "2px 9px",
+				borderRadius: "4px",
+				letterSpacing: "0.5px",
+				minWidth: "34px",
+			}}
+		>
+			{klasse}
+		</div>
+	);
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+/** Per-VBO energy label card content */
 function EnergieLabelBadge({ label }: { label: EnergieLabel }) {
-	const klasse = label.energieklasse;
-	const colors = klasse ? (LABEL_COLORS[klasse] ?? { bg: "#aaa", text: "#fff" }) : null;
+	const { energieklasse: klasse } = label;
 
 	return (
-		<div style={{ marginTop: "6px" }}>
-			{/* Label class badge */}
-			{klasse && colors && (
-				<div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-					<div
-						style={{
-							background: colors.bg,
-							color: colors.text,
-							fontWeight: 800,
-							fontSize: "14px",
-							padding: "2px 10px",
-							borderRadius: "4px",
-							letterSpacing: "0.5px",
-							minWidth: "36px",
-							textAlign: "center",
-						}}
-					>
-						{klasse}
-					</div>
-					{label.energie_index != null && (
-						<span style={{ fontSize: "11px", color: "#555" }}>
-							Index: {label.energie_index.toFixed(2)}
-						</span>
-					)}
+		<div
+			style={{
+				marginTop: "8px",
+				borderTop: "1px solid #ececec",
+				paddingTop: "8px",
+			}}
+		>
+			{/* Badge row */}
+			{klasse && (
+				<div
+					style={{
+						display: "flex",
+						alignItems: "center",
+						gap: "8px",
+						marginBottom: "8px",
+					}}
+				>
+					<LabelBadge klasse={klasse} />
 					{label.gebouwklasse && (
 						<span style={{ fontSize: "11px", color: "#555" }}>
-							{label.gebouwklasse === "W" ? "Residential" : label.gebouwklasse === "U" ? "Utility" : label.gebouwklasse}
+							{label.gebouwklasse === "W"
+								? "Residential"
+								: label.gebouwklasse === "U"
+									? "Utility"
+									: label.gebouwklasse}
+						</span>
+					)}
+					{label.energie_index != null && (
+						<span style={{ fontSize: "11px", color: "#888" }}>
+							index {label.energie_index.toFixed(2)}
 						</span>
 					)}
 				</div>
 			)}
 
-			{/* Performance figures */}
-			<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+			{/* Figures */}
+			<div
+				style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}
+			>
 				{label.energiebehoefte != null && (
 					<div>
 						<span style={lbl}>Energy demand</span>
-						<span style={{ ...val, fontSize: "12px" }}>{fmt(label.energiebehoefte, 0, "kWh/m²")}</span>
-					</div>
-				)}
-				{label.primaire_fossiele_energie != null && (
-					<div>
-						<span style={lbl}>Fossil energy</span>
-						<span style={{ ...val, fontSize: "12px" }}>{fmt(label.primaire_fossiele_energie, 0, "kWh/m²")}</span>
+						<span style={{ ...val, fontSize: "12px" }}>
+							{fmt(label.energiebehoefte, 0, "kWh/m²")}
+						</span>
 					</div>
 				)}
 				{label.aandeel_hernieuwbare_energie != null && (
 					<div>
 						<span style={lbl}>Renewable share</span>
-						<span style={{ ...val, fontSize: "12px" }}>{fmt(label.aandeel_hernieuwbare_energie, 1, "%")}</span>
+						<span style={{ ...val, fontSize: "12px" }}>
+							{fmt(label.aandeel_hernieuwbare_energie, 1, "%")}
+						</span>
 					</div>
 				)}
 				{label.warmtebehoefte != null && (
 					<div>
 						<span style={lbl}>Heat demand</span>
-						<span style={{ ...val, fontSize: "12px" }}>{fmt(label.warmtebehoefte, 0, "kWh/m²")}</span>
+						<span style={{ ...val, fontSize: "12px" }}>
+							{fmt(label.warmtebehoefte, 0, "kWh/m²")}
+						</span>
+					</div>
+				)}
+				{label.primaire_fossiele_energie != null && (
+					<div>
+						<span style={lbl}>Fossil energy</span>
+						<span style={{ ...val, fontSize: "12px" }}>
+							{fmt(label.primaire_fossiele_energie, 0, "kWh/m²")}
+						</span>
 					</div>
 				)}
 			</div>
 
-			{/* Validity */}
+			{/* Validity dates */}
 			{(label.registratiedatum || label.geldig_tot) && (
-				<div style={{ marginTop: "4px", fontSize: "10px", color: "#888" }}>
+				<div style={{ marginTop: "5px", fontSize: "10px", color: "#aaa" }}>
 					{label.registratiedatum && `Registered: ${label.registratiedatum}`}
 					{label.registratiedatum && label.geldig_tot && " · "}
 					{label.geldig_tot && `Valid until: ${label.geldig_tot}`}
@@ -191,12 +266,159 @@ function EnergieLabelBadge({ label }: { label: EnergieLabel }) {
 	);
 }
 
+/** Building-level EP-Online pand section */
+function PandEnergieSection({ data }: { data: PandEnergieData }) {
+	return (
+		<div style={divider}>
+			<div style={sectionTitle}>Energy Performance</div>
+
+			{/* Badge + type row */}
+			<div
+				style={{
+					display: "flex",
+					alignItems: "center",
+					gap: "10px",
+					marginBottom: "12px",
+				}}
+			>
+				{data.energieklasse && <LabelBadge klasse={data.energieklasse} />}
+				<div>
+					{data.gebouwtype && (
+						<div style={{ fontSize: "12px", fontWeight: 600, color: "#111" }}>
+							{data.gebouwtype}
+						</div>
+					)}
+					{data.gebouwklasse && (
+						<div style={{ fontSize: "11px", color: "#666" }}>
+							{data.gebouwklasse === "W"
+								? "Residential"
+								: data.gebouwklasse === "U"
+									? "Utility"
+									: data.gebouwklasse}
+						</div>
+					)}
+				</div>
+			</div>
+
+			{data.projectnaam && (
+				<div style={{ marginBottom: "10px" }}>
+					<span style={lbl}>Project</span>
+					<span style={val}>{data.projectnaam}</span>
+				</div>
+			)}
+
+			<div style={grid2}>
+				<div>
+					<span style={lbl}>Energy demand</span>
+					<span style={val}>{fmt(data.energiebehoefte, 0, "kWh/m²")}</span>
+				</div>
+				<div>
+					<span style={lbl}>Required limit</span>
+					<span style={val}>{fmt(data.eis_energiebehoefte, 0, "kWh/m²")}</span>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+/** One VBO unit card */
+function VboCard({
+	vbo,
+	index,
+	isOnly,
+	street,
+}: {
+	vbo: VboData;
+	index: number;
+	isOnly: boolean;
+	street?: string;
+}) {
+	const title =
+		fmtVboAddress(street, vbo.adres) ?? (!isOnly ? `Unit ${index + 1}` : null);
+	const func = vbo.usage_function?.[0] ?? "Unknown";
+
+	return (
+		<div
+			style={{
+				background: "#fff",
+				border: "1px solid #e0e0e0",
+				borderRadius: "8px",
+				padding: "10px 12px",
+				fontSize: "12px",
+			}}
+		>
+			{/* Header */}
+			<div
+				style={{
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "flex-start",
+					marginBottom: "4px",
+				}}
+			>
+				<div>
+					{title && (
+						<div
+							style={{
+								fontWeight: 700,
+								fontSize: "13px",
+								color: "#111",
+								marginBottom: "2px",
+							}}
+						>
+							{title}
+						</div>
+					)}
+					<div style={{ color: "#555", fontSize: "11px" }}>{func}</div>
+				</div>
+				{vbo.surface_area_m2 != null && (
+					<div
+						style={{
+							background: "#f0f0f0",
+							borderRadius: "4px",
+							padding: "2px 7px",
+							fontSize: "11px",
+							fontWeight: 600,
+							color: "#444",
+							whiteSpace: "nowrap",
+						}}
+					>
+						{vbo.surface_area_m2} m²
+					</div>
+				)}
+			</div>
+
+			{/* Status */}
+			<div style={{ fontSize: "10px", color: "#aaa", marginBottom: "2px" }}>
+				{vbo.status}
+			</div>
+
+			{/* Energy label */}
+			{vbo.energie_label ? (
+				<EnergieLabelBadge label={vbo.energie_label} />
+			) : (
+				<div
+					style={{
+						marginTop: "6px",
+						fontSize: "10px",
+						color: "#bbb",
+						fontStyle: "italic",
+					}}
+				>
+					No energy label registered
+				</div>
+			)}
+		</div>
+	);
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export function BuildingsPanel({
 	showBuildings,
 	onToggleBuildings,
 	buildingInfo,
 	activeVbos = [],
-	usageFunctions = [],
 	tileProperties: tp,
 }: BuildingsPanelProps) {
 	const bagId = buildingInfo?.pand_data?.bag_id ?? buildingInfo?.bag_id;
@@ -204,16 +426,14 @@ export function BuildingsPanel({
 
 	return (
 		<div style={{ padding: "0 4px" }}>
-			<div>
-				<h3>3DBAG Buildings</h3>
-			</div>
+			<h3>3DBAG Buildings</h3>
 			<CheckboxItem
 				label="Display Buildings"
 				checked={showBuildings}
 				onChange={onToggleBuildings}
 			/>
 
-			{/* Placeholder when nothing is selected */}
+			{/* Intro hint */}
 			<div
 				style={{
 					marginTop: "1rem",
@@ -234,24 +454,27 @@ export function BuildingsPanel({
 					details here.
 				</p>
 				<p style={{ margin: "4px 0" }}>
-					This includes construction year, 3D geometry, roof data, and active
-					units.
+					This includes construction year, 3D geometry, energy performance, and
+					active units.
 				</p>
 			</div>
 
 			{/* ── Building details ── */}
 			{buildingInfo && (
 				<div style={{ marginTop: "14px" }}>
+					{/* Identity */}
 					<div style={{ marginBottom: "12px" }}>
 						<div
 							style={{ fontWeight: 700, fontSize: "14px", marginBottom: "4px" }}
 						>
 							Selected Building
 						</div>
-						{address ? (
+						{address && (
 							<div style={{ marginBottom: "4px" }}>
 								{address.line1 && (
-									<div style={{ fontSize: "13px", fontWeight: 600, color: "#111" }}>
+									<div
+										style={{ fontSize: "13px", fontWeight: 600, color: "#111" }}
+									>
 										{address.line1}
 									</div>
 								)}
@@ -261,11 +484,13 @@ export function BuildingsPanel({
 									</div>
 								)}
 							</div>
-						) : null}
-						<code style={{ fontSize: "10px", color: "#888" }}>{bagId}</code>
+						)}
+						<code style={{ fontSize: "10px", color: "#aaa" }}>
+							BAG ID: {bagId}
+						</code>
 					</div>
 
-					{/* Registration (Kadaster BAG) */}
+					{/* BAG registration */}
 					<div style={grid2}>
 						<div>
 							<span style={lbl}>Year built</span>
@@ -278,24 +503,16 @@ export function BuildingsPanel({
 							<span style={val}>{buildingInfo.pand_data?.status ?? "—"}</span>
 						</div>
 					</div>
-					<div style={{ marginTop: "10px" }}>
-						<span style={lbl}>Usage</span>
-						<span style={val}>{usageFunctions.join(", ") || "—"}</span>
-					</div>
 
-					{/* 3D Geometry (3D BAG tileset) */}
+					{/* Building-level EP-Online energy */}
+					{buildingInfo.pand_energie_data && (
+						<PandEnergieSection data={buildingInfo.pand_energie_data} />
+					)}
+
+					{/* 3D Geometry */}
 					{tp && (
 						<div style={divider}>
-							<div
-								style={{
-									fontSize: "11px",
-									fontWeight: 700,
-									color: "#444",
-									marginBottom: "10px",
-								}}
-							>
-								3D Geometry
-							</div>
+							<div style={sectionTitle}>3D Geometry</div>
 							<div style={grid3}>
 								<div>
 									<span style={lbl}>Height</span>
@@ -345,96 +562,33 @@ export function BuildingsPanel({
 						</div>
 					)}
 
-					{/* Data Quality */}
-					{tp && (
-						<div style={divider}>
-							<div
-								style={{
-									fontSize: "11px",
-									fontWeight: 700,
-									color: "#444",
-									marginBottom: "10px",
-								}}
-							>
-								Data Quality
-							</div>
-							<div style={grid3}>
-								<div>
-									<span style={lbl}>Quality OK</span>
-									<span
-										style={{
-											...val,
-											color: tp.kwaliteitsindicator
-												? "#1a7f37"
-												: tp.kwaliteitsindicator === false
-													? "#cf222e"
-													: "#111",
-										}}
-									>
-										{fmtBool(tp.kwaliteitsindicator)}
-									</span>
-								</div>
-								<div>
-									<span style={lbl}>Root Mean Square Error</span>
-									<span style={val}>{fmt(tp.rmse_lod22, 2, "m")}</span>
-								</div>
-								<div>
-									<span style={lbl}>AHN year</span>
-									<span style={val}>{tp.pw_datum ?? "—"}</span>
-								</div>
-							</div>
-							{tp.mutatie_ahn4_ahn5 != null && (
-								<div style={{ marginTop: "10px" }}>
-									<span style={lbl}>Changed since AHN4</span>
-									<span style={val}>{fmtBool(tp.mutatie_ahn4_ahn5)}</span>
-								</div>
-							)}
-						</div>
-					)}
-
-					{/* Active Units (VBOs) with EP-Online energy labels */}
+					{/* Active Units */}
 					{activeVbos.length > 0 && (
 						<div style={divider}>
 							<div
 								style={{
-									fontSize: "11px",
-									fontWeight: 700,
-									color: "#444",
+									display: "flex",
+									justifyContent: "space-between",
+									alignItems: "baseline",
 									marginBottom: "10px",
 								}}
 							>
-								Used as
+								<div style={sectionTitle}>Active Units</div>
+								<div style={{ fontSize: "11px", color: "#888" }}>
+									{activeVbos.length} unit{activeVbos.length !== 1 ? "s" : ""}
+								</div>
 							</div>
 							<div
 								style={{ display: "flex", flexDirection: "column", gap: "8px" }}
 							>
-								{activeVbos.map((vbo: VboData) => (
-									<div
+								{activeVbos.map((vbo, i) => (
+									<VboCard
 										key={vbo.bag_id}
-										style={{
-											background: "#f5f5f5",
-											padding: "8px 10px",
-											borderRadius: "6px",
-											fontSize: "12px",
-											border: "1px solid #e8e8e8",
-										}}
-									>
-										<div style={{ fontWeight: 600 }}>
-											{vbo.usage_function?.[0] ?? "Unknown"}
-										</div>
-										<div style={{ fontSize: "11px", color: "#555", marginBottom: "2px" }}>
-											{vbo.surface_area_m2} m² · {vbo.status}
-										</div>
-
-										{/* Energy label */}
-										{vbo.energie_label ? (
-											<EnergieLabelBadge label={vbo.energie_label} />
-										) : (
-											<div style={{ fontSize: "10px", color: "#aaa", marginTop: "4px" }}>
-												No energy label registered
-											</div>
-										)}
-									</div>
+										vbo={vbo}
+										index={i}
+										isOnly={activeVbos.length === 1}
+										street={buildingInfo?.address?.street}
+									/>
 								))}
 							</div>
 						</div>

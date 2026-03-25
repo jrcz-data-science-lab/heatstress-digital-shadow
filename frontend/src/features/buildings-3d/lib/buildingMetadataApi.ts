@@ -70,12 +70,31 @@ export type EnergieLabel = {
   gebouwklasse?: string;                 // "W" = residential, "U" = utility
 };
 
+/** Pand-level energy fields from EP-Online (same value for all VBOs in the building). */
+export type PandEnergieData = {
+  energieklasse?: string;        // Pand_energieklasse
+  gebouwklasse?: string;         // Pand_gebouwklasse ("W" / "U")
+  gebouwtype?: string;           // Pand_gebouwtype
+  projectnaam?: string;          // Pand_projectnaam
+  energiebehoefte?: number;      // Pand_energiebehoefte kWh/m²
+  eis_energiebehoefte?: number;  // Pand_eis_energiebehoefte kWh/m²
+};
+
+/** Address of an individual unit (apartment) within the building. */
+export type VboAdres = {
+  house_number?: number;
+  house_letter?: string;
+  house_number_addition?: string;
+  postcode?: string;
+};
+
 export type BuildingVerblijfsobjectData = {
   bag_object_type: "VBO";
   bag_id: string;
   usage_function: string[];
   surface_area_m2: number;
   status: string;
+  adres?: VboAdres | null;
   energie_label?: EnergieLabel | null;
 };
 
@@ -91,6 +110,7 @@ export type BuildingAddressData = {
 export type BuildingApiResponse = {
   bag_id: string;
   address?: BuildingAddressData | null;
+  pand_energie_data?: PandEnergieData | null;
   pand_data: BuildingPandData;
   verblijfsobject_data: BuildingVerblijfsobjectData[];
 };
