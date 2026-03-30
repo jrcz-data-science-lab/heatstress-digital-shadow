@@ -168,7 +168,7 @@ function InfoTooltip({ text }: { text: string }) {
 				onMouseLeave={() => setVisible(false)}
 				style={{
 					cursor: "default",
-					fontSize: "11px",
+					fontSize: "15px",
 					color: "#000000",
 					lineHeight: 1,
 				}}
@@ -186,6 +186,7 @@ function InfoTooltip({ text }: { text: string }) {
 						background: "#000",
 						color: "#fff",
 						fontSize: "10px",
+						fontWeight: "bold",
 						padding: "6px 8px",
 						borderRadius: "4px",
 						zIndex: 10,
@@ -403,7 +404,10 @@ function PandEnergieSection({
 					<span style={val}>{fmt(data.energiebehoefte, 0, "kWh/m²")}</span>
 				</div>
 				<div>
-					<span style={lbl}>Required limit</span>
+					<div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+						<span style={lbl}>Required limit</span>
+						<InfoTooltip text="The legally required maximum energy demand for this building type. If energy demand exceeds this, the building does not meet current standards." />
+					</div>
 					<span style={val}>{fmt(data.eis_energiebehoefte, 0, "kWh/m²")}</span>
 				</div>
 			</div>
@@ -575,9 +579,12 @@ export function BuildingsPanel({
 								)}
 							</div>
 						)}
-						<code style={{ fontSize: "10px", color: "#aaa" }}>
-							BAG ID: {bagId}
-						</code>
+						<div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+							<code style={{ fontSize: "10px", color: "#aaa" }}>
+								BAG ID: {bagId}
+							</code>
+							<InfoTooltip text="Basisregistratie Adressen en Gebouwen — the national building ID. Use it to search for this building on EP-Online." />
+						</div>
 					</div>
 
 					{/* BAG registration */}
@@ -643,11 +650,27 @@ export function BuildingsPanel({
 										<span style={val}>{fmt(tp.opp_grond, 0, "m²")}</span>
 									</div>
 									<div>
-										<span style={lbl}>Flat roof</span>
+										<div
+											style={{
+												display: "flex",
+												alignItems: "center",
+												gap: "3px",
+											}}
+										>
+											<span style={lbl}>Flat roof</span>
+										</div>
 										<span style={val}>{fmt(tp.opp_dak_plat, 0, "m²")}</span>
 									</div>
 									<div>
-										<span style={lbl}>Slant roof</span>
+										<div
+											style={{
+												display: "flex",
+												alignItems: "center",
+												gap: "3px",
+											}}
+										>
+											<span style={lbl}>Slant roof</span>
+										</div>
 										<span style={val}>{fmt(tp.opp_dak_schuin, 0, "m²")}</span>
 									</div>
 								</div>
