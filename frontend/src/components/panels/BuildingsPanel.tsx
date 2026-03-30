@@ -1,3 +1,4 @@
+import { useState } from "react";
 import CheckboxItem from "./items/CheckboxItem";
 import type {
 	TileProperties,
@@ -150,16 +151,55 @@ const LABEL_COLORS: Record<string, { bg: string; text: string }> = {
 	G: { bg: "#e8231a", text: "#fff" },
 };
 
-const ENERGY_LABEL_INFO_URL =
-	"https://www.rijksoverheid.nl/onderwerpen/energielabel-woningen-en-gebouwen/energielabel-woning";
+const EP_ONLINE_SEARCH_URL = "https://www.ep-online.nl/Energylabel/Search";
 
-function LabelBadge({
-	klasse,
-	href = ENERGY_LABEL_INFO_URL,
-}: {
-	klasse: string;
-	href?: string;
-}) {
+function InfoTooltip({ text }: { text: string }) {
+	const [visible, setVisible] = useState(false);
+	return (
+		<span
+			style={{
+				position: "relative",
+				display: "inline-flex",
+				alignItems: "center",
+			}}
+		>
+			<span
+				onMouseEnter={() => setVisible(true)}
+				onMouseLeave={() => setVisible(false)}
+				style={{
+					cursor: "default",
+					fontSize: "11px",
+					color: "#000000",
+					lineHeight: 1,
+				}}
+			>
+				ⓘ
+			</span>
+			{visible && (
+				<span
+					style={{
+						position: "absolute",
+						left: "50%",
+						top: "calc(100% + 6px)",
+						width: "max-content",
+						maxWidth: "100px",
+						background: "#000",
+						color: "#fff",
+						fontSize: "10px",
+						padding: "6px 8px",
+						borderRadius: "4px",
+						zIndex: 10,
+						pointerEvents: "none",
+					}}
+				>
+					{text}
+				</span>
+			)}
+		</span>
+	);
+}
+
+function LabelBadge({ klasse, href }: { klasse: string; href?: string }) {
 	const colors = LABEL_COLORS[klasse] ?? { bg: "#aaa", text: "#fff" };
 
 	const badge = (
@@ -201,7 +241,13 @@ function LabelBadge({
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 /** Per-VBO energy label card content */
-function EnergieLabelBadge({ label }: { label: EnergieLabel }) {
+function EnergieLabelBadge({
+	label,
+	bagId,
+}: {
+	label: EnergieLabel;
+	bagId?: string;
+}) {
 	const { energieklasse: klasse } = label;
 
 	return (
@@ -222,7 +268,13 @@ function EnergieLabelBadge({ label }: { label: EnergieLabel }) {
 						marginBottom: "8px",
 					}}
 				>
-					<LabelBadge klasse={klasse} />
+					<LabelBadge
+						klasse={klasse}
+						href={bagId ? EP_ONLINE_SEARCH_URL : undefined}
+					/>
+					{bagId && (
+						<InfoTooltip text="Click the label to open EP-Online. Enter the BAG ID shown above in the search box." />
+					)}
 					{label.gebouwklasse && (
 						<span style={{ fontSize: "11px", color: "#555" }}>
 							{label.gebouwklasse === "W"
@@ -291,7 +343,13 @@ function EnergieLabelBadge({ label }: { label: EnergieLabel }) {
 }
 
 /** Building-level EP-Online pand section */
-function PandEnergieSection({ data }: { data: PandEnergieData }) {
+function PandEnergieSection({
+	data,
+	bagId,
+}: {
+	data: PandEnergieData;
+	bagId?: string;
+}) {
 	return (
 		<div style={divider}>
 			<div style={sectionTitle}>Energy Performance</div>
@@ -305,7 +363,15 @@ function PandEnergieSection({ data }: { data: PandEnergieData }) {
 					marginBottom: "12px",
 				}}
 			>
-				{data.energieklasse && <LabelBadge klasse={data.energieklasse} />}
+				{data.energieklasse && (
+					<LabelBadge
+						klasse={data.energieklasse}
+						href={bagId ? EP_ONLINE_SEARCH_URL : undefined}
+					/>
+				)}
+				{bagId && (
+					<InfoTooltip text="Click the label to open EP-Online. Enter the BAG ID shown above in the search box." />
+				)}
 				<div>
 					{data.gebouwtype && (
 						<div style={{ fontSize: "12px", fontWeight: 600, color: "#111" }}>
@@ -419,7 +485,7 @@ function VboCard({
 
 			{/* Energy label */}
 			{vbo.energie_label ? (
-				<EnergieLabelBadge label={vbo.energie_label} />
+				<EnergieLabelBadge label={vbo.energie_label} bagId={vbo.bag_id} />
 			) : (
 				<div
 					style={{
@@ -530,7 +596,10 @@ export function BuildingsPanel({
 
 					{/* Building-level EP-Online energy */}
 					{buildingInfo.pand_energie_data && (
-						<PandEnergieSection data={buildingInfo.pand_energie_data} />
+						<PandEnergieSection
+							data={buildingInfo.pand_energie_data}
+							bagId={bagId}
+						/>
 					)}
 
 					{/* 3D Geometry */}
