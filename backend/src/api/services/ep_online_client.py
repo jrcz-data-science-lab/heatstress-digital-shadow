@@ -3,7 +3,7 @@ from config import get_settings
 
 settings = get_settings()
 
-EP_ONLINE_BASE_URL = "https://public.ep-online.nl/api/v5"
+EP_ONLINE_BASE_URL = "https://public.ep-online.nl/api/v5/"
 
 
 class EpOnlineClient:
@@ -32,7 +32,7 @@ class EpOnlineClient:
         vbo_id: 16-digit BAG VBO identificatie (e.g. '0687010000029139').
         Returns a list of label records, most recent first.
         """
-        return await self._client.get(f"/PandEnergielabel/AdresseerbaarObject/{vbo_id}")
+        return await self._client.get(f"PandEnergielabel/AdresseerbaarObject/{vbo_id}")
 
 
 def get_ep_online_client() -> EpOnlineClient:

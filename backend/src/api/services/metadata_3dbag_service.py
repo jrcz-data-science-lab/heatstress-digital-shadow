@@ -64,23 +64,20 @@ class Metadata3DBagService:
     # EP-Online enrichment
     # ──────────────────────────────────────────────
 
-    async def _fetch_ep_data_for_vbo(self, vbo_id: str) -> Optional[dict]:
+    async def _fetch_ep_data_for_vbo(self, ep_client, vbo_id: str) -> Optional[dict]:
         """
-        Fetch the most recent EP-Online record for a VBO.
+        Fetch the most recent EP-Online record for a VBO using a shared client.
         Returns the raw record dict (so we can extract both VBO-level and Pand-level fields),
         or None on any error / missing data.
         """
-        if not settings.EP_ONLINE_API_KEY:
-            return None
         try:
-            async with self._ep_client_factory() as ep_client:
-                response = await ep_client.get_label_by_vbo(vbo_id)
-                if response.status_code != 200:
-                    return None
-                records = response.json()
-                if not records:
-                    return None
-                return sorted(records, key=lambda r: r.get("Registratiedatum") or "", reverse=True)[0]
+            response = await ep_client.get_label_by_vbo(vbo_id)
+            if response.status_code != 200:
+                return None
+            records = response.json()
+            if not records:
+                return None
+            return sorted(records, key=lambda r: r.get("Registratiedatum") or "", reverse=True)[0]
         except Exception:
             return None
 
@@ -128,8 +125,12 @@ class Metadata3DBagService:
           - VBOs enriched with per-VBO energie_label
           - PandEnergieData extracted from the first record that has Pand_ fields
         """
-        ep_tasks = [self._fetch_ep_data_for_vbo(vbo.bag_id) for vbo in vbos]
-        records = await asyncio.gather(*ep_tasks)
+        if not settings.EP_ONLINE_API_KEY:
+            return [vbo.model_copy(update={"energie_label": None}) for vbo in vbos], None
+
+        async with self._ep_client_factory() as ep_client:
+            ep_tasks = [self._fetch_ep_data_for_vbo(ep_client, vbo.bag_id) for vbo in vbos]
+            records = await asyncio.gather(*ep_tasks)
 
         enriched = []
         pand_energie_data: Optional[PandEnergieData] = None
@@ -178,7 +179,10 @@ class Metadata3DBagService:
         except Exception as e:
             self._handle_bag_api_exceptions(e, identifier)
 
-        pand_data = pand_response.json().get("_embedded", {}).get("panden", [])
+        try:
+            pand_data = pand_response.json().get("_embedded", {}).get("panden", [])
+        except Exception as e:
+            self._handle_bag_api_exceptions(e, identifier)
         if not pand_data:
             raise HTTPException(status_code=404, detail=f"No PAND found at coordinates: {coords}.")
 
@@ -207,6 +211,8 @@ class Metadata3DBagService:
 
         try:
             return self._mapper.map_vbo_data(vbo_response.json())
+        except json.JSONDecodeError as e:
+            self._handle_bag_api_exceptions(e, bag_id)
         except MappingError as e:
             raise HTTPException(status_code=500, detail=f"VBO data structuring failed for {bag_id}: {str(e)}")
 
@@ -245,11 +251,15 @@ class Metadata3DBagService:
 
             try:
                 structured_pand_data = self._mapper.map_pand_data(pand_response.json())
+            except json.JSONDecodeError as e:
+                self._handle_bag_api_exceptions(e, bag_id)
             except MappingError as e:
                 raise HTTPException(status_code=500, detail=f"PAND structuring failed for {bag_id}: {str(e)}")
 
             try:
                 structured_vbo_data = self._mapper.map_vbo_data(vbo_response.json())
+            except json.JSONDecodeError as e:
+                self._handle_bag_api_exceptions(e, bag_id)
             except MappingError as e:
                 raise HTTPException(status_code=500, detail=f"VBO structuring failed for {bag_id}: {str(e)}")
 

@@ -119,7 +119,7 @@ export default function App() {
 			if (showBuildings && lon != null && lat != null) {
 				handleBuildingClick(lon, lat, bagId, tileProperties);
 				// Auto-open the buildings panel so the user sees the details immediately.
-				if (bagId) setActiveSideMenuId("buildings");
+				setActiveSideMenuId("buildings");
 			}
 
 			if (pickedEntityId || (lon != null && lat != null)) {
