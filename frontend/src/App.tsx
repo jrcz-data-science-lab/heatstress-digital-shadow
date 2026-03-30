@@ -149,8 +149,8 @@ export default function App() {
 				<OverlayLayersPanel
 					value={overlayLayerId}
 					onChange={(id) => {
-						setShowOverlay(true);
-						setOverlayLayerId(id);
+						setShowOverlay(id !== "");
+						setOverlayLayerId(id as QgisLayerId);
 					}}
 				/>
 			),
