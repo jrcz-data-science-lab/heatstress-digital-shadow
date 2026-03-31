@@ -7,7 +7,10 @@ import CesiumMap, {
 } from "./map/CesiumMap";
 import { WMSOverlayLayer } from "./features/wms-overlay/WMSOverlayLayer";
 import { StaticTreesEntities } from "./features/objects/StaticTreesEntities";
-import { ExistingTreesEntities, type TreeLoadStatus } from "./features/existing-trees/ExistingTreesEntities";
+import {
+	ExistingTreesEntities,
+	type TreeLoadStatus,
+} from "./features/existing-trees/ExistingTreesEntities";
 import { UserObjectsEntities } from "./features/objects/UserObjectsEntities";
 import { BAG3DTileset } from "./features/buildings-3d/BAG3DTileset";
 import { useUserObjectsLayer } from "./features/objects/useUserObjectsLayer";
@@ -24,11 +27,13 @@ import { TreeIcon } from "./components/icons/TreeIcon";
 import { HeatStressMeasuresPanel } from "./components/panels/HeatStressMeasuresPanel";
 import { BuildingIcon } from "./components/icons/BuildingIcon";
 import { BuildingsPanel } from "./components/panels/BuildingsPanel";
+import { InformationPanel } from "./components/panels/InformationPanel";
 import { FeatureInfoCard } from "./components/infoCards/FeatureInfoCard";
 import { LoadingIndicator } from "./components/loading/LoadingIndicator";
 import { TreeLoadingIndicator } from "./components/loading/TreeLoadingIndicator";
 import { LegendCard } from "./components/legend/LegendCard";
 import { PerspectiveIcon } from "./components/icons/PerspectiveIcon";
+import { InformationIcon } from "./components/icons/InformationIcon";
 
 export default function App() {
 	const [showBuildings, setShowBuildings] = React.useState(false);
@@ -80,11 +85,10 @@ export default function App() {
 		overlayLayerId,
 	});
 
-	const { handleBuildingClick, buildingInfo, tileProperties } = useBuildingHighlight(
-		{
+	const { handleBuildingClick, buildingInfo, tileProperties } =
+		useBuildingHighlight({
 			enabled: showBuildings,
-		},
-	);
+		});
 
 	useEffect(() => {
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -122,7 +126,12 @@ export default function App() {
 	};
 
 	const handleCesiumClick = useCallback(
-		({ coordinate, pickedEntityId, bagId, tileProperties }: CesiumClickInfo) => {
+		({
+			coordinate,
+			pickedEntityId,
+			bagId,
+			tileProperties,
+		}: CesiumClickInfo) => {
 			const lon = coordinate?.[0];
 			const lat = coordinate?.[1];
 
@@ -210,6 +219,12 @@ export default function App() {
 			},
 			panel: undefined,
 		},
+		{
+			id: "information",
+			icon: <InformationIcon />,
+			label: "Information",
+			panel: <InformationPanel />,
+		},
 	];
 
 	return (
@@ -285,9 +300,7 @@ export default function App() {
 				) : null}
 			</div>
 
-			<div
-				style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-			>
+			<div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
 				<div
 					style={{
 						position: "absolute",
