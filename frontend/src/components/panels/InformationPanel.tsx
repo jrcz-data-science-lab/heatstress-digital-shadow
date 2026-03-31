@@ -219,6 +219,39 @@ export function InformationPanel() {
 					</div>
 				</div>
 			</div>
+
+			{/* Made By */}
+			<div style={divider}>
+				<div style={sectionTitle}>Made By</div>
+				<div style={{ fontSize: "12px", color: "#555", lineHeight: "1.6" }}>
+					<div style={{ marginBottom: "6px" }}>
+						<span style={lbl}>Data Science Lab</span>
+						<span style={val}>
+							<a
+								href="https://jrcz.nl/"
+								target="_blank"
+								rel="noopener noreferrer"
+								style={{ color: "#111" }}
+							>
+								Joint Research Center Zeeland
+							</a>{" "}
+						</span>
+					</div>
+					<div style={{ marginBottom: "6px" }}>
+						<span style={lbl}>In collaboration with </span>
+						<span style={val}>
+							<a
+								href="https://hz.nl/"
+								target="_blank"
+								rel="noopener noreferrer"
+								style={{ color: "#111" }}
+							>
+								HZ University of Applied Sciences
+							</a>{" "}
+						</span>
+					</div>
+				</div>
+			</div>
 		</div>
 	);
 }
