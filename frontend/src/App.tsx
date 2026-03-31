@@ -7,6 +7,7 @@ import CesiumMap, {
 } from "./map/CesiumMap";
 import { WMSOverlayLayer } from "./features/wms-overlay/WMSOverlayLayer";
 import { StaticTreesEntities } from "./features/objects/StaticTreesEntities";
+import { ExistingTreesEntities, type TreeLoadStatus } from "./features/existing-trees/ExistingTreesEntities";
 import { UserObjectsEntities } from "./features/objects/UserObjectsEntities";
 import { BAG3DTileset } from "./features/buildings-3d/BAG3DTileset";
 import { useUserObjectsLayer } from "./features/objects/useUserObjectsLayer";
@@ -31,6 +32,8 @@ import { PerspectiveIcon } from "./components/icons/PerspectiveIcon";
 export default function App() {
 	const [showBuildings, setShowBuildings] = React.useState(false);
 	const [showObjects, setShowObjects] = useState(false);
+	const [showExistingTrees, setShowExistingTrees] = useState(false);
+	const [treeLoadStatus, setTreeLoadStatus] = useState<TreeLoadStatus | null>(null);
 	const [editingIntent, setEditingIntent] = useState(false);
 	const [activeSideMenuId, setActiveSideMenuId] = useState<string | null>(null);
 	const isEditingMode =
@@ -152,6 +155,8 @@ export default function App() {
 						setShowOverlay(id !== "");
 						setOverlayLayerId(id as QgisLayerId);
 					}}
+					showExistingTrees={showExistingTrees}
+					onToggleExistingTrees={setShowExistingTrees}
 				/>
 			),
 		},
@@ -214,6 +219,10 @@ export default function App() {
 					/>
 				)}
 
+				{showExistingTrees && (
+					<ExistingTreesEntities onStatusChange={setTreeLoadStatus} />
+				)}
+
 				{showObjects && <StaticTreesEntities />}
 
 				{showObjects && (
@@ -260,6 +269,42 @@ export default function App() {
 				{featureInfo && !buildingInfo ? (
 					<FeatureInfoCard info={featureInfo} />
 				) : null}
+				{showExistingTrees && treeLoadStatus && (
+					<div
+						style={{
+							background: "white",
+							color: "black",
+							padding: "8px 12px",
+							borderRadius: "8px",
+							fontSize: "12px",
+							boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+							border: treeLoadStatus.hitLimit ? "1px solid #f59e0b" : "1px solid #e5e5e5",
+							display: "flex",
+							alignItems: "center",
+							gap: "8px",
+							pointerEvents: "none",
+						}}
+					>
+						{treeLoadStatus.loading ? (
+							<>
+								<span style={{ fontSize: "14px" }}>🌳</span>
+								<span>Loading trees...</span>
+							</>
+						) : (
+							<>
+								<span style={{ fontSize: "14px" }}>🌳</span>
+								<span>
+									{treeLoadStatus.count.toLocaleString()} trees loaded
+									{treeLoadStatus.hitLimit && (
+										<span style={{ color: "#d97706", fontWeight: 600 }}>
+											{" "}— limit of {treeLoadStatus.limit.toLocaleString()} reached, zoom in for more
+										</span>
+									)}
+								</span>
+							</>
+						)}
+					</div>
+				)}
 			</div>
 
 			<div
