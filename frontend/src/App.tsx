@@ -26,6 +26,7 @@ import { BuildingIcon } from "./components/icons/BuildingIcon";
 import { BuildingsPanel } from "./components/panels/BuildingsPanel";
 import { FeatureInfoCard } from "./components/infoCards/FeatureInfoCard";
 import { LoadingIndicator } from "./components/loading/LoadingIndicator";
+import { TreeLoadingIndicator } from "./components/loading/TreeLoadingIndicator";
 import { LegendCard } from "./components/legend/LegendCard";
 import { PerspectiveIcon } from "./components/icons/PerspectiveIcon";
 
@@ -33,7 +34,13 @@ export default function App() {
 	const [showBuildings, setShowBuildings] = React.useState(false);
 	const [showObjects, setShowObjects] = useState(false);
 	const [showExistingTrees, setShowExistingTrees] = useState(false);
-	const [treeLoadStatus, setTreeLoadStatus] = useState<TreeLoadStatus | null>(null);
+	const [treeLoadStatus, setTreeLoadStatus] = useState<TreeLoadStatus>({
+		loading: false,
+		count: 0,
+		limit: 0,
+		hitLimit: false,
+		tooFarOut: true,
+	});
 	const [editingIntent, setEditingIntent] = useState(false);
 	const [activeSideMenuId, setActiveSideMenuId] = useState<string | null>(null);
 	const isEditingMode =
@@ -249,6 +256,13 @@ export default function App() {
 				/>
 			)}
 
+			{showExistingTrees && (
+				<TreeLoadingIndicator
+					status={treeLoadStatus}
+					left={isProcessing ? `calc(${loaderLeft} + 320px)` : loaderLeft}
+				/>
+			)}
+
 			{/* BOTTOM RIGHT INFO PANEL */}
 			<div
 				style={{
@@ -269,42 +283,6 @@ export default function App() {
 				{featureInfo && !buildingInfo ? (
 					<FeatureInfoCard info={featureInfo} />
 				) : null}
-				{showExistingTrees && treeLoadStatus && (
-					<div
-						style={{
-							background: "white",
-							color: "black",
-							padding: "8px 12px",
-							borderRadius: "8px",
-							fontSize: "12px",
-							boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-							border: treeLoadStatus.hitLimit ? "1px solid #f59e0b" : "1px solid #e5e5e5",
-							display: "flex",
-							alignItems: "center",
-							gap: "8px",
-							pointerEvents: "none",
-						}}
-					>
-						{treeLoadStatus.loading ? (
-							<>
-								<span style={{ fontSize: "14px" }}>🌳</span>
-								<span>Loading trees...</span>
-							</>
-						) : (
-							<>
-								<span style={{ fontSize: "14px" }}>🌳</span>
-								<span>
-									{treeLoadStatus.count.toLocaleString()} trees loaded
-									{treeLoadStatus.hitLimit && (
-										<span style={{ color: "#d97706", fontWeight: 600 }}>
-											{" "}— limit of {treeLoadStatus.limit.toLocaleString()} reached, zoom in for more
-										</span>
-									)}
-								</span>
-							</>
-						)}
-					</div>
-				)}
 			</div>
 
 			<div
