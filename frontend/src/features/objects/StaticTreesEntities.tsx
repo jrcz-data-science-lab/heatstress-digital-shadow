@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Entity, ModelGraphics } from "resium";
 import { Cartesian3 } from "cesium";
 import { rdToLonLat } from "../../map/utils/crs";
-import { BBOX } from "../../map/utils/deckUtils";
+import { BBOX } from "../../map/utils/constants";
 
 type TreeData = {
 	id: string;

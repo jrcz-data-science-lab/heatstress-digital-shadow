@@ -13,19 +13,17 @@ src/
     CesiumMap.tsx             # <Viewer> wrapper, click/pick via ScreenSpaceEventHandler
     utils/
       crs.ts                  # RD ↔ WGS84 coordinate transforms (proj4)
-      deckUtils.ts            # Shared constants (BBOX, LOCAL_STORAGE_KEY, etc.)
+      constants.ts            # Shared constants (BBOX, LOCAL_STORAGE_KEY, etc.)
 
   features/
     basemap/
       BasemapLayer.tsx        # Cesium BaseLayerPicker (e.g. Stadia Alidade Smooth)
 
     buildings-3d/
-      BuildingHighlightEntity.tsx   # Polygon highlight for selected building
-      BAG3DTileset.tsx              # 3D Tiles from BAG dataset
-      useBuildingHighlight.ts
+      BAG3DTileset.tsx              # 3D Tiles from api.3dbag.nl; highlights selected building via Cesium3DTileStyle
+      useBuildingHighlight.ts       # Click handler: fetches BAG + EP-Online metadata from backend
       lib/
-        bbox.ts
-        buildingMetadataApi.ts
+        buildingMetadataApi.ts      # API types + fetch functions (by BAG ID or RD coordinates)
 
     wms-overlay/
       WMSOverlayLayer.tsx     # QGIS WMS tiles (WebMapServiceImageryProvider)

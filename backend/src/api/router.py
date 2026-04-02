@@ -80,6 +80,18 @@ async def update_pet_map_based_on_objects(
         session_id=session_id
     )
 
+@metadata_3dbag_router.get("/pand/{bag_id}", response_model=AggregatedBagResponse)
+async def read_3dbag_by_bag_id(
+    bag_id: str,
+    service: Metadata3DBagService = Depends(get_metadata_bag3d_service),
+):
+    """
+    Fetches PAND + VBO data directly by BAG building ID (identificatie).
+    Preferred over the coordinate search: the 3D BAG tileset already exposes
+    the identificatie as a feature property, so no spatial lookup is needed.
+    """
+    return await service.fetch_and_aggregate_by_bag_id(bag_id=bag_id)
+
 @metadata_3dbag_router.get("/search-pand", response_model=AggregatedBagResponse)
 async def read_3dbag_by_coordinates(
     x_coord: float = Query(..., description="X coordinate (Rijksdriehoeksstelsel, EPSG:28992)"),
@@ -89,9 +101,10 @@ async def read_3dbag_by_coordinates(
 ):
     """
     Searches for the nearest PAND at the given coordinates and returns aggregated data.
+    Fallback for when no BAG ID is available from the tileset feature.
     """
     return await service.fetch_and_aggregate(
-        x_coord=x_coord, 
+        x_coord=x_coord,
         y_coord=y_coord
     )
 

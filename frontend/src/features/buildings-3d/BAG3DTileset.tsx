@@ -17,14 +17,17 @@ const LOD22_URL =
 const NL_LON = 5.3;
 const NL_LAT = 52.1;
 
-// Light grey matching the 3D BAG viewer's default building color.
-const STYLE = new Cesium3DTileStyle({ color: "color('rgb(254, 255, 255)')" });
+const DEFAULT_COLOR = "color('rgb(200, 205, 212)')";
+const SELECTED_COLOR_HIGHLIGHT = "color('yellow')";
 
 type Props = {
 	heightOffset?: number;
+	/** Numeric BAG identificatie of the selected building (without NL.IMBAG.Pand. prefix).
+	 *  All tile features whose identificatie matches are highlighted yellow. */
+	selectedBagId?: string | null;
 };
 
-export function BAG3DTileset({ heightOffset = 0 }: Props) {
+export function BAG3DTileset({ heightOffset = 0, selectedBagId }: Props) {
 	// Translate the tileset radially (along the ECEF up-direction at the NL center).
 	// Matrix4.IDENTITY when heightOffset is 0 so no transform is applied.
 	const modelMatrix = useMemo(() => {
@@ -35,10 +38,28 @@ export function BAG3DTileset({ heightOffset = 0 }: Props) {
 		return Matrix4.fromTranslation(translation);
 	}, [heightOffset]);
 
+	// The 3D BAG tileset stores identificatie as "NL.IMBAG.Pand.<numeric-id>".
+	// When a building is selected we inject a conditional style that highlights all
+	// tile features belonging to that building, matching 3D BAG viewer behaviour.
+	const style = useMemo(() => {
+		if (!selectedBagId) {
+			return new Cesium3DTileStyle({ color: DEFAULT_COLOR });
+		}
+		const fullId = `NL.IMBAG.Pand.${selectedBagId}`;
+		return new Cesium3DTileStyle({
+			color: {
+				conditions: [
+					[`\${identificatie} === '${fullId}'`, SELECTED_COLOR_HIGHLIGHT],
+					["true", DEFAULT_COLOR],
+				],
+			},
+		});
+	}, [selectedBagId]);
+
 	return (
 		<Cesium3DTileset
 			url={LOD22_URL}
-			style={STYLE}
+			style={style}
 			modelMatrix={modelMatrix}
 			colorBlendMode={Cesium3DTileColorBlendMode.REPLACE}
 		/>

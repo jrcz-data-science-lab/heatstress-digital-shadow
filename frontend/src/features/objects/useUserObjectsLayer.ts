@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { LOCAL_STORAGE_KEY } from "../../map/utils/deckUtils";
+import { LOCAL_STORAGE_KEY } from "../../map/utils/constants";
 import { lonLatToRd } from "../../map/utils/crs";
 import type { MeasureType, ObjectInstance } from "./lib/objectLayer";
 
