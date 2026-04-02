@@ -135,7 +135,7 @@ export default function App() {
 			const lon = coordinate?.[0];
 			const lat = coordinate?.[1];
 
-			if (showBuildings && lon != null && lat != null) {
+			if (showBuildings && !isEditingMode && lon != null && lat != null) {
 				handleBuildingClick(lon, lat, bagId, tileProperties);
 				// Auto-open the buildings panel so the user sees the details immediately.
 				setActiveSideMenuId("buildings");
@@ -149,7 +149,7 @@ export default function App() {
 				handleMapClick(lon, lat);
 			}
 		},
-		[showBuildings, handleBuildingClick, handleInteraction, handleMapClick],
+		[showBuildings, isEditingMode, handleBuildingClick, handleInteraction, handleMapClick],
 	);
 
 	const activeVbos =
