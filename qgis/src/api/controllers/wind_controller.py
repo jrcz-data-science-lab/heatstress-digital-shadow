@@ -1,0 +1,276 @@
+from fastapi import APIRouter, HTTPException
+from src.api.requests import WindMapRequest, ImportGeoJSONRequest, RasterizeGeoJSONRequest, ExtractHeightRequest, AspectRequest
+from src.services.wind import WindService
+from src.utils.layer_utils import load_raster_layer
+
+router = APIRouter()
+wind_service = WindService()
+
+@router.post("/height-map")
+def create_height_map(req: WindMapRequest):
+    """
+    Create height map from DSM and DTM layers.
+    
+    Processing pipeline:
+    1. Warp DSM/DTM to 1m resolution
+    2. Fill DTM NoData gaps (buildings) using GDAL interpolation
+    3. Fill remaining DTM NoData (water bodies) with 0
+    4. Calculate absolute heights (DSM - DTM)
+    5. Correct negative values (from approximation errors) to 0
+    
+    All intermediate files are stored in system temp and automatically cleaned up.
+    Only the final height map is saved to the specified output path.
+    
+    Returns: JSON with output path and processing status
+    """
+    try:
+        result = wind_service.height.create_height_map(
+            dsm_input_path=req.dsm_input_path,
+            dtm_input_path=req.dtm_input_path,
+            corrected_height_output_path=req.corrected_height_output_path,
+            dsm_name=req.dsm_name,
+            dtm_name=req.dtm_name
+        )
+        
+        return {
+            "status": "success",
+            "height_path": result["height_path"],
+            "message": "Height map created successfully"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating height map: {str(e)}")
+
+@router.post("/buildings")
+def import_buildings(req: ImportGeoJSONRequest):
+    """
+    Import buildings from PDOK BAG WFS service.
+    
+    Fetches building polygons (pand layer) from the Dutch national building registry
+    within the specified bounding box and exports them as GeoJSON.
+    
+    The bounding box is derived from the height map extent.
+    
+    Returns: JSON with output path, feature count, and processing status
+    """
+    try:
+        reference_layer = load_raster_layer(req.height_map_path, "Height Map")
+        
+        result = wind_service.wfs.import_buildings(
+            output_geojson_path=req.output_geojson_path,
+            extent=reference_layer.extent(),
+        )
+        
+        return {
+            "status": "success",
+            "buildings_path": result["path"],
+            "message": "Successfully imported buildings"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error importing buildings: {str(e)}")
+
+@router.post("/trees")
+def import_trees(req: ImportGeoJSONRequest):
+    """
+    Import trees from PDOK BGT WFS service.
+    
+    Fetches vegetation objects (vegetatieobject layer) from the Dutch national BGT registry
+    within a bounding box and exports them as GeoJSON. The bounding box is derived from the 
+    height map extent.
+    
+    Returns: JSON with output path and processing status
+    """
+    try:
+        if not req.height_map_path:
+            raise ValueError("height_map_path is required for trees import")
+        
+        reference_layer = load_raster_layer(req.height_map_path, "Height Map")
+        
+        result = wind_service.wfs.import_trees(
+            output_geojson_path=req.output_geojson_path,
+            extent=reference_layer.extent(),
+        )
+        
+        return {
+            "status": "success",
+            "trees_path": result["path"],
+            "message": "Successfully imported trees"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error importing trees: {str(e)}")
+
+@router.post("/rasterize-buildings")
+def rasterize_buildings(req: RasterizeGeoJSONRequest):
+    """
+    Rasterize buildings GeoJSON to create a binary mask.
+    
+    Converts building polygons to a raster layer where building pixels have value 1
+    and non-building pixels have value 0. Uses 1m resolution by default.
+    
+    If height_map_path is provided, the mask will be aligned to match the extent
+    and resolution of the height map, ensuring compatibility for height extraction.
+    
+    Returns: JSON with output path and processing status
+    """
+    try:
+        reference_layer = load_raster_layer(req.height_map_path, "Height Map Reference")
+        
+        result = wind_service.rasterization.rasterize_buildings(
+            buildings_geojson_path=req.input_geojson_path,
+            output_raster_path=req.output_raster_path,
+            reference_layer=reference_layer
+        )
+        
+        return {
+            "status": "success",
+            "mask_path": result["mask_path"],
+            "message": "Successfully rasterized buildings"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error rasterizing buildings: {str(e)}")
+
+@router.post("/rasterize-trees")
+def rasterize_trees(req: RasterizeGeoJSONRequest):
+    """
+    Rasterize trees GeoJSON to create a binary mask.
+    
+    Converts tree points to a raster layer by first buffering them into polygons,
+    then rasterizing where tree pixels have value 1 and non-tree pixels have value 0.
+    Uses 3m buffer radius and 1m resolution by default.
+    
+    If height_map_path is provided, the mask will be aligned to match the extent
+    and resolution of the height map, ensuring compatibility for height extraction.
+    
+    Returns: JSON with output path and processing status
+    """
+    try:
+        reference_layer = load_raster_layer(req.height_map_path, "Height Map Reference")
+        
+        result = wind_service.rasterization.rasterize_trees(
+            trees_geojson_path=req.input_geojson_path,
+            output_raster_path=req.output_raster_path,
+            reference_layer=reference_layer
+        )
+        
+        return {
+            "status": "success",
+            "mask_path": result["mask_path"],
+            "message": "Successfully rasterized trees"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error rasterizing trees: {str(e)}")
+
+@router.post("/extract-height-buildings")
+def extract_height_buildings(req: ExtractHeightRequest):
+    """
+    Extract building heights from height map using buildings mask.
+    
+    Applies the formula: (corrected DSM-DTM) * (mask == 1)
+    This creates a layer containing only the building heights, with zeros elsewhere.
+    
+    Returns: JSON with output path and processing status
+    """
+    try:
+        result = wind_service.height.extract_height_buildings(
+            height_map_path=req.height_map_path,
+            buildings_mask_path=req.mask_path,
+            output_path=req.output_path
+        )
+        
+        return {
+            "status": "success",
+            "height_path": result["height_path"],
+            "message": "Successfully extracted building heights"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error extracting building heights: {str(e)}")
+
+@router.post("/extract-height-trees")
+def extract_height_trees(req: ExtractHeightRequest):
+    """
+    Extract tree heights from height map using trees mask.
+    
+    Applies the formula: (corrected DSM-DTM) * (mask == 1)
+    This creates a layer containing only the tree heights, with zeros elsewhere.
+    
+    Returns: JSON with output path and processing status
+    """
+    try:
+        result = wind_service.height.extract_height_trees(
+            height_map_path=req.height_map_path,
+            trees_mask_path=req.mask_path,
+            output_path=req.output_path
+        )
+        
+        return {
+            "status": "success",
+            "height_path": result["height_path"],
+            "message": "Successfully extracted tree heights"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error extracting tree heights: {str(e)}")
+
+
+@router.post("/aspect-buildings")
+def aspect_buildings(req: AspectRequest):
+    """Calculate aspect for buildings and extract N/E/S/W direction masks."""
+    try:
+        result = wind_service.aspect.calculate_buildings_aspect(
+            buildings_height_path=req.height_path,
+            buildings_mask_path=req.mask_path,
+            output_dir=req.output_dir,
+        )
+
+        return {
+            "status": "success",
+            "aspect_path": result["aspect"]["path"],
+            "aspect_separated_path": result["aspect_separated"]["path"],
+            "north_path": result["north"]["path"],
+            "east_path": result["east"]["path"],
+            "south_path": result["south"]["path"],
+            "west_path": result["west"]["path"],
+            "message": "Successfully calculated buildings aspect",
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating buildings aspect: {str(e)}")
+
+
+@router.post("/aspect-trees")
+def aspect_trees(req: AspectRequest):
+    """Calculate aspect for trees and extract N/E/S/W direction masks."""
+    try:
+        result = wind_service.aspect.calculate_trees_aspect(
+            trees_height_path=req.height_path,
+            trees_mask_path=req.mask_path,
+            output_dir=req.output_dir,
+        )
+
+        return {
+            "status": "success",
+            "aspect_path": result["aspect"]["path"],
+            "aspect_separated_path": result["aspect_separated"]["path"],
+            "north_path": result["north"]["path"],
+            "east_path": result["east"]["path"],
+            "south_path": result["south"]["path"],
+            "west_path": result["west"]["path"],
+            "message": "Successfully calculated trees aspect",
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating trees aspect: {str(e)}")

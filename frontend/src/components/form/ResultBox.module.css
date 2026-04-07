@@ -1,0 +1,55 @@
+.resultBox {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid;
+}
+
+.green {
+  background-color: #e8f5e9;
+  border-color: #4CAF50;
+}
+
+.blue {
+  background-color: #e3f2fd;
+  border-color: #2196F3;
+}
+
+.successText {
+  font-weight: bold;
+}
+
+.green .successText {
+  color: #2e7d32;
+}
+
+.blue .successText {
+  color: #1565c0;
+}
+
+.details {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.details > div {
+  margin-bottom: 0.5rem;
+}
+
+.details > div:last-child {
+  margin-bottom: 0;
+}
+
+.outputPath {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  background-color: #f5f5f5;
+  color: #333;
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-top: 0.25rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+  overflow-x: auto;
+}

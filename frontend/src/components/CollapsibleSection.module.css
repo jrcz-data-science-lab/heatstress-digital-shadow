@@ -1,0 +1,52 @@
+.section {
+  margin-bottom: 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.header:hover {
+  background-color: #eeeeee;
+}
+
+.headerOpen {
+  border-radius: 4px 4px 0 0;
+  border-bottom: none;
+}
+
+.headerClosed {
+  border-radius: 4px;
+}
+
+.title {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.arrow {
+  user-select: none;
+  font-size: 0.9rem;
+}
+
+.content {
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  background-color: #ffffff;
+}
+
+.separator {
+  border-top: 2px solid #ccc;
+  margin-top: 2rem;
+  padding-top: 0;
+}
