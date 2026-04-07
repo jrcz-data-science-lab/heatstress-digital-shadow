@@ -4,6 +4,7 @@ from src.services.wind.wfs_service import WfsService
 from src.services.wind.height_service import HeightService
 from src.services.wind.rasterization_service import RasterizationService
 from src.services.wind.aspect_service import AspectService
+from src.services.wind.grid_service import GridService
 from src.utils.layer_utils import load_raster_layer
 
 
@@ -26,6 +27,7 @@ class WindService:
         self.wfs = WfsService()
         self.rasterization = RasterizationService()
         self.aspect = AspectService()
+        self.grid = GridService()
     
     def generate_wind_reduction_map(
         self,
@@ -46,7 +48,7 @@ class WindService:
         7. Extract tree heights from height map
         8. Calculate aspect for buildings (N/E/S/W direction masks)
         9. Calculate aspect for trees (N/E/S/W direction masks)
-        10. Calculate wind reduction factors (TODO: implement)
+        10. Calculate wind reduction grid with zonal statistics and parameters
         
         :param str dsm_path: Path to input DSM raster
         :param str dtm_path: Path to input DTM raster
@@ -55,8 +57,8 @@ class WindService:
         """
 
         height_path = os.path.join(output_dir, "height.tif")
-        buildings_geojson_path = os.path.join(output_dir, "buildings.geojson")
-        trees_geojson_path = os.path.join(output_dir, "trees.geojson")
+        buildings_geopackage_path = os.path.join(output_dir, "buildings.gpkg")
+        trees_geopackage_path = os.path.join(output_dir, "trees.gpkg")
         buildings_mask_path = os.path.join(output_dir, "buildings-mask.tif")
         trees_mask_path = os.path.join(output_dir, "trees-mask.tif")
         buildings_height_path = os.path.join(output_dir, "buildings-height.tif")
@@ -73,7 +75,7 @@ class WindService:
         height_layer = load_raster_layer(height_path, "Height")
         
         buildings_result = self.wfs.import_buildings(
-            output_geojson_path=buildings_geojson_path,
+            output_geopackage_path=buildings_geopackage_path,
             extent=height_layer.extent(),
         )
         results["buildings_import"] = {
@@ -82,7 +84,7 @@ class WindService:
         }
         
         trees_result = self.wfs.import_trees(
-            output_geojson_path=trees_geojson_path,
+            output_geopackage_path=trees_geopackage_path,
             extent=height_layer.extent(),
         )
         results["trees_import"] = {
@@ -91,14 +93,14 @@ class WindService:
         }
 
         buildings_mask_result = self.rasterization.rasterize_buildings(
-            buildings_geojson_path=buildings_geojson_path,
+            buildings_geojson_path=buildings_geopackage_path,
             output_raster_path=buildings_mask_path,
             reference_layer=height_layer
         )
         results["buildings_mask"] = buildings_mask_result
         
         trees_mask_result = self.rasterization.rasterize_trees(
-            trees_geojson_path=trees_geojson_path,
+            trees_geojson_path=trees_geopackage_path,
             output_raster_path=trees_mask_path,
             reference_layer=height_layer
         )
@@ -130,7 +132,20 @@ class WindService:
             output_dir=output_dir,
         )
 
-        # todo calculate wind reduction factors and grid
+        grid_output_path = os.path.join(output_dir, "wind-grid.gpkg")
+        grid_result = self.grid.create_grid_with_zonal_stats(
+            height_map_path=height_path,
+            buildings_height_path=buildings_height_path,
+            trees_height_path=trees_height_path,
+            output_grid_path=grid_output_path,
+            grid_width=self.grid.DEFAULT_GRID_WIDTH,
+            grid_height=self.grid.DEFAULT_GRID_HEIGHT,
+            buildings_aspect_west_path=os.path.join(output_dir, "buildings-aspect-west.tif"),
+            trees_aspect_west_path=os.path.join(output_dir, "trees-aspect-west.tif"),
+            buildings_polygon_path=buildings_geopackage_path,
+            trees_points_path=trees_geopackage_path,
+        )
+        results["wind_grid"] = grid_result
 
         return {
             "status": "success",
@@ -138,13 +153,14 @@ class WindService:
             "results": results,
             "outputs": {
                 "height_map": height_path,
-                "buildings_geojson": buildings_geojson_path,
-                "trees_geojson": trees_geojson_path,
+                "buildings_geojson": buildings_geopackage_path,
+                "trees_geojson": trees_geopackage_path,
                 "buildings_mask": buildings_mask_path,
                 "trees_mask": trees_mask_path,
                 "buildings_height": buildings_height_path,
                 "trees_height": trees_height_path,
                 "buildings_aspect": os.path.join(output_dir, "buildings-aspect-separated.tif"),
                 "trees_aspect": os.path.join(output_dir, "trees-aspect-separated.tif"),
+                "wind_grid": grid_output_path,
             }
         }

@@ -7,13 +7,13 @@ type WindApiResult = Record<string, string>;
 
 export function BuildingsTab() {
   const [buildingsReferencePath, setBuildingsReferencePath] = useState("/data/wind/height.tif");
-  const [buildingsOutputPath, setBuildingsOutputPath] = useState("/data/wind/buildings.geojson");
+  const [buildingsOutputPath, setBuildingsOutputPath] = useState("/data/wind/buildings.gpkg");
   const [isBuildingsLoading, setIsBuildingsLoading] = useState(false);
   const [buildingsResult, setBuildingsResult] = useState<WindApiResult | null>(null);
   const [buildingsError, setBuildingsError] = useState<string | null>(null);
   const [isImportLocked, setIsImportLocked] = useState(true);
 
-  const [rasterizeInput, setRasterizeInput] = useState("/data/wind/buildings.geojson");
+  const [rasterizeInput, setRasterizeInput] = useState("/data/wind/buildings.gpkg");
   const [rasterizeOutput, setRasterizeOutput] = useState("/data/wind/buildings-mask.tif");
   const [isRasterizing, setIsRasterizing] = useState(false);
   const [rasterizeResult, setRasterizeResult] = useState<WindApiResult | null>(null);
@@ -172,7 +172,7 @@ export function BuildingsTab() {
         />
 
         <FormInput
-          label="Output GeoJSON Path:"
+          label="Output GeoPackage Path:"
           value={buildingsOutputPath}
           onChange={setBuildingsOutputPath}
           disabled={isImportLocked}
@@ -204,7 +204,7 @@ export function BuildingsTab() {
         >
           <p>
             This tool imports building footprints from the PDOK BAG WFS service
-            and exports them as GeoJSON.
+            and exports them as a GeoPackage.
           </p>
           <p>
             <strong>How it works:</strong>
@@ -212,7 +212,7 @@ export function BuildingsTab() {
           <ul style={{ marginLeft: "1rem" }}>
             <li>Reads the bounding box from the reference layer (height map)</li>
             <li>Fetches building polygons from PDOK BAG WFS v2.0</li>
-            <li>Exports buildings within the extent as GeoJSON</li>
+            <li>Exports buildings within the extent as a GeoPackage</li>
           </ul>
           <p>
             The reference layer is typically the height map generated in the previous step.
@@ -231,7 +231,7 @@ export function BuildingsTab() {
         />
 
         <FormInput
-          label="Input GeoJSON Path:"
+          label="Input GeoPackage Path:"
           value={rasterizeInput}
           onChange={setRasterizeInput}
           disabled={isRasterizeLocked}
@@ -268,13 +268,13 @@ export function BuildingsTab() {
           borderColor="#4CAF50"
         >
           <p>
-            This tool converts building footprints from GeoJSON to a binary raster mask.
+            This tool converts building footprints from a GeoPackage to a binary raster mask.
           </p>
           <p>
             <strong>How it works:</strong>
           </p>
           <ul style={{ marginLeft: "1rem" }}>
-            <li>Reads building polygons from the input GeoJSON file</li>
+            <li>Reads building polygons from the input GeoPackage file</li>
             <li>Uses height map reference to match extent, resolution, and CRS</li>
             <li>Rasterizes buildings with burn value 1.0 (1m resolution)</li>
             <li>Creates a binary mask where buildings = 1, no buildings = 0</li>

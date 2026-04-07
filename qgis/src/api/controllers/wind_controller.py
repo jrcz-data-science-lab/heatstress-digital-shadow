@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from src.api.requests import WindMapRequest, ImportGeoJSONRequest, RasterizeGeoJSONRequest, ExtractHeightRequest, AspectRequest
+from src.api.requests import WindMapRequest, ImportGeoJSONRequest, RasterizeGeoJSONRequest, ExtractHeightRequest, AspectRequest, GridRequest, WindReductionMapRequest
 from src.services.wind import WindService
 from src.utils.layer_utils import load_raster_layer
 
@@ -48,7 +48,7 @@ def import_buildings(req: ImportGeoJSONRequest):
     Import buildings from PDOK BAG WFS service.
     
     Fetches building polygons (pand layer) from the Dutch national building registry
-    within the specified bounding box and exports them as GeoJSON.
+        within the specified bounding box and exports them as a GeoPackage.
     
     The bounding box is derived from the height map extent.
     
@@ -58,7 +58,7 @@ def import_buildings(req: ImportGeoJSONRequest):
         reference_layer = load_raster_layer(req.height_map_path, "Height Map")
         
         result = wind_service.wfs.import_buildings(
-            output_geojson_path=req.output_geojson_path,
+            output_geopackage_path=req.output_geojson_path,
             extent=reference_layer.extent(),
         )
         
@@ -78,7 +78,7 @@ def import_trees(req: ImportGeoJSONRequest):
     Import trees from PDOK BGT WFS service.
     
     Fetches vegetation objects (vegetatieobject layer) from the Dutch national BGT registry
-    within a bounding box and exports them as GeoJSON. The bounding box is derived from the 
+        within a bounding box and exports them as a GeoPackage. The bounding box is derived from the 
     height map extent.
     
     Returns: JSON with output path and processing status
@@ -90,7 +90,7 @@ def import_trees(req: ImportGeoJSONRequest):
         reference_layer = load_raster_layer(req.height_map_path, "Height Map")
         
         result = wind_service.wfs.import_trees(
-            output_geojson_path=req.output_geojson_path,
+            output_geopackage_path=req.output_geojson_path,
             extent=reference_layer.extent(),
         )
         
@@ -274,3 +274,79 @@ def aspect_trees(req: AspectRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calculating trees aspect: {str(e)}")
+
+
+@router.post("/grid")
+def create_grid(req: GridRequest):
+    """
+    Create a rectangular analysis grid and compute zonal statistics for buildings and trees.
+
+    Processing pipeline:
+    1. Create a rectangular vector grid aligned to the corrected DSM-DTM extent.
+       Default cell size: 125 m (width) x 250 m (height).
+    2. Zonal statistics - buildings height (count, sum, mean) with prefix "buildings_height_".
+    3. Zonal statistics - trees height    (count, sum, mean) with prefix "trees_height_",
+       using the layer produced in step 2 as input.
+    4. Normalise buildings_height_mean: values in (0, 5) are raised to 5.
+    5. Normalise trees_height_mean:     values in (0, 3) are raised to 3.
+
+    Returns: JSON with grid output path and processing status.
+    """
+    try:
+        result = wind_service.grid.create_grid_with_zonal_stats(
+            height_map_path=req.height_map_path,
+            buildings_height_path=req.buildings_height_path,
+            trees_height_path=req.trees_height_path,
+            output_grid_path=req.output_grid_path,
+            grid_width=req.grid_width,
+            grid_height=req.grid_height,
+            buildings_aspect_west_path=req.buildings_aspect_west_path,
+            trees_aspect_west_path=req.trees_aspect_west_path,
+            buildings_polygon_path=req.buildings_polygon_path,
+            trees_points_path=req.trees_points_path,
+        )
+
+        return {
+            "status": "success",
+            "grid_path": result["grid_path"],
+            "message": "Grid with zonal statistics created successfully",
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating grid: {str(e)}")
+
+
+@router.post("/generate-wind-reduction-map")
+def generate_wind_reduction_map(req: WindReductionMapRequest):
+    """
+    Generate complete wind reduction map from raw DSM and DTM data.
+    
+    This endpoint orchestrates the entire wind reduction workflow:
+    1. Create height map (DSM - DTM)
+    2. Import buildings from PDOK BAG WFS
+    3. Import trees from PDOK BGT WFS
+    4. Rasterize buildings and trees to grid
+    5. Calculate aspect angles for buildings and trees
+    6. Create rectangular grid with zonal statistics and wind parameters
+    
+    Returns: JSON with output paths and final results from all processing steps.
+    """
+    try:
+        result = wind_service.generate_wind_reduction_map(
+            dsm_path=req.dsm_path,
+            dtm_path=req.dtm_path,
+            output_dir=req.output_dir,
+        )
+        
+        return {
+            "status": "success",
+            "message": "Wind reduction map generated successfully",
+            "outputs": result["outputs"],
+            "results": result["results"],
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating wind reduction map: {str(e)}")
+

@@ -3,6 +3,7 @@ from .height_service import HeightService
 from .rasterization_service import RasterizationService
 from .wfs_service import WfsService
 from .aspect_service import AspectService
+from .grid_service import GridService
 
 __all__ = [
     "WindService",
@@ -10,4 +11,5 @@ __all__ = [
     "RasterizationService",
     "WfsService",
     "AspectService",
+    "GridService",
 ]

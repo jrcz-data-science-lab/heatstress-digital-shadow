@@ -7,14 +7,14 @@ type WindApiResult = Record<string, string>;
 
 export function TreesTab() {
   const [treesReferencePath, setTreesReferencePath] = useState("/data/wind/height.tif");
-  const [treesOutputPath, setTreesOutputPath] = useState("/data/wind/trees.geojson");
+  const [treesOutputPath, setTreesOutputPath] = useState("/data/wind/trees.gpkg");
   const [isTreesLoading, setIsTreesLoading] = useState(false);
   const [treesResult, setTreesResult] = useState<WindApiResult | null>(null);
   const [treesError, setTreesError] = useState<string | null>(null);
   const [isImportLocked, setIsImportLocked] = useState(true);
 
   // Rasterization state
-  const [rasterizeInput, setRasterizeInput] = useState("/data/wind/trees.geojson");
+  const [rasterizeInput, setRasterizeInput] = useState("/data/wind/trees.gpkg");
   const [rasterizeOutput, setRasterizeOutput] = useState("/data/wind/trees-mask.tif");
   const [isRasterizing, setIsRasterizing] = useState(false);
   const [rasterizeResult, setRasterizeResult] = useState<WindApiResult | null>(null);
@@ -174,7 +174,7 @@ export function TreesTab() {
         />
 
         <FormInput
-          label="Output GeoJSON Path:"
+          label="Output GeoPackage Path:"
           value={treesOutputPath}
           onChange={setTreesOutputPath}
           disabled={isImportLocked}
@@ -205,7 +205,7 @@ export function TreesTab() {
         >
           <p>
             This tool imports tree/vegetation objects from the PDOK BGT WFS service
-            and exports them as GeoJSON points.
+            and exports them as point features in a GeoPackage.
           </p>
           <p>
             <strong>How it works:</strong>
@@ -213,7 +213,7 @@ export function TreesTab() {
           <ul style={{ marginLeft: "1rem" }}>
             <li>Loads the entire vegetatieobject_punt layer from BGT (no bbox limit)</li>
             <li>Filters features by the reference layer extent during export</li>
-            <li>Exports trees within the extent as GeoJSON points</li>
+            <li>Exports trees within the extent as point features in a GeoPackage</li>
           </ul>
           <p>
             The reference layer is typically the height map generated in the Height Map tab.
@@ -232,7 +232,7 @@ export function TreesTab() {
         />
 
         <FormInput
-          label="Input GeoJSON Path:"
+          label="Input GeoPackage Path:"
           value={rasterizeInput}
           onChange={setRasterizeInput}
           disabled={isRasterizeLocked}
@@ -269,13 +269,13 @@ export function TreesTab() {
           borderColor="#4CAF50"
         >
           <p>
-            This tool converts tree points from GeoJSON to a binary raster mask with buffering.
+            This tool converts tree points from a GeoPackage to a binary raster mask with buffering.
           </p>
           <p>
             <strong>How it works:</strong>
           </p>
           <ul style={{ marginLeft: "1rem" }}>
-            <li>Reads tree point features from the input GeoJSON file</li>
+            <li>Reads tree point features from the input GeoPackage file</li>
             <li>Buffers each point into a circular polygon (3m radius)</li>
             <li>Uses height map reference to match extent, resolution, and CRS</li>
             <li>Rasterizes buffered trees with 1m resolution</li>
@@ -401,8 +401,8 @@ export function TreesTab() {
         >
           <p>Calculates which compass direction each tree is facing and produces 4 binary direction masks (N/E/S/W).</p>
           <ul style={{ marginLeft: "1rem" }}>
-            <li>Runs GDAL Aspect on the trees height layer (0–360°, true north)</li>
-            <li>Bins into N=1 (315–45°), E=2 (45–135°), S=3 (135–225°), W=4 (225–315°)</li>
+            <li>Runs GDAL Aspect on the trees height layer (0-360°, true north)</li>
+            <li>Bins into N=1 (315-45°), E=2 (45-135°), S=3 (135-225°), W=4 (225-315°)</li>
             <li>Multiplies each band by the trees mask to isolate only tree pixels</li>
             <li>Outputs: aspect, aspect-separated, and north/east/south/west masks</li>
           </ul>
