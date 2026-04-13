@@ -1,20 +1,33 @@
 import { useState } from "react";
 import { CollapsibleHelpBox } from "../../CollapsibleHelpBox";
 import { CollapsibleSection } from "../../CollapsibleSection";
-import { FormInput, LoadingButton, MessageBox, ResultBox, LockToggle } from "../../form";
+import { DropdownInput, FormInput, LoadingButton, MessageBox, ResultBox, LockToggle } from "../../form";
 
 type WindReductionResponse = {
   status: string;
   message: string;
   outputs?: {
     wind_grid?: string;
+    wind_direction?: WindDirection;
+    grid_cell_width?: number;
+    grid_cell_height?: number;
   };
 };
+
+type WindDirection = "north" | "east" | "south" | "west";
+
+const WIND_DIRECTION_OPTIONS: Array<{ value: WindDirection; label: string }> = [
+  { value: "west", label: "From West" },
+  { value: "north", label: "From North" },
+  { value: "east", label: "From East" },
+  { value: "south", label: "From South" },
+];
 
 export function WindReductionTab() {
   const [dsmPath, setDsmPath] = useState("/data/wind/DSM-0.5.tiff");
   const [dtmPath, setDtmPath] = useState("/data/wind/DTM-0.5.tiff");
   const [outputDir, setOutputDir] = useState("/data/wind/");
+  const [windDirection, setWindDirection] = useState<WindDirection>("west");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<WindReductionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +51,7 @@ export function WindReductionTab() {
           dsm_path: dsmPath,
           dtm_path: dtmPath,
           output_dir: outputDir,
+          wind_direction: windDirection,
         }),
       });
 
@@ -84,6 +98,14 @@ export function WindReductionTab() {
           placeholder="/path/to/output/"
         />
 
+        <DropdownInput
+          label="Wind Direction (Blowing From):"
+          value={windDirection}
+          onChange={setWindDirection}
+          options={WIND_DIRECTION_OPTIONS}
+          disabled={isLocked}
+        />
+
         <LoadingButton
           onClick={handleGenerateWindMap}
           isLoading={isLoading}
@@ -102,14 +124,15 @@ export function WindReductionTab() {
             <li><strong>Rasterization:</strong> Converts vector data to raster masks</li>
             <li><strong>Height Extraction:</strong> Extracts building and tree heights</li>
             <li><strong>Aspect Calculation:</strong> Calculates wind direction aspects (N/E/S/W)</li>
-            <li><strong>Grid Generation:</strong> Creates analysis grid with zonal statistics and wind parameters</li>
+            <li><strong>Grid Generation:</strong> Uses wind direction to pick aspect inputs and oriented grid cell dimensions</li>
           </ol>
           <p>
             <strong>Inputs:</strong>
           </p>
           <ul>
-            <li>DSM (Digital Surface Model) - typically AHN2 DSM data</li>
-            <li>DTM (Digital Terrain Model) - typically AHN2 DTM data</li>
+            <li>DSM (Digital Surface Model) - AHN5</li>
+            <li>DTM (Digital Terrain Model) - AHN5</li>
+            <li>Wind direction (blowing from) - north/east/south/west</li>
           </ul>
           <p>
             <strong>Outputs:</strong>

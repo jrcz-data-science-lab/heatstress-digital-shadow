@@ -226,22 +226,22 @@ def extract_height_trees(req: ExtractHeightRequest):
 
 @router.post("/aspect-buildings")
 def aspect_buildings(req: AspectRequest):
-    """Calculate aspect for buildings and extract N/E/S/W direction masks."""
+    """Calculate buildings aspect and extract only the selected wind direction mask."""
     try:
+        direction = req.wind_direction.strip().lower()
         result = wind_service.aspect.calculate_buildings_aspect(
             buildings_height_path=req.height_path,
             buildings_mask_path=req.mask_path,
             output_dir=req.output_dir,
+            wind_direction=direction,
         )
 
         return {
             "status": "success",
             "aspect_path": result["aspect"]["path"],
             "aspect_separated_path": result["aspect_separated"]["path"],
-            "north_path": result["north"]["path"],
-            "east_path": result["east"]["path"],
-            "south_path": result["south"]["path"],
-            "west_path": result["west"]["path"],
+            "wind_direction": direction,
+            "directional_aspect_path": result[direction]["path"],
             "message": "Successfully calculated buildings aspect",
         }
     except ValueError as e:
@@ -252,22 +252,22 @@ def aspect_buildings(req: AspectRequest):
 
 @router.post("/aspect-trees")
 def aspect_trees(req: AspectRequest):
-    """Calculate aspect for trees and extract N/E/S/W direction masks."""
+    """Calculate trees aspect and extract only the selected wind direction mask."""
     try:
+        direction = req.wind_direction.strip().lower()
         result = wind_service.aspect.calculate_trees_aspect(
             trees_height_path=req.height_path,
             trees_mask_path=req.mask_path,
             output_dir=req.output_dir,
+            wind_direction=direction,
         )
 
         return {
             "status": "success",
             "aspect_path": result["aspect"]["path"],
             "aspect_separated_path": result["aspect_separated"]["path"],
-            "north_path": result["north"]["path"],
-            "east_path": result["east"]["path"],
-            "south_path": result["south"]["path"],
-            "west_path": result["west"]["path"],
+            "wind_direction": direction,
+            "directional_aspect_path": result[direction]["path"],
             "message": "Successfully calculated trees aspect",
         }
     except ValueError as e:
@@ -337,6 +337,7 @@ def generate_wind_reduction_map(req: WindReductionMapRequest):
             dsm_path=req.dsm_path,
             dtm_path=req.dtm_path,
             output_dir=req.output_dir,
+            wind_direction=req.wind_direction,
         )
         
         return {

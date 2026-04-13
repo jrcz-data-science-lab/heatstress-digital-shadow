@@ -1,9 +1,18 @@
 import { useState } from "react";
 import { CollapsibleHelpBox } from "../../CollapsibleHelpBox";
 import { CollapsibleSection } from "../../CollapsibleSection";
-import { FormInput, LoadingButton, MessageBox, ResultBox, LockToggle } from "../../form";
+import { DropdownInput, FormInput, LoadingButton, MessageBox, ResultBox, LockToggle } from "../../form";
 
 type WindApiResult = Record<string, string>;
+
+type WindDirection = "north" | "east" | "south" | "west";
+
+const WIND_DIRECTION_OPTIONS: Array<{ value: WindDirection; label: string }> = [
+  { value: "west", label: "From West" },
+  { value: "north", label: "From North" },
+  { value: "east", label: "From East" },
+  { value: "south", label: "From South" },
+];
 
 export function BuildingsTab() {
   const [buildingsReferencePath, setBuildingsReferencePath] = useState("/data/wind/height.tif");
@@ -31,6 +40,7 @@ export function BuildingsTab() {
   const [aspectHeightPath, setAspectHeightPath] = useState("/data/wind/buildings-height.tif");
   const [aspectMaskPath, setAspectMaskPath] = useState("/data/wind/buildings-mask.tif");
   const [aspectOutputDir, setAspectOutputDir] = useState("/data/wind");
+  const [aspectWindDirection, setAspectWindDirection] = useState<WindDirection>("west");
   const [isAspectLoading, setIsAspectLoading] = useState(false);
   const [aspectResult, setAspectResult] = useState<WindApiResult | null>(null);
   const [aspectError, setAspectError] = useState<string | null>(null);
@@ -112,6 +122,7 @@ export function BuildingsTab() {
           height_path: aspectHeightPath,
           mask_path: aspectMaskPath,
           output_dir: aspectOutputDir,
+          wind_direction: aspectWindDirection,
         }),
       });
 
@@ -371,6 +382,14 @@ export function BuildingsTab() {
           disabled={isAspectLocked}
         />
 
+        <DropdownInput
+          label="Wind Direction (Blowing From):"
+          value={aspectWindDirection}
+          onChange={setAspectWindDirection}
+          options={WIND_DIRECTION_OPTIONS}
+          disabled={isAspectLocked}
+        />
+
         <LoadingButton
           onClick={handleBuildingsAspect}
           isLoading={isAspectLoading}
@@ -384,8 +403,8 @@ export function BuildingsTab() {
         {aspectResult && (
           <ResultBox
             status={aspectResult.status}
-            outputPath={aspectResult.aspect_separated_path}
-            outputLabel="Aspect Separated:"
+            outputPath={aspectResult.directional_aspect_path ?? aspectResult.aspect_separated_path}
+            outputLabel="Directional Aspect:"
             message={aspectResult.message}
             variant="blue"
           />
@@ -396,12 +415,12 @@ export function BuildingsTab() {
           backgroundColor="#fce4ec"
           borderColor="#E91E63"
         >
-          <p>Calculates which compass direction each building face is facing and produces 4 binary direction masks (N/E/S/W).</p>
+          <p>Calculates building-facing aspect and extracts only the selected wind direction mask.</p>
           <ul style={{ marginLeft: "1rem" }}>
             <li>Runs GDAL Aspect on the buildings height layer (0–360°, true north)</li>
             <li>Bins into N=1 (315–45°), E=2 (45–135°), S=3 (135–225°), W=4 (225–315°)</li>
-            <li>Multiplies each band by the buildings mask to isolate only building pixels</li>
-            <li>Outputs: aspect, aspect-separated, and north/east/south/west masks</li>
+            <li>Uses the selected wind direction (blowing from) to extract one directional mask</li>
+            <li>Outputs: aspect, aspect-separated, and one directional mask</li>
           </ul>
         </CollapsibleHelpBox>
       </CollapsibleSection>
