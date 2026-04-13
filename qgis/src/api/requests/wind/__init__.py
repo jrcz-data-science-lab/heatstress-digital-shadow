@@ -1,4 +1,4 @@
-from .wind_map_request import WindMapRequest
+from .height_map_request import HeightMapRequest
 from .import_geojson_request import ImportGeoJSONRequest
 from .rasterize_geojson_request import RasterizeGeoJSONRequest
 from .extract_height_request import ExtractHeightRequest
@@ -7,7 +7,7 @@ from .grid_request import GridRequest
 from .wind_reduction_map_request import WindReductionMapRequest
 
 __all__ = [
-    "WindMapRequest",
+    "HeightMapRequest",
     "ImportGeoJSONRequest",
     "RasterizeGeoJSONRequest",
     "ExtractHeightRequest",

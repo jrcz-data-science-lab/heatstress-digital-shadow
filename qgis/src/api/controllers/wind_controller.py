@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from src.api.requests import WindMapRequest, ImportGeoJSONRequest, RasterizeGeoJSONRequest, ExtractHeightRequest, AspectRequest, GridRequest, WindReductionMapRequest
+from src.api.requests import HeightMapRequest, ImportGeoJSONRequest, RasterizeGeoJSONRequest, ExtractHeightRequest, AspectRequest, GridRequest, WindReductionMapRequest
 from src.services.wind import WindService
 from src.utils.layer_utils import load_raster_layer
 
@@ -7,7 +7,7 @@ router = APIRouter()
 wind_service = WindService()
 
 @router.post("/height-map")
-def create_height_map(req: WindMapRequest):
+def create_height_map(req: HeightMapRequest):
     """
     Create height map from DSM and DTM layers.
     

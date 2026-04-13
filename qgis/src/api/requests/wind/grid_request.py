@@ -8,7 +8,7 @@ class GridRequest(BaseModel):
     output_grid_path: str
     grid_width: float
     grid_height: float
-    buildings_aspect_west_path: str | None = None
-    trees_aspect_west_path: str | None = None
-    buildings_polygon_path: str | None = None
-    trees_points_path: str | None = None
+    buildings_aspect_west_path: str
+    trees_aspect_west_path: str
+    buildings_polygon_path: str
+    trees_points_path: str

@@ -66,7 +66,7 @@ class AspectService:
             formula=formula,
             input_rasters={"A": aspect_path},
             output_path=output_path,
-            no_data=None,
+            no_data=0,
             rtype=0
         )
         return {"path": output_path, "layer": layer}
@@ -92,7 +92,7 @@ class AspectService:
             formula=formula,
             input_rasters={"A": aspect_separated_path, "B": mask_path},
             output_path=output_path,
-            no_data=None,
+            no_data=0,
             rtype=0
         )
         return {"path": output_path, "layer": layer}

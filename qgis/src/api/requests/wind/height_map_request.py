@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
-class WindMapRequest(BaseModel):
+
+class HeightMapRequest(BaseModel):
     dsm_input_path: str
     dtm_input_path: str
     corrected_height_output_path: str

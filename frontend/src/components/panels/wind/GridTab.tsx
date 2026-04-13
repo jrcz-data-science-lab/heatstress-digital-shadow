@@ -34,10 +34,10 @@ export function GridTab() {
           height_map_path: heightMapPath,
           buildings_height_path: buildingsHeightPath,
           trees_height_path: treesHeightPath,
-          buildings_aspect_west_path: buildingsAspectWestPath || null,
-          trees_aspect_west_path: treesAspectWestPath || null,
-          buildings_polygon_path: buildingsPolygonPath || null,
-          trees_points_path: treesPointsPath || null,
+          buildings_aspect_west_path: buildingsAspectWestPath,
+          trees_aspect_west_path: treesAspectWestPath,
+          buildings_polygon_path: buildingsPolygonPath,
+          trees_points_path: treesPointsPath,
           output_grid_path: outputGridPath,
           grid_width: parseFloat(gridWidth),
           grid_height: parseFloat(gridHeight),
@@ -85,28 +85,28 @@ export function GridTab() {
         />
 
         <FormInput
-          label="Buildings Aspect West Path (optional):"
+          label="Buildings Aspect West Path:"
           value={buildingsAspectWestPath}
           onChange={setBuildingsAspectWestPath}
           disabled={isLocked}
         />
 
         <FormInput
-          label="Trees Aspect West Path (optional):"
+          label="Trees Aspect West Path:"
           value={treesAspectWestPath}
           onChange={setTreesAspectWestPath}
           disabled={isLocked}
         />
 
         <FormInput
-          label="Buildings Polygon Path (optional):"
+          label="Buildings Polygon Path:"
           value={buildingsPolygonPath}
           onChange={setBuildingsPolygonPath}
           disabled={isLocked}
         />
 
         <FormInput
-          label="Trees Points Path (optional):"
+          label="Trees Points Path:"
           value={treesPointsPath}
           onChange={setTreesPointsPath}
           disabled={isLocked}

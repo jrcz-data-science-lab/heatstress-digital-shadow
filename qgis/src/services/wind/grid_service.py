@@ -42,7 +42,7 @@ class GridService:
         output_grid_path: str,
         grid_width: float,
         grid_height: float,
-        buildings_aspect_west_path: str | None,
+        buildings_aspect_west_path: str,
         trees_aspect_west_path: str,
         buildings_polygon_path: str,
         trees_points_path: str,
@@ -50,12 +50,22 @@ class GridService:
         """
         Extended pipeline: grid, zonal stats, normalisation, frontal area count, object counts.
         """
+        missing_inputs = {
+            "buildings_aspect_west_path": buildings_aspect_west_path,
+            "trees_aspect_west_path": trees_aspect_west_path,
+            "buildings_polygon_path": buildings_polygon_path,
+            "trees_points_path": trees_points_path,
+        }
+        missing_names = [name for name, value in missing_inputs.items() if not value]
+        if missing_names:
+            raise ValueError(f"Missing required wind grid inputs: {', '.join(missing_names)}")
+
         reference_layer = load_raster_layer(height_map_path, "Height Map")
         extent = reference_layer.extent()
         crs = reference_layer.crs()
 
         # Define temporary file paths for intermediate outputs.
-        tmp = tempfile.gettempdir()
+        tmp = tempfile.mkdtemp(prefix="wind_grid_")
         grid_raw_path               = os.path.join(tmp, "grid_raw.gpkg")
         buildings_stats_path        = os.path.join(tmp, "grid_buildings_stats.gpkg")
         trees_stats_path            = os.path.join(tmp, "grid_trees_stats.gpkg")
@@ -85,13 +95,13 @@ class GridService:
         centroids_path              = os.path.join(tmp, "buildings_centroids.gpkg")
 
         try:
-            grid_size_kwargs = {}
-            if grid_width is not None:
-                grid_size_kwargs["grid_width"] = grid_width
-            if grid_height is not None:
-                grid_size_kwargs["grid_height"] = grid_height
-
-            grid_layer = create_grid(extent, crs, grid_raw_path, **grid_size_kwargs)
+            grid_layer = create_grid(
+                extent,
+                crs,
+                grid_raw_path,
+                grid_width=grid_width,
+                grid_height=grid_height,
+            )
 
             buildings_stats_layer = zonal_statistics(
                 grid_layer, buildings_height_path, "buildings_height_", buildings_stats_path
@@ -298,5 +308,7 @@ class GridService:
                 centroids_path
             ]:
                 remove_gpkg(path)
+
+            shutil.rmtree(tmp, ignore_errors=True)
 
         return {"grid_path": output_grid_path}

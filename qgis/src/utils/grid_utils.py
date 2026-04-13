@@ -123,8 +123,8 @@ def normalise_mean_field(
     output_path: str,
 ) -> QgsVectorLayer:
     """
-    Clamp *field_name* upward: values in the open interval (0, *min_threshold*)
-    are replaced with *min_threshold*; all other values are left unchanged.
+    Clamp *field_name* upward: values below *min_threshold* are replaced with
+    *min_threshold*; NULL values are left unchanged.
 
     :param QgsVectorLayer input_layer: Input vector layer.
     :param str field_name: Name of the field to normalise (must already exist).
@@ -135,10 +135,9 @@ def normalise_mean_field(
     import processing
 
     formula = (
-        f'if("{field_name}" IS NOT NULL'
-        f' AND "{field_name}" > 0'
-        f' AND "{field_name}" < {min_threshold},'
-        f' {min_threshold}, "{field_name}")'
+        f'CASE WHEN "{field_name}" IS NULL THEN NULL '
+        f'WHEN "{field_name}" < {min_threshold} THEN {min_threshold} '
+        f'ELSE "{field_name}" END'
     )
     params = {
         "INPUT": input_layer,
