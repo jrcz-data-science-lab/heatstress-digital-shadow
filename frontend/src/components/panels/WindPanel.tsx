@@ -4,96 +4,58 @@ import { BuildingsTab } from "./wind/BuildingsTab";
 import { TreesTab } from "./wind/TreesTab";
 import { GridTab } from "./wind/GridTab";
 import { WindReductionTab } from "./wind/WindReductionTab";
+import "./WindPanel.css";
+
+const WIND_TABS = [
+  {
+    id: "reduction",
+    label: "Wind Reduction",
+  },
+  {
+    id: "height",
+    label: "Height Map",
+  },
+  {
+    id: "buildings",
+    label: "Buildings",
+  },
+  {
+    id: "trees",
+    label: "Trees",
+  },
+  {
+    id: "grid",
+    label: "Grid",
+  },
+] as const;
+
+type WindTabId = (typeof WIND_TABS)[number]["id"];
 
 export function WindPanel() {
-  const [activeTab, setActiveTab] = useState<"reduction" | "height" | "buildings" | "trees" | "grid">("reduction");
+  const [activeTab, setActiveTab] = useState<WindTabId>("reduction");
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div className="wind-panel">
+      <h3>Wind (Debug)</h3>
+
       {/* Tab Navigation */}
-      <div style={{ display: "flex", borderBottom: "2px solid #ddd", marginBottom: "1rem", flexShrink: 0 }}>
-        <button
-          onClick={() => setActiveTab("reduction")}
-          style={{
-            flex: 1,
-            padding: "0.75rem",
-            backgroundColor: activeTab === "reduction" ? "#FF6B6B" : "#f5f5f5",
-            color: activeTab === "reduction" ? "white" : "#333",
-            border: "none",
-            borderBottom: activeTab === "reduction" ? "3px solid #c92a2a" : "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.95rem",
-          }}
-        >
-          Wind Reduction
-        </button>
-        <button
-          onClick={() => setActiveTab("height")}
-          style={{
-            flex: 1,
-            padding: "0.75rem",
-            backgroundColor: activeTab === "height" ? "#4CAF50" : "#f5f5f5",
-            color: activeTab === "height" ? "white" : "#333",
-            border: "none",
-            borderBottom: activeTab === "height" ? "3px solid #2e7d32" : "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.95rem",
-          }}
-        >
-          Height Map
-        </button>
-        <button
-          onClick={() => setActiveTab("buildings")}
-          style={{
-            flex: 1,
-            padding: "0.75rem",
-            backgroundColor: activeTab === "buildings" ? "#2196F3" : "#f5f5f5",
-            color: activeTab === "buildings" ? "white" : "#333",
-            border: "none",
-            borderBottom: activeTab === "buildings" ? "3px solid #1565c0" : "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.95rem",
-          }}
-        >
-          Buildings
-        </button>
-        <button
-          onClick={() => setActiveTab("trees")}
-          style={{
-            flex: 1,
-            padding: "0.75rem",
-            backgroundColor: activeTab === "trees" ? "#4CAF50" : "#f5f5f5",
-            color: activeTab === "trees" ? "white" : "#333",
-            border: "none",
-            borderBottom: activeTab === "trees" ? "3px solid #2e7d32" : "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.95rem",
-          }}
-        >
-          Trees
-        </button>
-        <button
-          onClick={() => setActiveTab("grid")}
-          style={{
-            flex: 1,
-            padding: "0.75rem",
-            backgroundColor: activeTab === "grid" ? "#9C27B0" : "#f5f5f5",
-            color: activeTab === "grid" ? "white" : "#333",
-            border: "none",
-            borderBottom: activeTab === "grid" ? "3px solid #6a0080" : "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.95rem",
-          }}
-        >
-          Grid
-        </button>
+      <div className="wind-panel__tabs">
+        {WIND_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const tabClassName = `wind-panel__tab wind-panel__tab--${tab.id}${isActive ? " is-active" : ""}`;
+
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={tabClassName}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingRight: "0.5rem" }}>
+      <div className="wind-panel__content">
         {activeTab === "reduction" && <WindReductionTab />}
         {activeTab === "height" && <HeightMapTab />}
         {activeTab === "buildings" && <BuildingsTab />}

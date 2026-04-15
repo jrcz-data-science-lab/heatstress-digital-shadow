@@ -1,0 +1,68 @@
+.wind-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.wind-panel__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.wind-panel__tab {
+  flex: 1 1 8.5rem;
+  min-width: 0;
+  min-height: 2.4rem;
+  padding: 0.5rem;
+  background-color: #f5f5f5;
+  color: #333;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.wind-panel__tab.is-active {
+  color: white;
+}
+
+.wind-panel__tab--reduction.is-active {
+  background-color: #ff6b6b;
+  border-bottom-color: #c92a2a;
+}
+
+.wind-panel__tab--height.is-active {
+  background-color: #4caf50;
+  border-bottom-color: #2e7d32;
+}
+
+.wind-panel__tab--buildings.is-active {
+  background-color: #2196f3;
+  border-bottom-color: #1565c0;
+}
+
+.wind-panel__tab--trees.is-active {
+  background-color: #4caf50;
+  border-bottom-color: #2e7d32;
+}
+
+.wind-panel__tab--grid.is-active {
+  background-color: #9c27b0;
+  border-bottom-color: #6a0080;
+}
+
+.wind-panel__content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}

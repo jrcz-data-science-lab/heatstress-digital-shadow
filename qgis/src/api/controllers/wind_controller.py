@@ -175,7 +175,7 @@ def extract_height_buildings(req: ExtractHeightRequest):
     Extract building heights from height map using buildings mask.
     
     Applies the formula: (corrected DSM-DTM) * (mask == 1)
-    This creates a layer containing only the building heights, with zeros elsewhere.
+    This creates a layer containing only the building heights.
     
     Returns: JSON with output path and processing status
     """
