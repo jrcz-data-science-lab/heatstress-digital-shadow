@@ -7,6 +7,10 @@ import CesiumMap, {
 } from "./map/CesiumMap";
 import { WMSOverlayLayer } from "./features/wms-overlay/WMSOverlayLayer";
 import { StaticTreesEntities } from "./features/objects/StaticTreesEntities";
+import {
+	ExistingTreesEntities,
+	type TreeLoadStatus,
+} from "./features/existing-trees/ExistingTreesEntities";
 import { UserObjectsEntities } from "./features/objects/UserObjectsEntities";
 import { BAG3DTileset } from "./features/buildings-3d/BAG3DTileset";
 import { useUserObjectsLayer } from "./features/objects/useUserObjectsLayer";
@@ -23,14 +27,25 @@ import { TreeIcon } from "./components/icons/TreeIcon";
 import { HeatStressMeasuresPanel } from "./components/panels/HeatStressMeasuresPanel";
 import { BuildingIcon } from "./components/icons/BuildingIcon";
 import { BuildingsPanel } from "./components/panels/BuildingsPanel";
+import { InformationPanel } from "./components/panels/InformationPanel";
 import { FeatureInfoCard } from "./components/infoCards/FeatureInfoCard";
 import { LoadingIndicator } from "./components/loading/LoadingIndicator";
+import { TreeLoadingIndicator } from "./components/loading/TreeLoadingIndicator";
 import { LegendCard } from "./components/legend/LegendCard";
 import { PerspectiveIcon } from "./components/icons/PerspectiveIcon";
+import { InformationIcon } from "./components/icons/InformationIcon";
 
 export default function App() {
 	const [showBuildings, setShowBuildings] = React.useState(false);
 	const [showObjects, setShowObjects] = useState(false);
+	const [showExistingTrees, setShowExistingTrees] = useState(false);
+	const [treeLoadStatus, setTreeLoadStatus] = useState<TreeLoadStatus>({
+		loading: false,
+		count: 0,
+		limit: 0,
+		hitLimit: false,
+		tooFarOut: true,
+	});
 	const [editingIntent, setEditingIntent] = useState(false);
 	const [activeSideMenuId, setActiveSideMenuId] = useState<string | null>(null);
 	const isEditingMode =
@@ -70,11 +85,10 @@ export default function App() {
 		overlayLayerId,
 	});
 
-	const { handleBuildingClick, buildingInfo, tileProperties } = useBuildingHighlight(
-		{
+	const { handleBuildingClick, buildingInfo, tileProperties } =
+		useBuildingHighlight({
 			enabled: showBuildings,
-		},
-	);
+		});
 
 	useEffect(() => {
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -112,11 +126,16 @@ export default function App() {
 	};
 
 	const handleCesiumClick = useCallback(
-		({ coordinate, pickedEntityId, bagId, tileProperties }: CesiumClickInfo) => {
+		({
+			coordinate,
+			pickedEntityId,
+			bagId,
+			tileProperties,
+		}: CesiumClickInfo) => {
 			const lon = coordinate?.[0];
 			const lat = coordinate?.[1];
 
-			if (showBuildings && lon != null && lat != null) {
+			if (showBuildings && !isEditingMode && lon != null && lat != null) {
 				handleBuildingClick(lon, lat, bagId, tileProperties);
 				// Auto-open the buildings panel so the user sees the details immediately.
 				setActiveSideMenuId("buildings");
@@ -130,7 +149,7 @@ export default function App() {
 				handleMapClick(lon, lat);
 			}
 		},
-		[showBuildings, handleBuildingClick, handleInteraction, handleMapClick],
+		[showBuildings, isEditingMode, handleBuildingClick, handleInteraction, handleMapClick],
 	);
 
 	const activeVbos =
@@ -152,6 +171,8 @@ export default function App() {
 						setShowOverlay(id !== "");
 						setOverlayLayerId(id as QgisLayerId);
 					}}
+					showExistingTrees={showExistingTrees}
+					onToggleExistingTrees={setShowExistingTrees}
 				/>
 			),
 		},
@@ -198,6 +219,12 @@ export default function App() {
 			},
 			panel: undefined,
 		},
+		{
+			id: "information",
+			icon: <InformationIcon />,
+			label: "Information",
+			panel: <InformationPanel />,
+		},
 	];
 
 	return (
@@ -212,6 +239,10 @@ export default function App() {
 						layerId={overlayLayerId}
 						objectsVersion={objectsVersion}
 					/>
+				)}
+
+				{showExistingTrees && (
+					<ExistingTreesEntities onStatusChange={setTreeLoadStatus} />
 				)}
 
 				{showObjects && <StaticTreesEntities />}
@@ -240,6 +271,13 @@ export default function App() {
 				/>
 			)}
 
+			{showExistingTrees && (
+				<TreeLoadingIndicator
+					status={treeLoadStatus}
+					left={isProcessing ? `calc(${loaderLeft} + 320px)` : loaderLeft}
+				/>
+			)}
+
 			{/* BOTTOM RIGHT INFO PANEL */}
 			<div
 				style={{
@@ -262,9 +300,7 @@ export default function App() {
 				) : null}
 			</div>
 
-			<div
-				style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-			>
+			<div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
 				<div
 					style={{
 						position: "absolute",

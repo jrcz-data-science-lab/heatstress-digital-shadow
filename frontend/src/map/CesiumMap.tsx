@@ -245,40 +245,6 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 				{children}
 			</Viewer>
 
-			<div
-				style={{
-					position: "absolute",
-					left: 60,
-					bottom: 8,
-					background: "rgba(255,255,255,0.8)",
-					color: "black",
-					padding: "2px 6px",
-					borderRadius: 6,
-					fontSize: 12,
-					zIndex: 1,
-					pointerEvents: "auto",
-				}}
-			>
-				©{" "}
-				<a
-					href="https://www.openstreetmap.org/copyright"
-					target="_blank"
-					rel="noreferrer"
-				>
-					OpenStreetMap
-				</a>{" "}
-				contributors
-				{" · "}©{" "}
-				<a href="https://3dbag.nl" target="_blank" rel="noreferrer">
-					3D BAG
-				</a>{" "}
-				by TU Delft
-				{" · "}©{" "}
-				<a href="https://www.ep-online.nl/" target="_blank" rel="noreferrer">
-					EP-Online.nl
-				</a>{" "}
-				by Rijksoverheid
-			</div>
 		</div>
 	);
 });
