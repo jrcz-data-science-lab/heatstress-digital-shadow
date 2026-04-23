@@ -62,6 +62,7 @@ export default function App() {
 	const [overlayLayerId, setOverlayLayerId] = useState<QgisLayerId>(
 		QGIS_OVERLAY_LAYERS[0].id,
 	);
+	const [overlayOpacity, setOverlayOpacity] = useState(1);
 
 	const {
 		objectsToSave,
@@ -171,6 +172,8 @@ export default function App() {
 						setShowOverlay(id !== "");
 						setOverlayLayerId(id as QgisLayerId);
 					}}
+					opacity={overlayOpacity}
+					onOpacityChange={setOverlayOpacity}
 					showExistingTrees={showExistingTrees}
 					onToggleExistingTrees={setShowExistingTrees}
 				/>
@@ -238,6 +241,7 @@ export default function App() {
 					<WMSOverlayLayer
 						layerId={overlayLayerId}
 						objectsVersion={objectsVersion}
+						opacity={overlayOpacity}
 					/>
 				)}
 

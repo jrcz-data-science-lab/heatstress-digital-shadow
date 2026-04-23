@@ -5,11 +5,13 @@ import CheckboxItem from "./items/CheckboxItem";
 type OverlayProps = {
   value: QgisLayerId | "";
   onChange: (val: QgisLayerId | "") => void;
+  opacity: number;
+  onOpacityChange: (opacity: number) => void;
   showExistingTrees: boolean;
   onToggleExistingTrees: (value: boolean) => void;
 };
 
-export function OverlayLayersPanel({ value, onChange, showExistingTrees, onToggleExistingTrees }: OverlayProps) {
+export function OverlayLayersPanel({ value, onChange, opacity, onOpacityChange, showExistingTrees, onToggleExistingTrees }: OverlayProps) {
   return (
     <div>
       <h3>Overlay Layers</h3>
@@ -65,6 +67,31 @@ export function OverlayLayersPanel({ value, onChange, showExistingTrees, onToggl
           </label>
         ))}
       </fieldset>
+
+      {value !== "" && (
+        <>
+          <hr style={{ border: "none", borderTop: "1px solid #e5e5e5", margin: "12px 0" }} />
+          <div>
+            <label
+              htmlFor="overlay-opacity"
+              style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.875rem" }}
+            >
+              <span>Opacity</span>
+              <span>{Math.round(opacity * 100)}%</span>
+            </label>
+            <input
+              id="overlay-opacity"
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={opacity}
+              onChange={(e) => onOpacityChange(Number(e.target.value))}
+              style={{ width: "100%", cursor: "pointer" }}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
