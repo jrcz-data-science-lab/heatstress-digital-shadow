@@ -8,9 +8,10 @@ const WMS_BASE_URL = '/backend/qgis/wms';
 type Props = {
   layerId: QgisLayerId;
   objectsVersion: number;
+  opacity?: number;
 };
 
-export function WMSOverlayLayer({ layerId, objectsVersion }: Props) {
+export function WMSOverlayLayer({ layerId, objectsVersion, opacity = 1 }: Props) {
   const provider = useMemo(
     () =>
       new WebMapServiceImageryProvider({
@@ -25,5 +26,5 @@ export function WMSOverlayLayer({ layerId, objectsVersion }: Props) {
     [layerId, objectsVersion]
   );
 
-  return <ImageryLayer imageryProvider={provider} />;
+  return <ImageryLayer imageryProvider={provider} alpha={opacity} />;
 }

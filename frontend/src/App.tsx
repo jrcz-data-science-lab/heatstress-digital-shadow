@@ -16,13 +16,10 @@ import { BAG3DTileset } from "./features/buildings-3d/BAG3DTileset";
 import { useUserObjectsLayer } from "./features/objects/useUserObjectsLayer";
 import { useWMSLayers } from "./features/wms-overlay/useWMSLayers";
 import { useBuildingHighlight } from "./features/buildings-3d/useBuildingHighlight";
-import {
-	QGIS_OVERLAY_LAYERS,
-	type QgisLayerId,
-} from "./features/wms-overlay/lib/qgisLayers";
+import { QGIS_OVERLAY_LAYERS } from "./features/wms-overlay/lib/qgisLayers";
 import { SideMenu } from "./components/sideMenu/SideMenu";
 import { LayersIcon } from "./components/icons/LayersIcon";
-import { OverlayLayersPanel } from "./components/panels/OverlayLayersPanel";
+import { OverlayLayersPanel, type OverlayLayerConfig } from "./components/panels/OverlayLayersPanel";
 import { TreeIcon } from "./components/icons/TreeIcon";
 import { HeatStressMeasuresPanel } from "./components/panels/HeatStressMeasuresPanel";
 import { BuildingIcon } from "./components/icons/BuildingIcon";
@@ -58,10 +55,9 @@ export default function App() {
 	// Height offset for the BAG 3D Tileset to align better with the terrain. Adjust as needed based on visual inspection.
 	const BAG_3D_HEIGHT_OFFSET = -45;
 
-	const [showOverlay, setShowOverlay] = useState(true);
-	const [overlayLayerId, setOverlayLayerId] = useState<QgisLayerId>(
-		QGIS_OVERLAY_LAYERS[0].id,
-	);
+	const [overlayLayers, setOverlayLayers] = useState<OverlayLayerConfig[]>([
+		{ id: QGIS_OVERLAY_LAYERS[0].id, opacity: 1 },
+	]);
 
 	const {
 		objectsToSave,
@@ -81,8 +77,8 @@ export default function App() {
 	);
 
 	const { featureInfo, legend, handleMapClick } = useWMSLayers({
-		showOverlay,
-		overlayLayerId,
+		showOverlay: overlayLayers.length > 0,
+		overlayLayerId: overlayLayers[overlayLayers.length - 1]?.id ?? QGIS_OVERLAY_LAYERS[0].id,
 	});
 
 	const { handleBuildingClick, buildingInfo, tileProperties } =
@@ -166,11 +162,8 @@ export default function App() {
 			label: "Overlay Layers",
 			panel: (
 				<OverlayLayersPanel
-					value={overlayLayerId}
-					onChange={(id) => {
-						setShowOverlay(id !== "");
-						setOverlayLayerId(id as QgisLayerId);
-					}}
+					layers={overlayLayers}
+					onChange={setOverlayLayers}
 					showExistingTrees={showExistingTrees}
 					onToggleExistingTrees={setShowExistingTrees}
 				/>
@@ -234,12 +227,14 @@ export default function App() {
 				onLeftClick={handleCesiumClick}
 				isEditingMode={isEditingMode}
 			>
-				{showOverlay && (
+				{overlayLayers.map((layer) => (
 					<WMSOverlayLayer
-						layerId={overlayLayerId}
+						key={layer.id}
+						layerId={layer.id}
 						objectsVersion={objectsVersion}
+						opacity={layer.opacity}
 					/>
-				)}
+				))}
 
 				{showExistingTrees && (
 					<ExistingTreesEntities onStatusChange={setTreeLoadStatus} />
@@ -292,7 +287,7 @@ export default function App() {
 					gap: "12px",
 				}}
 			>
-				{legend && showOverlay && overlayLayerId === "pet-version-1" && (
+				{legend && overlayLayers.some((l) => l.id === "pet-version-1") && (
 					<LegendCard legend={legend} title="PET Index Legend" />
 				)}
 				{featureInfo && !buildingInfo ? (
