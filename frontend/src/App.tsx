@@ -34,6 +34,7 @@ import { PerspectiveIcon } from "./components/icons/PerspectiveIcon";
 import { InformationIcon } from "./components/icons/InformationIcon";
 import { SunIcon } from "./components/icons/SunIcon";
 import { SunShadowPanel } from "./components/panels/SunShadowPanel";
+import { PerformanceOverlay } from "./components/performance/PerformanceOverlay";
 
 export default function App() {
 	const [showBuildings, setShowBuildings] = React.useState(false);
@@ -320,6 +321,7 @@ export default function App() {
 					gap: "12px",
 				}}
 			>
+				<PerformanceOverlay />
 				{legend && overlayLayers.some((l) => l.id === "pet-version-1") && (
 					<LegendCard legend={legend} title="PET Index Legend" />
 				)}
