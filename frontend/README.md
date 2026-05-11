@@ -60,11 +60,29 @@ src/
 - **`CesiumMap` handles all map interaction**
   Click events are caught via `ScreenSpaceEventHandler`, which picks entities and fires `onLeftClick({ coordinate, pickedEntityId? })` to the parent.
 
-- **No Cesium Ion token required**
-  The basemap uses CartoDB tiles directly via `UrlTemplateImageryProvider`. No `Ion.defaultAccessToken` is set. If you add Cesium Ion–hosted assets in the future, configure the token during Cesium initialization as described in the CesiumJS documentation.
+- **Cesium Ion token required for basemaps**
+  `Ion.defaultAccessToken` is set from the `VITE_CESIUM_ION_TOKEN` environment variable (see [Environment setup](#environment-setup) below). This unlocks the full basemap picker (Bing Maps, Esri imagery, etc.). Without a token the picker will return 401 errors on Ion-hosted layers.
 
 - **UI components do not contain map logic**
   Panels and controls update state via props/callbacks only.
+
+### Environment setup
+
+Create a `.env.local` file in the `frontend/` directory (gitignored via `*.local`):
+
+```bash
+cp .env.example .env.local
+```
+
+Then edit `.env.local`:
+
+```
+VITE_CESIUM_ION_TOKEN=your_token_here
+```
+
+Get a free token at [ion.cesium.com/tokens](https://ion.cesium.com/tokens). Vite picks up `.env.local` automatically — restart the dev server after adding it.
+
+---
 
 ### Adding a new feature (example)
 

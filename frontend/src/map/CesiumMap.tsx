@@ -17,8 +17,14 @@ import {
 	Rectangle,
 	Cesium3DTileFeature,
 	JulianDate,
+	Ion,
 } from "cesium";
 import type { TileProperties } from "../features/buildings-3d/lib/buildingMetadataApi";
+
+// ── Cesium Ion token ──────────────────────────────────────────────────────────
+// Set via VITE_CESIUM_ION_TOKEN in your .env.local file.
+// All default basemaps (Bing Maps, Esri, etc.) require a valid Ion token.
+Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_TOKEN ?? "";
 
 export type CesiumClickInfo = {
 	coordinate: [lon: number, lat: number] | null;
@@ -66,25 +72,25 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 	);
 	const [isPerspective, setIsPerspective] = useState(true);
 	const [initialFlyDone, setInitialFlyDone] = useState(false);
-	const basemapSet = useRef(false);
 
-	// Set up click handler (also sets default base layer once, since the viewer
-	// isn't ready during the initial mount render and needs onLeftClick to be stable first)
+	// Remove basemap options that require API keys beyond the Ion token.
+	// Google Maps needs a Google Cloud Maps API key; Azure Maps needs an Azure key.
+	// This runs after mount so the default Bing Maps load (Ion-hosted) is unaffected.
+	useEffect(() => {
+		const viewer = viewerRef.current?.cesiumElement;
+		if (!viewer) return;
+		const pickerVm = viewer.baseLayerPicker.viewModel;
+		const NEEDS_EXTRA_KEY = ["Google Maps", "Azure Maps"];
+		pickerVm.imageryProviderViewModels =
+			pickerVm.imageryProviderViewModels.filter(
+				(vm) => !NEEDS_EXTRA_KEY.some((kw) => vm.name.includes(kw)),
+			);
+	}, []);
+
+	// Set up click handler
 	useEffect(() => {
 		const viewer = viewerRef.current?.cesiumElement;
 		if (!viewer || !onLeftClick) return;
-
-		if (!basemapSet.current) {
-			const viewModels =
-				viewer.baseLayerPicker.viewModel.imageryProviderViewModels;
-			const stadia = viewModels.find(
-				(vm) => vm.name === "Stadia Alidade Smooth",
-			);
-			if (stadia) {
-				viewer.baseLayerPicker.viewModel.selectedImagery = stadia;
-				basemapSet.current = true;
-			}
-		}
 
 		const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
 
@@ -268,7 +274,6 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 				)}
 				{children}
 			</Viewer>
-
 		</div>
 	);
 });
