@@ -1,91 +1,52 @@
-# Frontend – Heatstress Digital Shadow
+# Heatstress Digital Shadow
 
-A React + TypeScript frontend using Vite, Cesium for mapping, and Jest for unit testing.
+A full-stack geospatial application for visualising and analysing urban heat stress in Middelburg, Netherlands. The frontend renders a 3D map (CesiumJS) overlaid with QGIS-generated WMS heat stress layers. The backend serves building metadata from the Dutch BAG/EP-Online APIs.
+
+---
+
+## Services
+
+| Service | Port | Description |
+|---|---|---|
+| `frontend` | 5173 | React + CesiumJS dev server |
+| `backend` | 8000 | FastAPI — BAG / EP-Online / QGIS session API |
+| `qgis` | 9000 | QGIS microservice — PET raster computation |
+| `nginx` | 8010 | QGIS Server (WMS/WFS via FastCGI) |
 
 ---
 
 ## Quick start
 
+### 1. Configure the backend
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Edit `backend/.env` and fill in your API keys (see [backend/README.md](backend/README.md) for details).
+
+### 2. Start all services
+
 ```bash
 docker compose up -d
 ```
 
-### Install
+The frontend will be available at [http://localhost:5173](http://localhost:5173).
+
+---
+
+## Running the frontend locally (without Docker)
 
 ```bash
+cd frontend
 npm install
-```
-
-### Develop
-
-```bash
 npm run dev
 ```
 
-Vite serves at [http://localhost:5173](http://localhost:5173) by default.
-
-### Build
-
-```bash
-npm run build
-```
-
-### Preview build
-
-```bash
-npm run preview
-```
-
 ---
 
-## Testing (Jest)
+## Sub-project documentation
 
-We use **Jest + babel-jest** to test TypeScript/React code and ESM dependencies like Cesium.
-
-#### Run all tests
-
-```bash
-npm test
-```
-
-#### Watch mode
-
-```bash
-npm run test:watch
-```
-
----
-
-## Scripts
-
-`package.json` provides:
-
-- `dev` – Vite dev server
-- `build` – production build
-- `preview` – preview the build
-- `test` – run Jest once
-- `test:watch` – run Jest in watch mode
-
----
-
-## Project structure (suggested)
-
-```
-frontend/
-  src/
-    map/
-      layers/
-        osmLayer.ts
-        __tests__/osmLayer.test.ts
-    setupTests.ts
-  test/
-    __mocks__/
-      fileMock.js
-      styleMock.js
-  babel.config.cjs
-  jest.config.ts
-  vite.config.ts
-  tsconfig.json
-  package.json
-  README.md  ← (this file)
-```
+- [frontend/README.md](frontend/README.md) — Frontend architecture, feature structure, and testing
+- [backend/README.md](backend/README.md) — Backend setup, environment variables, and API architecture
+- [data/README.md](data/README.md) — Data folder / volume notes

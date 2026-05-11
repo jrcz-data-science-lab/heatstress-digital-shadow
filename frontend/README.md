@@ -17,7 +17,10 @@ src/
 
   features/
     basemap/
-      BasemapLayer.tsx        # Cesium BaseLayerPicker (e.g. Stadia Alidade Smooth)
+      BasemapLayer.tsx        # CartoDB light tiles (UrlTemplateImageryProvider)
+
+    existing-trees/
+      ExistingTreesEntities.tsx     # Dataset of existing trees loaded from backend
 
     buildings-3d/
       BAG3DTileset.tsx              # 3D Tiles from api.3dbag.nl; highlights selected building via Cesium3DTileStyle
@@ -57,8 +60,8 @@ src/
 - **`CesiumMap` handles all map interaction**
   Click events are caught via `ScreenSpaceEventHandler`, which picks entities and fires `onLeftClick({ coordinate, pickedEntityId? })` to the parent.
 
-- **Cesium Ion integration (optional)**
-  The basemap is provided via Cesium's BaseLayerPicker with publicly accessible imagery providers (e.g. Stadia Maps), which do not require a Cesium Ion token. If you add Cesium Ion–hosted assets (imagery, 3D Tiles, etc.), configure `Ion.defaultAccessToken` (or pass an `accessToken` to the relevant providers) during Cesium initialization as described in the CesiumJS documentation.
+- **No Cesium Ion token required**
+  The basemap uses CartoDB tiles directly via `UrlTemplateImageryProvider`. No `Ion.defaultAccessToken` is set. If you add Cesium Ion–hosted assets in the future, configure the token during Cesium initialization as described in the CesiumJS documentation.
 
 - **UI components do not contain map logic**
   Panels and controls update state via props/callbacks only.

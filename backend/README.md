@@ -36,9 +36,11 @@ src/api/
   models/         # Pydantic request/response models
   services/       # Business logic + external API clients
   mappers/        # Raw JSON → Pydantic model mapping
-  routers/        # FastAPI route definitions
+  router.py       # FastAPI route definitions
   controllers/    # QGIS / session / WMS/WFS logic
   exceptions/     # Custom exception types
+  requests/       # Outbound HTTP request helpers
+  session.py      # Session management utilities
 ```
 
 ---
