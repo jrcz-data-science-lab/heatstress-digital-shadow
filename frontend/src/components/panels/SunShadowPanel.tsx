@@ -67,7 +67,8 @@ export function SunShadowPanel({
 		return () => clearInterval(id);
 	}, [isPlaying, onDateChange]);
 
-	const totalMinutes = simulationDate.getHours() * 60 + simulationDate.getMinutes();
+	const totalMinutes =
+		simulationDate.getHours() * 60 + simulationDate.getMinutes();
 
 	const handleSlider = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const minutes = parseInt(e.target.value, 10);
@@ -104,16 +105,23 @@ export function SunShadowPanel({
 					borderLeft: "3px solid #f5c518",
 				}}
 			>
-				<span style={{ fontWeight: "bold", display: "block", marginBottom: "4px", fontStyle: "normal" }}>
+				<span
+					style={{
+						fontWeight: "bold",
+						display: "block",
+						marginBottom: "4px",
+						fontStyle: "normal",
+					}}
+				>
 					About sun shadows
 				</span>
 				<p style={{ margin: "4px 0" }}>
-					Simulates real sun position for Middelburg based on date and time.
-					The 3D BAG buildings will cast shadows across the scene.
+					Simulates real sun position for Middelburg based on date and time. The
+					3D BAG buildings will cast shadows across the scene.
 				</p>
 				<p style={{ margin: "4px 0" }}>
-					Enable shadows and use the controls below to explore shade during different
-					times of day and year.
+					Enable shadows and use the controls below to explore shade during
+					different times of day and year.
 				</p>
 			</div>
 
@@ -168,7 +176,11 @@ export function SunShadowPanel({
 							value={totalMinutes}
 							onChange={handleSlider}
 							disabled={isPlaying}
-							style={{ width: "100%", accentColor: "#f5c518", cursor: isPlaying ? "not-allowed" : "pointer" }}
+							style={{
+								width: "100%",
+								accentColor: "#f5c518",
+								cursor: isPlaying ? "not-allowed" : "pointer",
+							}}
 						/>
 						<div
 							style={{
@@ -260,6 +272,7 @@ export function SunShadowPanel({
 										cursor: "pointer",
 										color: "#333",
 										textAlign: "left",
+										maxWidth: "150px",
 									}}
 								>
 									{label}
