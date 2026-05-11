@@ -1,20 +1,25 @@
-import { BitmapLayer } from '@deck.gl/layers';
-import { TileLayer } from '@deck.gl/geo-layers';
-import type { Layer } from '@deck.gl/core';
+import { BitmapLayer } from "@deck.gl/layers";
+import { TileLayer } from "@deck.gl/geo-layers";
+import type { Layer } from "@deck.gl/core";
 
-export type LonLatBBox = [west: number, south: number, east: number, north: number];
+export type LonLatBBox = [
+  west: number,
+  south: number,
+  east: number,
+  north: number,
+];
 
 type MakeOpts = {
   id?: string;
   baseUrl: string;
   layerName: string;
-  bounds: LonLatBBox; 
+  bounds: LonLatBBox;
   width?: number;
   height?: number;
   minZoom?: number;
   maxZoom?: number;
   style?: string;
-  format?: 'image/png' | 'image/jpeg';
+  format?: "image/png" | "image/jpeg";
   transparent?: boolean;
   opacity?: number;
   cacheBuster?: number;
@@ -45,8 +50,8 @@ function buildGetMapUrl({
   bounds,
   width = 256,
   height = 256,
-  style = 'default',
-  format = 'image/png',
+  style = "default",
+  format = "image/png",
   transparent = true,
   cacheBuster,
 }: MakeOpts) {
@@ -54,21 +59,21 @@ function buildGetMapUrl({
   const bboxParam = `${south},${west},${north},${east}`;
 
   const p = new URLSearchParams({
-    REQUEST: 'GetMap',
+    REQUEST: "GetMap",
     LAYERS: layerName,
     STYLES: style,
     FORMAT: format,
-    TRANSPARENT: transparent ? 'TRUE' : 'FALSE',
+    TRANSPARENT: transparent ? "TRUE" : "FALSE",
     BBOX: bboxParam,
     WIDTH: String(width),
-    HEIGHT: String(height)
+    HEIGHT: String(height),
   });
 
   if (cacheBuster !== undefined) {
-    p.set('_ts', String(cacheBuster));
+    p.set("_ts", String(cacheBuster));
   }
 
-  return `${baseUrl}${baseUrl.endsWith('?') ? '' : '?'}${p.toString()}`;
+  return `${baseUrl}${baseUrl.endsWith("?") ? "" : "?"}${p.toString()}`;
 }
 
 export function makeWmsLayer(opts: MakeOpts): Layer {
@@ -78,7 +83,7 @@ export function makeWmsLayer(opts: MakeOpts): Layer {
     minZoom: opts.minZoom ?? 0,
     maxZoom: opts.maxZoom ?? 24,
     opacity: opts.opacity ?? 1,
-    extent: opts.bounds, 
+    extent: opts.bounds,
 
     getTileData: ({ index: { x, y, z } }) => {
       const bounds = getTileBounds(x, y, z);
@@ -86,7 +91,7 @@ export function makeWmsLayer(opts: MakeOpts): Layer {
         ...opts,
         bounds,
         width: opts.tileSize || 256,
-        height: opts.tileSize || 256
+        height: opts.tileSize || 256,
       });
 
       return fetch(url)
@@ -101,9 +106,9 @@ export function makeWmsLayer(opts: MakeOpts): Layer {
       return new BitmapLayer(props, {
         data: undefined,
         image: props.data,
-        bounds: [west, south, east, north]
+        bounds: [west, south, east, north],
       });
-    }
+    },
   });
 }
 
@@ -114,8 +119,8 @@ export function buildGetFeatureInfoUrl({
   width,
   height,
   coord,
-  style = 'default',
-  infoFormat = 'application/json'
+  style = "default",
+  infoFormat = "application/json",
 }: {
   baseUrl: string;
   layerName: string;
@@ -137,7 +142,7 @@ export function buildGetFeatureInfoUrl({
   const J = Math.round(yFrac * height);
 
   const p = new URLSearchParams({
-    REQUEST: 'GetFeatureInfo',
+    REQUEST: "GetFeatureInfo",
     LAYERS: layerName,
     QUERY_LAYERS: layerName,
     STYLES: style,
@@ -149,5 +154,5 @@ export function buildGetFeatureInfoUrl({
     INFO_FORMAT: infoFormat,
   });
 
-  return `${baseUrl}${baseUrl.endsWith('?') ? '' : '?'}${p.toString()}`;
+  return `${baseUrl}${baseUrl.endsWith("?") ? "" : "?"}${p.toString()}`;
 }

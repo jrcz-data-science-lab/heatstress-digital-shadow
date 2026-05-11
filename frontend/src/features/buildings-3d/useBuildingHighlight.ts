@@ -45,8 +45,9 @@ function estimateHeightFromArea(areaM2: number): number {
 
 export function useBuildingHighlight({ enabled }: UseBuildingHighlightOptions) {
   const [highlight, setHighlight] = useState<HighlightState | null>(null);
-  const [buildingInfo, setBuildingInfo] =
-    useState<BuildingApiResponse | null>(null);
+  const [buildingInfo, setBuildingInfo] = useState<BuildingApiResponse | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!enabled) {
@@ -65,10 +66,10 @@ export function useBuildingHighlight({ enabled }: UseBuildingHighlightOptions) {
 
       // Check if there is an object where the user clicks, otherwise dont proceed with api call.
       if (!info.object) {
-            setHighlight(null);
-            setBuildingInfo(null);
-            return;
-        }
+        setHighlight(null);
+        setBuildingInfo(null);
+        return;
+      }
 
       if (!info.coordinate) {
         setHighlight(null);
@@ -92,14 +93,14 @@ export function useBuildingHighlight({ enabled }: UseBuildingHighlightOptions) {
 
           const ringRD = geom.coordinates[0];
           const coordsRD: [number, number][] = ringRD.map(
-            ([x, y]: number[]) => [x, y]
+            ([x, y]: number[]) => [x, y],
           );
 
           const areaM2 = polygonAreaRD(coordsRD);
           const estimatedHeight = estimateHeightFromArea(areaM2);
 
           const ringLonLat: LonLat[] = coordsRD.map(([x, y]) =>
-            rdToLonLat(x, y)
+            rdToLonLat(x, y),
           ) as LonLat[];
 
           setHighlight({
@@ -113,9 +114,9 @@ export function useBuildingHighlight({ enabled }: UseBuildingHighlightOptions) {
           // On error: hide highlight + card
           setHighlight(null);
           setBuildingInfo(null);
-        })
+        });
     },
-    [enabled]
+    [enabled],
   );
 
   const highlightLayer = useMemo(() => {

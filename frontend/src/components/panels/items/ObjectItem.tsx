@@ -30,7 +30,7 @@ export default function ObjectItem({
         background: active ? "rgba(0,0,0,0.05)" : "transparent",
         cursor: disabled ? "not-allowed" : "pointer",
         fontSize: "0.9rem",
-        color: "black"
+        color: "black",
       }}
     >
       {icon}

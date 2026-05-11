@@ -15,12 +15,14 @@ export default function CheckboxItem({
 }: CheckboxItemItemProps) {
   return (
     <div>
-      <label style={{
-          cursor: "pointer",         
+      <label
+        style={{
+          cursor: "pointer",
           display: "flex",
           alignItems: "center",
           gap: 8,
-        }}>
+        }}
+      >
         {toggleable && (
           <input
             type="checkbox"
@@ -31,11 +33,7 @@ export default function CheckboxItem({
         )}
         {label}
       </label>
-      {children && (
-        <div>
-          {children}
-        </div>
-      )}
+      {children && <div>{children}</div>}
     </div>
   );
 }

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import type { Layer } from '@deck.gl/core';
-import { makeObjectsLayer, type ObjectInstance } from './lib/objectLayer';
-import { rdToLonLat } from '../../map/utils/crs';
-import { BBOX, DEFAULT_OBJECT_TYPE } from '../../map/utils/deckUtils';
+import { useEffect, useState } from "react";
+import type { Layer } from "@deck.gl/core";
+import { makeObjectsLayer, type ObjectInstance } from "./lib/objectLayer";
+import { rdToLonLat } from "../../map/utils/crs";
+import { BBOX, DEFAULT_OBJECT_TYPE } from "../../map/utils/deckUtils";
 
 export function useStaticTreesLayer(showObjects: boolean) {
   const [objectLayer, setObjectLayer] = useState<Layer | null>(null);
@@ -25,7 +25,10 @@ export function useStaticTreesLayer(showObjects: boolean) {
         const features = (json.features || []) as {
           id: string;
           geometry: { coordinates: [number, number] }; // [xRD, yRD]
-          properties: { relatieve_hoogteligging?: number } & Record<string, unknown>;
+          properties: { relatieve_hoogteligging?: number } & Record<
+            string,
+            unknown
+          >;
         }[];
 
         // Transform the data
@@ -34,7 +37,7 @@ export function useStaticTreesLayer(showObjects: boolean) {
           const [lon, lat] = rdToLonLat(xRD, yRD);
 
           const rawHeight = feature.properties?.relatieve_hoogteligging;
-          const height = (rawHeight && rawHeight > 0) ? rawHeight : 15;
+          const height = rawHeight && rawHeight > 0 ? rawHeight : 15;
 
           return {
             id: feature.id,
@@ -45,9 +48,9 @@ export function useStaticTreesLayer(showObjects: boolean) {
         });
 
         const layer = makeObjectsLayer(
-          'objects',
+          "objects",
           data,
-          '/models/tree-pine.glb',
+          "/models/tree-pine.glb",
         );
 
         if (!cancelled) setObjectLayer(layer);
@@ -57,7 +60,9 @@ export function useStaticTreesLayer(showObjects: boolean) {
     }
 
     fetchObjectData();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [showObjects]);
 
   return { objectLayer, error };

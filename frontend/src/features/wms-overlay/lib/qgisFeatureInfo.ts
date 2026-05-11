@@ -19,11 +19,7 @@ interface QgisFeatureCollection {
 }
 
 function isFeatureCollection(value: unknown): value is QgisFeatureCollection {
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    !("features" in value)
-  ) {
+  if (typeof value !== "object" || value === null || !("features" in value)) {
     return false;
   }
 
@@ -50,11 +46,7 @@ export function useQgisFeatureInfo(config: Config) {
   async function request(lon: number, lat: number): Promise<void> {
     const [west, south, east, north] = config.bounds;
 
-    const inside =
-      lon >= west &&
-      lon <= east &&
-      lat >= south &&
-      lat <= north;
+    const inside = lon >= west && lon <= east && lat >= south && lat <= north;
 
     if (!inside) {
       setFeatureInfo(null);
@@ -90,11 +82,9 @@ export function useQgisFeatureInfo(config: Config) {
     }
 
     const firstFeature = json.features[0];
-    const properties: Record<string, unknown> =
-      firstFeature?.properties ?? {};
+    const properties: Record<string, unknown> = firstFeature?.properties ?? {};
 
-    const rawBand =
-      properties["Band 1"] ?? properties["band_1"] ?? null;
+    const rawBand = properties["Band 1"] ?? properties["band_1"] ?? null;
 
     let band: number | null = null;
 

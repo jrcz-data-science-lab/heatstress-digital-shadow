@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 from qgis.core import QgsRasterLayer
@@ -44,6 +45,20 @@ class WindService:
         dtm_path: str,
         output_dir: str,
         wind_direction: str = "west",
+        grid_cell_width: float | None = None,
+        grid_cell_height: float | None = None,
+        buildings_min_height: float = 5.0,
+        trees_min_height: float = 3.0,
+        raster_resolution: float = 1.0,
+        trees_buffer_distance: float = 3.0,
+        lambda_buildings_weight: float = 0.6,
+        lambda_trees_weight: float = 0.3,
+        lambda_background: float = 0.015,
+        u_60: float = 1.3084,
+        reference_height: float = 60.0,
+        von_karman_constant: float = 0.4,
+        target_height: float = 1.2,
+        stability_exponent: float = 9.8,
     ) -> dict:
         """
         Orchestrate the complete wind reduction map generation workflow.
@@ -64,6 +79,20 @@ class WindService:
         :param str dtm_path: Path to input DTM raster
         :param str output_dir: Root directory where a timestamped output folder will be created
         :param str wind_direction: Cardinal direction the wind blows from (north/east/south/west)
+        :param float | None grid_cell_width: Optional override for grid cell width
+        :param float | None grid_cell_height: Optional override for grid cell height
+        :param float buildings_min_height: Minimum building height for normalisation
+        :param float trees_min_height: Minimum tree height for normalisation
+        :param float raster_resolution: Raster resolution for masks (map units)
+        :param float trees_buffer_distance: Buffer radius for tree points (map units)
+        :param float lambda_buildings_weight: Weight for building frontal area in lambda_total
+        :param float lambda_trees_weight: Weight for tree frontal area in lambda_total
+        :param float lambda_background: Baseline lambda contribution
+        :param float u_60: Reference wind speed at reference height
+        :param float reference_height: Reference height for wind profile calculations
+        :param float von_karman_constant: Von Karman constant for u* calculation
+        :param float target_height: Target height for wind speed output (e.g. 1.2 m)
+        :param float stability_exponent: Stability coefficient for exponential attenuation
         :return: Dictionary with all output paths and processing status
         """
 
@@ -72,14 +101,33 @@ class WindService:
             valid = ", ".join(self.VALID_WIND_DIRECTIONS)
             raise ValueError(f"Invalid wind_direction '{wind_direction}'. Valid values: {valid}")
 
-        grid_width, grid_height = self.DIRECTION_GRID_SIZES[direction_key]
+        default_grid_width, default_grid_height = self.DIRECTION_GRID_SIZES[direction_key]
+        grid_width = grid_cell_width if grid_cell_width is not None else default_grid_width
+        grid_height = grid_cell_height if grid_cell_height is not None else default_grid_height
+
+        if grid_width <= 0 or grid_height <= 0:
+            raise ValueError("Grid cell dimensions must be positive values")
+        if buildings_min_height <= 0 or trees_min_height <= 0:
+            raise ValueError("Normalisation thresholds must be positive values")
+        if raster_resolution <= 0:
+            raise ValueError("raster_resolution must be a positive value")
+        if trees_buffer_distance <= 0:
+            raise ValueError("trees_buffer_distance must be a positive value")
+        if lambda_buildings_weight < 0 or lambda_trees_weight < 0 or lambda_background < 0:
+            raise ValueError("Lambda weights and baseline must be non-negative values")
+        if u_60 <= 0 or reference_height <= 0 or von_karman_constant <= 0:
+            raise ValueError("Wind profile constants must be positive values")
+        if target_height <= 0 or stability_exponent <= 0:
+            raise ValueError("Target height and stability exponent must be positive values")
 
         output_root_dir = output_dir.strip()
         if not output_root_dir:
             raise ValueError("output_dir is required")
 
         os.makedirs(output_root_dir, exist_ok=True)
-        run_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        run_time = datetime.now()
+        run_stamp = run_time.strftime("%Y%m%d_%H%M%S")
+        created_at = run_time.isoformat(timespec="seconds")
         run_output_dir = os.path.join(output_root_dir, f"run_{run_stamp}")
         suffix = 1
         while os.path.exists(run_output_dir):
@@ -94,6 +142,7 @@ class WindService:
         trees_mask_path = os.path.join(run_output_dir, "trees-mask.tif")
         buildings_height_path = os.path.join(run_output_dir, "buildings-height.tif")
         trees_height_path = os.path.join(run_output_dir, "trees-height.tif")
+        settings_path = os.path.join(run_output_dir, "run-settings.json")
         
         results = {}
         height_result = self.height.create_height_map(
@@ -126,14 +175,17 @@ class WindService:
         buildings_mask_result = self.rasterization.rasterize_buildings(
             buildings_geojson_path=buildings_geopackage_path,
             output_raster_path=buildings_mask_path,
-            reference_layer=height_layer
+            reference_layer=height_layer,
+            raster_resolution=raster_resolution,
         )
         results["buildings_mask"] = buildings_mask_result
         
         trees_mask_result = self.rasterization.rasterize_trees(
             trees_geojson_path=trees_geopackage_path,
             output_raster_path=trees_mask_path,
-            reference_layer=height_layer
+            reference_layer=height_layer,
+            raster_resolution=raster_resolution,
+            trees_buffer_distance=trees_buffer_distance,
         )
         results["trees_mask"] = trees_mask_result
         
@@ -173,6 +225,16 @@ class WindService:
             output_grid_path=grid_output_path,
             grid_width=grid_width,
             grid_height=grid_height,
+            buildings_min_height=buildings_min_height,
+            trees_min_height=trees_min_height,
+            lambda_buildings_weight=lambda_buildings_weight,
+            lambda_trees_weight=lambda_trees_weight,
+            lambda_background=lambda_background,
+            u_60=u_60,
+            reference_height=reference_height,
+            von_karman_constant=von_karman_constant,
+            target_height=target_height,
+            stability_exponent=stability_exponent,
             buildings_aspect_west_path=os.path.join(run_output_dir, f"buildings-aspect-{direction_key}.tif"),
             trees_aspect_west_path=os.path.join(run_output_dir, f"trees-aspect-{direction_key}.tif"),
             buildings_polygon_path=buildings_geopackage_path,
@@ -180,27 +242,89 @@ class WindService:
         )
         results["wind_grid"] = grid_result
 
+        outputs = {
+            "height_map": height_path,
+            "buildings_geojson": buildings_geopackage_path,
+            "trees_geojson": trees_geopackage_path,
+            "buildings_mask": buildings_mask_path,
+            "trees_mask": trees_mask_path,
+            "buildings_height": buildings_height_path,
+            "trees_height": trees_height_path,
+            "buildings_aspect": os.path.join(run_output_dir, "buildings-aspect-separated.tif"),
+            "trees_aspect": os.path.join(run_output_dir, "trees-aspect-separated.tif"),
+            "wind_grid": grid_output_path,
+            "settings_json": settings_path,
+            "wind_direction": direction_key,
+            "grid_cell_width": grid_width,
+            "grid_cell_height": grid_height,
+            "buildings_min_height": buildings_min_height,
+            "trees_min_height": trees_min_height,
+            "raster_resolution": raster_resolution,
+            "trees_buffer_distance": trees_buffer_distance,
+            "lambda_buildings_weight": lambda_buildings_weight,
+            "lambda_trees_weight": lambda_trees_weight,
+            "lambda_background": lambda_background,
+            "u_60": u_60,
+            "reference_height": reference_height,
+            "von_karman_constant": von_karman_constant,
+            "target_height": target_height,
+            "stability_exponent": stability_exponent,
+            "output_root_dir": output_root_dir,
+            "output_run_dir": run_output_dir,
+            "dsm_input_path": dsm_path,
+            "dtm_input_path": dtm_path,
+        }
+
+        inputs = {
+            "dsm_path": dsm_path,
+            "dtm_path": dtm_path,
+            "output_dir": output_root_dir,
+            "wind_direction": direction_key,
+            "grid_cell_width": grid_cell_width,
+            "grid_cell_height": grid_cell_height,
+            "buildings_min_height": buildings_min_height,
+            "trees_min_height": trees_min_height,
+            "raster_resolution": raster_resolution,
+            "trees_buffer_distance": trees_buffer_distance,
+            "lambda_buildings_weight": lambda_buildings_weight,
+            "lambda_trees_weight": lambda_trees_weight,
+            "lambda_background": lambda_background,
+            "u_60": u_60,
+            "reference_height": reference_height,
+            "von_karman_constant": von_karman_constant,
+            "target_height": target_height,
+            "stability_exponent": stability_exponent,
+        }
+
+        paths = {
+            "height_map": height_path,
+            "buildings_geojson": buildings_geopackage_path,
+            "trees_geojson": trees_geopackage_path,
+            "buildings_mask": buildings_mask_path,
+            "trees_mask": trees_mask_path,
+            "buildings_height": buildings_height_path,
+            "trees_height": trees_height_path,
+            "buildings_aspect_separated": os.path.join(run_output_dir, "buildings-aspect-separated.tif"),
+            "trees_aspect_separated": os.path.join(run_output_dir, "trees-aspect-separated.tif"),
+            "buildings_aspect_direction": os.path.join(run_output_dir, f"buildings-aspect-{direction_key}.tif"),
+            "trees_aspect_direction": os.path.join(run_output_dir, f"trees-aspect-{direction_key}.tif"),
+            "wind_grid": grid_output_path,
+            "settings_json": settings_path,
+            "output_run_dir": run_output_dir,
+        }
+
+        settings = {
+            "created_at": created_at,
+            "inputs": inputs,
+            "paths": paths,
+        }
+
+        with open(settings_path, "w", encoding="utf-8") as settings_file:
+            json.dump(settings, settings_file, indent=2, ensure_ascii=True)
+
         return {
             "status": "success",
             "message": "Wind reduction map workflow completed successfully",
             "results": results,
-            "outputs": {
-                "height_map": height_path,
-                "buildings_geojson": buildings_geopackage_path,
-                "trees_geojson": trees_geopackage_path,
-                "buildings_mask": buildings_mask_path,
-                "trees_mask": trees_mask_path,
-                "buildings_height": buildings_height_path,
-                "trees_height": trees_height_path,
-                "buildings_aspect": os.path.join(run_output_dir, "buildings-aspect-separated.tif"),
-                "trees_aspect": os.path.join(run_output_dir, "trees-aspect-separated.tif"),
-                "wind_grid": grid_output_path,
-                "wind_direction": direction_key,
-                "grid_cell_width": grid_width,
-                "grid_cell_height": grid_height,
-                "output_root_dir": output_root_dir,
-                "output_run_dir": run_output_dir,
-                "dsm_input_path": dsm_path,
-                "dtm_input_path": dtm_path,
-            }
+            "outputs": outputs,
         }

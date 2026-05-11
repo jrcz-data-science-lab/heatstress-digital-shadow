@@ -123,7 +123,8 @@ def rasterize_buildings(req: RasterizeGeoJSONRequest):
         result = wind_service.rasterization.rasterize_buildings(
             buildings_geojson_path=req.input_geojson_path,
             output_raster_path=req.output_raster_path,
-            reference_layer=reference_layer
+            reference_layer=reference_layer,
+            raster_resolution=req.raster_resolution,
         )
         
         return {
@@ -156,7 +157,9 @@ def rasterize_trees(req: RasterizeGeoJSONRequest):
         result = wind_service.rasterization.rasterize_trees(
             trees_geojson_path=req.input_geojson_path,
             output_raster_path=req.output_raster_path,
-            reference_layer=reference_layer
+            reference_layer=reference_layer,
+            raster_resolution=req.raster_resolution,
+            trees_buffer_distance=req.trees_buffer_distance,
         )
         
         return {
@@ -300,6 +303,16 @@ def create_grid(req: GridRequest):
             output_grid_path=req.output_grid_path,
             grid_width=req.grid_width,
             grid_height=req.grid_height,
+            buildings_min_height=req.buildings_min_height,
+            trees_min_height=req.trees_min_height,
+            lambda_buildings_weight=req.lambda_buildings_weight,
+            lambda_trees_weight=req.lambda_trees_weight,
+            lambda_background=req.lambda_background,
+            u_60=req.u_60,
+            reference_height=req.reference_height,
+            von_karman_constant=req.von_karman_constant,
+            target_height=req.target_height,
+            stability_exponent=req.stability_exponent,
             buildings_aspect_west_path=req.buildings_aspect_west_path,
             trees_aspect_west_path=req.trees_aspect_west_path,
             buildings_polygon_path=req.buildings_polygon_path,
@@ -338,6 +351,20 @@ def generate_wind_reduction_map(req: WindReductionMapRequest):
             dtm_path=req.dtm_path,
             output_dir=req.output_dir,
             wind_direction=req.wind_direction,
+            grid_cell_width=req.grid_cell_width,
+            grid_cell_height=req.grid_cell_height,
+            buildings_min_height=req.buildings_min_height,
+            trees_min_height=req.trees_min_height,
+            raster_resolution=req.raster_resolution,
+            trees_buffer_distance=req.trees_buffer_distance,
+            lambda_buildings_weight=req.lambda_buildings_weight,
+            lambda_trees_weight=req.lambda_trees_weight,
+            lambda_background=req.lambda_background,
+            u_60=req.u_60,
+            reference_height=req.reference_height,
+            von_karman_constant=req.von_karman_constant,
+            target_height=req.target_height,
+            stability_exponent=req.stability_exponent,
         )
         
         return {

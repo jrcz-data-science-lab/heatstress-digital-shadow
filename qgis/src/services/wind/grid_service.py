@@ -30,8 +30,8 @@ class GridService:
     2. Zonal statistics - buildings height (count, sum, mean) → prefix "buildings_height_".
     3. Zonal statistics - trees height   (count, sum, mean) → prefix "trees_height_"
        using the layer produced in step 2 as input.
-    4. Normalise buildings_height_mean: values in (0, 5) are raised to 5.
-    5. Normalise trees_height_mean:     values in (0, 3) are raised to 3.
+     4. Normalise buildings_height_mean: values below the threshold are raised to the minimum.
+     5. Normalise trees_height_mean:     values below the threshold are raised to the minimum.
     """
 
     def create_grid_with_zonal_stats(
@@ -46,10 +46,30 @@ class GridService:
         trees_aspect_west_path: str,
         buildings_polygon_path: str,
         trees_points_path: str,
+        buildings_min_height: float = 5.0,
+        trees_min_height: float = 3.0,
+        lambda_buildings_weight: float = 0.6,
+        lambda_trees_weight: float = 0.3,
+        lambda_background: float = 0.015,
+        u_60: float = 1.3084,
+        reference_height: float = 60.0,
+        von_karman_constant: float = 0.4,
+        target_height: float = 1.2,
+        stability_exponent: float = 9.8,
     ) -> dict:
         """
         Extended pipeline: grid, zonal stats, normalisation, frontal area count, object counts.
         """
+        if grid_width <= 0 or grid_height <= 0:
+            raise ValueError("Grid cell dimensions must be positive values")
+        if buildings_min_height <= 0 or trees_min_height <= 0:
+            raise ValueError("Normalisation thresholds must be positive values")
+        if lambda_buildings_weight < 0 or lambda_trees_weight < 0 or lambda_background < 0:
+            raise ValueError("Lambda weights and baseline must be non-negative values")
+        if u_60 <= 0 or reference_height <= 0 or von_karman_constant <= 0:
+            raise ValueError("Wind profile constants must be positive values")
+        if target_height <= 0 or stability_exponent <= 0:
+            raise ValueError("Target height and stability exponent must be positive values")
         missing_inputs = {
             "buildings_aspect_west_path": buildings_aspect_west_path,
             "trees_aspect_west_path": trees_aspect_west_path,
@@ -112,11 +132,17 @@ class GridService:
             )
 
             buildings_norm_layer = normalise_mean_field(
-                trees_stats_layer, "buildings_height_mean", 5, buildings_norm_path
+                trees_stats_layer,
+                "buildings_height_mean",
+                buildings_min_height,
+                buildings_norm_path,
             )
 
             norm_layer = normalise_mean_field(
-                buildings_norm_layer, "trees_height_mean", 3, trees_norm_path
+                buildings_norm_layer,
+                "trees_height_mean",
+                trees_min_height,
+                trees_norm_path,
             )
 
             # frontal area
@@ -191,7 +217,11 @@ class GridService:
             norm_layer = calculate_field(
                 input_layer=norm_layer,
                 field_name="lambda_total",
-                formula='"lambda_buildings" * 0.6 + "lambda_trees" * 0.3 + 0.015',
+                formula=(
+                    f'"lambda_buildings" * {lambda_buildings_weight} '
+                    f'+ "lambda_trees" * {lambda_trees_weight} '
+                    f'+ {lambda_background}'
+                ),
                 output_path=grid_corrected_lambda_path,
             )
 
@@ -260,21 +290,27 @@ class GridService:
             norm_layer = calculate_field(
                 input_layer=norm_layer,
                 field_name="u_60",
-                formula='1.3084',
+                formula=str(u_60),
                 output_path=grid_u_60_path,
             )
 
             norm_layer = calculate_field(
                 input_layer=norm_layer,
                 field_name="u_zw",
-                formula='"u_60" * (ln(("zw_h"-"d_h")/"z0_h")) / (ln((60-"d_h")/"z0_h"))',
+                formula=(
+                    f'"u_60" * (ln(("zw_h"-"d_h")/"z0_h")) '
+                    f'/ (ln(({reference_height}-"d_h")/"z0_h"))'
+                ),
                 output_path=grid_u_zw_path,
             )
 
             norm_layer = calculate_field(
                 input_layer=norm_layer,
                 field_name="u_star",
-                formula='0.4 * "u_60" / (ln((60-"d_h")/"z0_h"))',
+                formula=(
+                    f'{von_karman_constant} * "u_60" '
+                    f'/ (ln(({reference_height}-"d_h")/"z0_h"))'
+                ),
                 output_path=grid_u_star_path,
             )
 
@@ -288,7 +324,12 @@ class GridService:
             norm_layer = calculate_field(
                 input_layer=norm_layer,
                 field_name="u_1.2",
-                formula='CASE WHEN "u_h" * exp(9.8 * "lambda_total" * ((1.2/"buildings_height_mean")-1)) IS NULL THEN 0 ELSE "u_h" * exp(9.8 * "lambda_total" * ((1.2/"buildings_height_mean")-1)) END',
+                formula=(
+                    'CASE WHEN "u_h" * exp('
+                    f'{stability_exponent} * "lambda_total" * (({target_height}/"buildings_height_mean")-1)) '
+                    'IS NULL THEN 0 ELSE "u_h" * exp('
+                    f'{stability_exponent} * "lambda_total" * (({target_height}/"buildings_height_mean")-1)) END'
+                ),
                 output_path=grid_u_1_2_path,
             )
 

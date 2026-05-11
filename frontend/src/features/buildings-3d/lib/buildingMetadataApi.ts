@@ -39,7 +39,7 @@ export type BuildingApiResponse = {
 
 export async function fetchBuildingMetadataByRD(
   xRD: number,
-  yRD: number
+  yRD: number,
 ): Promise<BuildingApiResponse> {
   const params = new URLSearchParams({
     x_coord: xRD.toString(),
@@ -49,9 +49,7 @@ export async function fetchBuildingMetadataByRD(
   const res = await fetch(`${BUILDING_API_URL}?${params.toString()}`);
 
   if (!res.ok) {
-    throw new Error(
-      `Building API error: ${res.status} ${res.statusText}`
-    );
+    throw new Error(`Building API error: ${res.status} ${res.statusText}`);
   }
 
   const data = (await res.json()) as BuildingApiResponse;

@@ -10,7 +10,6 @@ interface Props {
 }
 
 export const SideMenu: React.FC<Props> = ({ items, activeId, onChange }) => {
-
   const toggleMenu = (id: string) => {
     onChange(activeId === id ? null : id);
   };
@@ -19,14 +18,10 @@ export const SideMenu: React.FC<Props> = ({ items, activeId, onChange }) => {
 
   return (
     <div style={{ display: "flex", height: "100%", color: "black" }}>
-      <SideMenuBar
-        items={items}
-        activeItem={activeId}
-        onSelect={toggleMenu}
-      />
+      <SideMenuBar items={items} activeItem={activeId} onSelect={toggleMenu} />
 
       <SideMenuPanel
-        activeItem={items.find(i => i.id === activeId)}
+        activeItem={items.find((i) => i.id === activeId)}
         onClose={closeMenu}
       />
     </div>

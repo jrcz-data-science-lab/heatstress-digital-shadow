@@ -4,7 +4,10 @@ import type { SideMenuItem } from "./components/sideMenu/SideMenuItem";
 import React, { useCallback, useEffect, useState } from "react";
 import DeckMap from "./map/DeckMap";
 import { useDeckLayers } from "./map/hooks/useDeckLayers";
-import { QGIS_OVERLAY_LAYERS, type QgisLayerId } from "./features/wms-overlay/lib/qgisLayers";
+import {
+  QGIS_OVERLAY_LAYERS,
+  type QgisLayerId,
+} from "./features/wms-overlay/lib/qgisLayers";
 import { useBuildingHighlight } from "./features/buildings-3d/useBuildingHighlight";
 import { SideMenu } from "./components/sideMenu/SideMenu";
 import { LayersIcon } from "./components/icons/LayersIcon";
@@ -26,14 +29,16 @@ export default function App() {
   const [showObjects, setShowObjects] = useState(false);
   const [editingIntent, setEditingIntent] = useState(false);
   const [activeSideMenuId, setActiveSideMenuId] = useState<string | null>(null);
-  const isEditingMode = editingIntent && activeSideMenuId === "heatstressmeasures";
-  const [selectedObjectType, setSelectedObjectType] =
-    useState<string | null>(null);
+  const isEditingMode =
+    editingIntent && activeSideMenuId === "heatstressmeasures";
+  const [selectedObjectType, setSelectedObjectType] = useState<string | null>(
+    null,
+  );
   const loaderLeft = activeSideMenuId ? "25.5rem" : "4rem";
 
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayLayerId, setOverlayLayerId] = useState<QgisLayerId>(
-    QGIS_OVERLAY_LAYERS[0].id
+    QGIS_OVERLAY_LAYERS[0].id,
   );
 
   const {
@@ -48,14 +53,14 @@ export default function App() {
     objectTypes,
     isProcessing,
     objectsToSave,
-    handleImport
+    handleImport,
   } = useDeckLayers({
     showBuildings,
     showObjects,
     isEditingMode,
     selectedObjectType,
     setSelectedObjectType,
-    objPath: 'data/10-72-338-LoD22-3D_leveled.obj',
+    objPath: "data/10-72-338-LoD22-3D_leveled.obj",
     showOverlay,
     overlayLayerId,
   });
@@ -91,7 +96,9 @@ export default function App() {
       return;
     }
 
-    const typeExists = objectTypes.find(t => t.name === type.name) ? true : false;
+    const typeExists = objectTypes.find((t) => t.name === type.name)
+      ? true
+      : false;
 
     if (!typeExists) {
       console.warn("Selected object type not found.");
@@ -156,17 +163,18 @@ export default function App() {
     },
   ];
 
-  const { highlightLayer, handleBuildingClick, buildingInfo } = useBuildingHighlight({
-    enabled: showBuildings,
-  });
+  const { highlightLayer, handleBuildingClick, buildingInfo } =
+    useBuildingHighlight({
+      enabled: showBuildings,
+    });
 
   const activeVbos =
     buildingInfo?.verblijfsobject_data?.filter(
-      (vbo) => vbo.status === "Verblijfsobject in gebruik"
+      (vbo) => vbo.status === "Verblijfsobject in gebruik",
     ) ?? [];
 
   const usageFunctions = Array.from(
-    new Set(activeVbos.flatMap((vbo) => vbo.usage_function ?? []))
+    new Set(activeVbos.flatMap((vbo) => vbo.usage_function ?? [])),
   );
 
   const deckClickHandler = useCallback(
@@ -179,15 +187,13 @@ export default function App() {
 
       return handledByInteraction;
     },
-    [handleBuildingClick, onViewStateClick, handleMapClick]
+    [handleBuildingClick, onViewStateClick, handleMapClick],
   );
 
   const menuNode = React.useRef<HTMLDivElement>(null);
 
   return (
     <div style={{ position: "relative", height: "100dvh", width: "100%" }}>
- 
-      
       <DeckMap
         layers={highlightLayer ? [...layers, highlightLayer] : layers}
         initialViewState={{
@@ -211,17 +217,19 @@ export default function App() {
       )}
 
       {/* TOP RIGHT INFO PANEL */}
-      <div style={{
-        position: "absolute",
-        top: 20,
-        right: 20,
-        zIndex: 1000,
-        pointerEvents: "none",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-end",
-        gap: "12px",
-      }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 20,
+          right: 20,
+          zIndex: 1000,
+          pointerEvents: "none",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: "12px",
+        }}
+      >
         {legend && showOverlay && overlayLayerId === "pet-version-1" && (
           <LegendCard legend={legend} title="PET Index Legend" />
         )}
@@ -236,14 +244,25 @@ export default function App() {
         ) : null}
       </div>
 
-      <div ref={menuNode} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-        <div style={{ position: "absolute", height: "100dvh", width: 400, pointerEvents: "auto" }}>
+      <div
+        ref={menuNode}
+        style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            height: "100dvh",
+            width: 400,
+            pointerEvents: "auto",
+          }}
+        >
           <SideMenu
             items={items}
             activeId={activeSideMenuId}
-            onChange={setActiveSideMenuId} />
+            onChange={setActiveSideMenuId}
+          />
         </div>
       </div>
     </div>
-  )
+  );
 }

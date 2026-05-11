@@ -1,13 +1,18 @@
 import "./LoadingIndicator.css";
 
 type LoadingIndicatorProps = {
-  label: string,
-  backgroundColor: string,
-  textColor: string,
+  label: string;
+  backgroundColor: string;
+  textColor: string;
   left?: number | string;
 };
 
-export function LoadingIndicator({ label, backgroundColor, textColor, left = "26rem", }: LoadingIndicatorProps) {
+export function LoadingIndicator({
+  label,
+  backgroundColor,
+  textColor,
+  left = "26rem",
+}: LoadingIndicatorProps) {
   return (
     <div
       style={{
@@ -25,12 +30,10 @@ export function LoadingIndicator({ label, backgroundColor, textColor, left = "26
         pointerEvents: "auto",
         display: "flex",
         gap: "16px",
-        alignItems: "center"
+        alignItems: "center",
       }}
     >
       <span className="loading-dots">{label}</span>
     </div>
   );
 }
-
-

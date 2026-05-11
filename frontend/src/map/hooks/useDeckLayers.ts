@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
-import type { Layer } from '@deck.gl/core';
-import { makeOsmTileLayer } from '../../features/basemap/lib/osmLayer';
-import { useBuildingsLayer } from '../../features/buildings-3d/useBuildingsLayer';
-import { useStaticTreesLayer } from '../../features/objects/useStaticTreesLayer';
-import { useUserObjectsLayer } from '../../features/objects/useUserObjectsLayer';
-import { useWMSLayers } from '../../features/wms-overlay/useWMSLayers';
-import type { QgisLayerId } from '../../features/wms-overlay/lib/qgisLayers';
+import { useMemo } from "react";
+import type { Layer } from "@deck.gl/core";
+import { makeOsmTileLayer } from "../../features/basemap/lib/osmLayer";
+import { useBuildingsLayer } from "../../features/buildings-3d/useBuildingsLayer";
+import { useStaticTreesLayer } from "../../features/objects/useStaticTreesLayer";
+import { useUserObjectsLayer } from "../../features/objects/useUserObjectsLayer";
+import { useWMSLayers } from "../../features/wms-overlay/useWMSLayers";
+import type { QgisLayerId } from "../../features/wms-overlay/lib/qgisLayers";
 
 export type UseDeckLayersOpts = {
   objPath?: string;
@@ -26,15 +26,11 @@ export function useDeckLayers({
   selectedObjectType,
   setSelectedObjectType,
   showOverlay,
-  overlayLayerId
+  overlayLayerId,
 }: UseDeckLayersOpts) {
-
   const osmBase = useMemo<Layer>(() => makeOsmTileLayer(), []);
 
-  const {
-    layer: buildingsLayer,
-    error: buildingError
-  } = useBuildingsLayer({
+  const { layer: buildingsLayer, error: buildingError } = useBuildingsLayer({
     visible: showBuildings,
     objPath: objPath,
   });
@@ -52,7 +48,7 @@ export function useDeckLayers({
     objectTypes,
     isProcessing,
     objectsToSave,
-    handleImport
+    handleImport,
   } = useUserObjectsLayer(
     showObjects,
     isEditingMode,
@@ -80,7 +76,8 @@ export function useDeckLayers({
 
     if (buildingsLayer) arr.push(buildingsLayer);
     if (objectLayer) arr.push(objectLayer);
-    if (userObjectLayers && Array.isArray(userObjectLayers)) arr.push(...userObjectLayers);
+    if (userObjectLayers && Array.isArray(userObjectLayers))
+      arr.push(...userObjectLayers);
     if (wmsLayer) arr.push(wmsLayer);
 
     return arr;
@@ -101,6 +98,6 @@ export function useDeckLayers({
     objectTypes,
     isProcessing,
     objectsToSave,
-    handleImport
+    handleImport,
   };
 }
