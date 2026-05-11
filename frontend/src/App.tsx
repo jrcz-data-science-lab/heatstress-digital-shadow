@@ -13,6 +13,7 @@ import {
 } from "./features/existing-trees/ExistingTreesEntities";
 import { UserObjectsEntities } from "./features/objects/UserObjectsEntities";
 import { BAG3DTileset } from "./features/buildings-3d/BAG3DTileset";
+import { GooglePhotorealisticTileset } from "./features/buildings-3d/GooglePhotorealisticTileset";
 import { useUserObjectsLayer } from "./features/objects/useUserObjectsLayer";
 import { useWMSLayers } from "./features/wms-overlay/useWMSLayers";
 import { useBuildingHighlight } from "./features/buildings-3d/useBuildingHighlight";
@@ -36,6 +37,7 @@ import { SunShadowPanel } from "./components/panels/SunShadowPanel";
 
 export default function App() {
 	const [showBuildings, setShowBuildings] = React.useState(false);
+	const [showGoogleTiles, setShowGoogleTiles] = React.useState(false);
 	const [showSunShadow, setShowSunShadow] = useState(false);
 	// Default to today at noon local time for a sensible starting point
 	const [simulationDate, setSimulationDate] = useState<Date>(() => {
@@ -206,6 +208,8 @@ export default function App() {
 				<BuildingsPanel
 					showBuildings={showBuildings}
 					onToggleBuildings={setShowBuildings}
+					showGoogleTiles={showGoogleTiles}
+					onToggleGoogleTiles={setShowGoogleTiles}
 					buildingInfo={buildingInfo}
 					activeVbos={activeVbos}
 					tileProperties={tileProperties}
@@ -279,6 +283,10 @@ export default function App() {
 						selectedBagId={buildingInfo?.bag_id ?? null}
 						shadowsEnabled={showSunShadow}
 					/>
+				)}
+
+				{showGoogleTiles && (
+					<GooglePhotorealisticTileset shadowsEnabled={showSunShadow} />
 				)}
 			</CesiumMap>
 

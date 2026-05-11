@@ -18,6 +18,9 @@ import {
 	Cesium3DTileFeature,
 	JulianDate,
 	Ion,
+	ProviderViewModel,
+	IonImageryProvider,
+	buildModuleUrl,
 } from "cesium";
 import type { TileProperties } from "../features/buildings-3d/lib/buildingMetadataApi";
 
@@ -73,18 +76,46 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 	const [isPerspective, setIsPerspective] = useState(true);
 	const [initialFlyDone, setInitialFlyDone] = useState(false);
 
-	// Remove basemap options that require API keys beyond the Ion token.
-	// Google Maps needs a Google Cloud Maps API key; Azure Maps needs an Azure key.
-	// This runs after mount so the default Bing Maps load (Ion-hosted) is unaffected.
+	// Curate the basemap picker to exactly match the user's Ion account assets.
+	// Runs after mount — the default Bing Maps initial load is unaffected.
 	useEffect(() => {
 		const viewer = viewerRef.current?.cesiumElement;
 		if (!viewer) return;
 		const pickerVm = viewer.baseLayerPicker.viewModel;
-		const NEEDS_EXTRA_KEY = ["Google Maps", "Azure Maps"];
-		pickerVm.imageryProviderViewModels =
-			pickerVm.imageryProviderViewModels.filter(
-				(vm) => !NEEDS_EXTRA_KEY.some((kw) => vm.name.includes(kw)),
-			);
+
+		// Strip anything not in the account: API-key Google/Azure Maps,
+		// Natural Earth II and Sentinel-2 (not in this Ion account).
+		const REMOVE = [
+			"Google Maps",   // API-key based — replaced by Ion-hosted versions below
+			"Azure Maps",    // Needs separate Azure key
+			"Natural Earth", // Ion asset not in this account
+			"Sentinel",      // Ion asset not in this account
+		];
+		const kept = pickerVm.imageryProviderViewModels.filter(
+			(vm) => !REMOVE.some((kw) => vm.name.includes(kw)),
+		);
+
+		// Add the Ion-hosted Google Maps 2D assets (from this account).
+		const ICON = buildModuleUrl(
+			"Widgets/Images/ImageryProviders/openstreetmap.png",
+		);
+		const ionGoogle: ProviderViewModel[] = [
+			{ name: "Google Maps 2D Satellite",             assetId: 3830182 },
+			{ name: "Google Maps 2D Satellite with Labels", assetId: 3830183 },
+			{ name: "Google Maps 2D Roadmap",               assetId: 3830184 },
+			{ name: "Google Maps 2D Labels Only",           assetId: 3830185 },
+			{ name: "Google Maps 2D Contour",               assetId: 3830186 },
+		].map(
+			({ name, assetId }) =>
+				new ProviderViewModel({
+					name,
+					iconUrl: ICON,
+					tooltip: `${name} — Ion asset ${assetId}`,
+					creationFunction: () => IonImageryProvider.fromAssetId(assetId),
+				}),
+		);
+
+		pickerVm.imageryProviderViewModels = [...kept, ...ionGoogle];
 	}, []);
 
 	// Set up click handler
