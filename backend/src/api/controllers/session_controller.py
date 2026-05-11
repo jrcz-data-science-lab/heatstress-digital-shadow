@@ -56,7 +56,7 @@ class SessionController(ABC):
     Controller that should handle all session related functions
     """
 
-    async def get_or_create_session(
+    def get_or_create_session(
         self,
         response: Response,
         session_id: Optional[str] = Cookie(default=None)

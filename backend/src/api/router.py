@@ -61,7 +61,7 @@ async def get_session(
     response: Response,
     session_id: Optional[str] = Cookie(default=None)
 ):
-    return await session_controller.get_or_create_session(
+    return session_controller.get_or_create_session(
         response=response,
         session_id=session_id,
     )
@@ -110,4 +110,4 @@ async def read_3dbag_by_coordinates(
 
 @api_router.get('/legend')
 async def get_map_legend():
-    return await legend_controller.get_legend()
+    return legend_controller.get_legend()

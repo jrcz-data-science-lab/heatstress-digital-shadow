@@ -16,7 +16,7 @@ const SideMenuBar: React.FC<BarProps> = ({ items, activeItem, onSelect }) => {
 			}}
 		>
 			{items.map((item) => (
-				<div
+				<button
 					key={item.id}
 					onClick={() => {
 						item.onClick?.();
@@ -29,11 +29,15 @@ const SideMenuBar: React.FC<BarProps> = ({ items, activeItem, onSelect }) => {
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "center",
+						border: "none",
+						width: "100%",
 					}}
 					title={item.label}
+					aria-label={item.label}
+					aria-pressed={activeItem === item.id}
 				>
 					{item.icon}
-				</div>
+				</button>
 			))}
 		</div>
 	);

@@ -7,7 +7,7 @@ class LegendController(ABC):
     Controller that should handle all legend related functions
     """
     
-    async def get_legend(
+    def get_legend(
         self,
     ):
         """Returns the legend overview."""

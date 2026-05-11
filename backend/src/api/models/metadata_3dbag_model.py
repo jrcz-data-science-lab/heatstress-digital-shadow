@@ -6,20 +6,20 @@ class BAGPolygon(BaseModel):
     coordinates: List[List[List[float]]]
 
 class RecordMetadata(BaseModel):
-    registration_time: Optional[str]
-    version: Optional[str]
-    validity_start_date: Optional[str]
-    validity_end_date: Optional[str]
-    inactivity_time: Optional[str]
+    registration_time: Optional[str] = None
+    version: Optional[str] = None
+    validity_start_date: Optional[str] = None
+    validity_end_date: Optional[str] = None
+    inactivity_time: Optional[str] = None
 
 class PandData(BaseModel):
     bag_object_type: str
     bag_id: str
-    construction_year: Optional[int]
-    status: Optional[str]
-    is_notified_to_bag: Optional[bool]
-    document_date: Optional[str]
-    document_number: Optional[str]
+    construction_year: Optional[int] = None
+    status: Optional[str] = None
+    is_notified_to_bag: Optional[bool] = None
+    document_date: Optional[str] = None
+    document_number: Optional[str] = None
     record_metadata: RecordMetadata
     geometry: BAGPolygon
 
@@ -48,8 +48,8 @@ class VboAdres(BaseModel):
 class VboData(BaseModel):
     bag_object_type: str
     bag_id: str
-    usage_function: Optional[List[str]]
-    surface_area_m2: Optional[int]
+    usage_function: Optional[List[str]] = None
+    surface_area_m2: Optional[int] = None
     status: str
     adres: Optional[VboAdres] = None       # unit address (for apartments)
     energie_label: Optional[EnergieLabel] = None  # enriched from EP-Online

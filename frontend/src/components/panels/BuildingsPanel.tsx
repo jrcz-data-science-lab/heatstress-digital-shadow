@@ -164,8 +164,16 @@ function InfoTooltip({ text }: { text: string }) {
 			}}
 		>
 			<span
+				role="button"
+				tabIndex={0}
 				onMouseEnter={() => setVisible(true)}
 				onMouseLeave={() => setVisible(false)}
+				onFocus={() => setVisible(true)}
+				onBlur={() => setVisible(false)}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" || e.key === " ") setVisible((v) => !v);
+				}}
+				aria-label={text}
 				style={{
 					cursor: "default",
 					fontSize: "15px",

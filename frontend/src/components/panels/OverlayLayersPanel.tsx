@@ -50,11 +50,13 @@ export function OverlayLayersPanel({
 		<div>
 			<h3>Overlay Layers</h3>
 
-			<CheckboxItem
-				label="Existing Trees (BGT)"
-				checked={showExistingTrees}
-				onChange={onToggleExistingTrees}
-			/>
+			<div role="group" aria-label="Base layer options">
+				<CheckboxItem
+					label="Existing Trees (BGT)"
+					checked={showExistingTrees}
+					onChange={onToggleExistingTrees}
+				/>
+			</div>
 
 			<hr
 				style={{
