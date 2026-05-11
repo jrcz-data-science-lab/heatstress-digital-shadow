@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Cesium3DTileset } from "resium";
+import { Cesium3DTileset, useCesium } from "resium";
 import { IonResource, ShadowMode } from "cesium";
 
 // Cesium Ion asset 2275207 — Google Photorealistic 3D Tiles
@@ -10,11 +10,24 @@ type Props = {
 };
 
 export function GooglePhotorealisticTileset({ shadowsEnabled = false }: Props) {
+	const { viewer } = useCesium();
 	const [url, setUrl] = useState<IonResource | null>(null);
 
+	// Resolve the Ion resource URL once on mount
 	useEffect(() => {
 		IonResource.fromAssetId(ASSET_ID).then(setUrl).catch(console.error);
 	}, []);
+
+	// Google Photorealistic 3D Tiles contain their own terrain and ground surface.
+	// Leaving the Cesium globe visible causes the tiles to appear to float above
+	// the map. Hide it while this tileset is active; restore on unmount.
+	useEffect(() => {
+		if (!viewer) return;
+		viewer.scene.globe.show = false;
+		return () => {
+			viewer.scene.globe.show = true;
+		};
+	}, [viewer]);
 
 	if (!url) return null;
 
