@@ -16,6 +16,7 @@ import {
 	Camera,
 	Rectangle,
 	Cesium3DTileFeature,
+	JulianDate,
 } from "cesium";
 import type { TileProperties } from "../features/buildings-3d/lib/buildingMetadataApi";
 
@@ -36,6 +37,8 @@ type Props = {
 	children?: ReactNode;
 	onLeftClick?: (info: CesiumClickInfo) => void;
 	isEditingMode?: boolean;
+	showSunShadow?: boolean;
+	simulationTime?: Date | null;
 };
 
 // Home button position and default view rectangle are set to cover Zeeland by default, but can be adjusted as needed.
@@ -55,7 +58,7 @@ const PITCH_3D = CesiumMath.toRadians(-45); // tilted perspective
 const PITCH_2D = CesiumMath.toRadians(-90); // straight down
 
 const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
-	{ children, onLeftClick, isEditingMode },
+	{ children, onLeftClick, isEditingMode, showSunShadow = false, simulationTime },
 	ref,
 ) {
 	const viewerRef = useRef<{ cesiumElement: import("cesium").Viewer } | null>(
@@ -205,6 +208,27 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 		() => ({ togglePerspective: handleTogglePerspective }),
 		[isPerspective],
 	);
+
+	// Enable/disable Cesium shadow map and sun-based globe lighting.
+	useEffect(() => {
+		const viewer = viewerRef.current?.cesiumElement;
+		if (!viewer) return;
+		viewer.shadows = showSunShadow;
+		viewer.scene.globe.enableLighting = showSunShadow;
+		if (showSunShadow && viewer.shadowMap) {
+			viewer.shadowMap.softShadows = true;
+			viewer.shadowMap.maximumDistance = 5000;
+		}
+		// Stop Cesium's own real-time clock advance so we control time manually.
+		viewer.clock.shouldAnimate = false;
+	}, [showSunShadow]);
+
+	// Sync the Cesium clock to the manually chosen simulation time.
+	useEffect(() => {
+		const viewer = viewerRef.current?.cesiumElement;
+		if (!viewer || !simulationTime) return;
+		viewer.clock.currentTime = JulianDate.fromDate(simulationTime);
+	}, [simulationTime]);
 
 	return (
 		<div

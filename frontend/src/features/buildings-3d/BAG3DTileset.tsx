@@ -5,6 +5,7 @@ import {
 	Cesium3DTileColorBlendMode,
 	Cartesian3,
 	Matrix4,
+	ShadowMode,
 } from "cesium";
 
 // 3D BAG — LoD2.2 3D Tiles (Netherlands national building dataset)
@@ -25,9 +26,11 @@ type Props = {
 	/** Numeric BAG identificatie of the selected building (without NL.IMBAG.Pand. prefix).
 	 *  All tile features whose identificatie matches are highlighted yellow. */
 	selectedBagId?: string | null;
+	/** When true the tileset casts and receives shadows from the Cesium sun. */
+	shadowsEnabled?: boolean;
 };
 
-export function BAG3DTileset({ heightOffset = 0, selectedBagId }: Props) {
+export function BAG3DTileset({ heightOffset = 0, selectedBagId, shadowsEnabled = false }: Props) {
 	// Translate the tileset radially (along the ECEF up-direction at the NL center).
 	// Matrix4.IDENTITY when heightOffset is 0 so no transform is applied.
 	const modelMatrix = useMemo(() => {
@@ -62,6 +65,7 @@ export function BAG3DTileset({ heightOffset = 0, selectedBagId }: Props) {
 			style={style}
 			modelMatrix={modelMatrix}
 			colorBlendMode={Cesium3DTileColorBlendMode.REPLACE}
+			shadows={shadowsEnabled ? ShadowMode.ENABLED : ShadowMode.DISABLED}
 		/>
 	);
 }

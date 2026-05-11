@@ -31,9 +31,18 @@ import { TreeLoadingIndicator } from "./components/loading/TreeLoadingIndicator"
 import { LegendCard } from "./components/legend/LegendCard";
 import { PerspectiveIcon } from "./components/icons/PerspectiveIcon";
 import { InformationIcon } from "./components/icons/InformationIcon";
+import { SunIcon } from "./components/icons/SunIcon";
+import { SunShadowPanel } from "./components/panels/SunShadowPanel";
 
 export default function App() {
 	const [showBuildings, setShowBuildings] = React.useState(false);
+	const [showSunShadow, setShowSunShadow] = useState(false);
+	// Default to today at noon local time for a sensible starting point
+	const [simulationDate, setSimulationDate] = useState<Date>(() => {
+		const d = new Date();
+		d.setHours(12, 0, 0, 0);
+		return d;
+	});
 	const [showObjects, setShowObjects] = useState(false);
 	const [showExistingTrees, setShowExistingTrees] = useState(false);
 	const [treeLoadStatus, setTreeLoadStatus] = useState<TreeLoadStatus>({
@@ -204,6 +213,19 @@ export default function App() {
 			),
 		},
 		{
+			id: "sunShadow",
+			icon: <SunIcon />,
+			label: "Sun & Shadow",
+			panel: (
+				<SunShadowPanel
+					enabled={showSunShadow}
+					onToggle={setShowSunShadow}
+					simulationDate={simulationDate}
+					onDateChange={setSimulationDate}
+				/>
+			),
+		},
+		{
 			id: "togglePerspective",
 			icon: <PerspectiveIcon />,
 			label: "Toggle Perspective",
@@ -226,6 +248,8 @@ export default function App() {
 				ref={cesiumMapRef}
 				onLeftClick={handleCesiumClick}
 				isEditingMode={isEditingMode}
+				showSunShadow={showSunShadow}
+				simulationTime={showSunShadow ? simulationDate : null}
 			>
 				{overlayLayers.map((layer) => (
 					<WMSOverlayLayer
@@ -253,6 +277,7 @@ export default function App() {
 					<BAG3DTileset
 						heightOffset={BAG_3D_HEIGHT_OFFSET}
 						selectedBagId={buildingInfo?.bag_id ?? null}
+						shadowsEnabled={showSunShadow}
 					/>
 				)}
 			</CesiumMap>
