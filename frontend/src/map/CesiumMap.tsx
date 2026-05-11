@@ -215,6 +215,15 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 		[isPerspective],
 	);
 
+	// One-time render quality boost — MSAA smooths all 3D geometry edges regardless
+	// of whether shadows are on. 4 samples is a good quality/performance balance.
+	useEffect(() => {
+		const viewer = viewerRef.current?.cesiumElement;
+		if (!viewer) return;
+		viewer.scene.msaaSamples = 4;
+		viewer.scene.fxaa = true;
+	}, []);
+
 	// Enable/disable Cesium shadow map and sun-based globe lighting.
 	useEffect(() => {
 		const viewer = viewerRef.current?.cesiumElement;
@@ -223,7 +232,10 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 		viewer.scene.globe.enableLighting = showSunShadow;
 		if (showSunShadow && viewer.shadowMap) {
 			viewer.shadowMap.softShadows = true;
-			viewer.shadowMap.maximumDistance = 5000;
+			// 4096px concentrated over 2 km → ~0.5 m/px shadow resolution in the
+			// visible area, which gives smooth, crisp shadow edges.
+			viewer.shadowMap.size = 4096;
+			viewer.shadowMap.maximumDistance = 2000;
 		}
 		// Stop Cesium's own real-time clock advance so we control time manually.
 		viewer.clock.shouldAnimate = false;
