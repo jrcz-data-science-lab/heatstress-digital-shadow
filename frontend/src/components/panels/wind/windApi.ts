@@ -23,7 +23,9 @@ export async function postWindJson<T>(
       if (errorData?.detail) {
         message = errorData.detail;
       }
-    } catch {}
+    } catch {
+        new Error("Failed to parse error response from server");
+    }
     throw new Error(message);
   }
 
