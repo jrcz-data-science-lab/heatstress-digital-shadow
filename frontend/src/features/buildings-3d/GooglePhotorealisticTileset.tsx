@@ -34,7 +34,11 @@ export function GooglePhotorealisticTileset({ shadowsEnabled = false }: Props) {
 	return (
 		<Cesium3DTileset
 			url={url}
-			shadows={shadowsEnabled ? ShadowMode.CAST_ONLY : ShadowMode.DISABLED}
+			// Google Photorealistic Tiles bundle both buildings AND ground in one mesh,
+			// so ENABLED is correct — the ground portion must receive shadows from the
+			// building portions. Self-shadow acne is minimal on photogrammetry meshes
+			// because they have smooth normals (unlike the angular BAG LoD2.2 geometry).
+			shadows={shadowsEnabled ? ShadowMode.ENABLED : ShadowMode.DISABLED}
 		/>
 	);
 }
