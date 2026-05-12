@@ -48,19 +48,6 @@ export function useQgisFeatureInfo(config: Config) {
   }
 
   async function request(lon: number, lat: number): Promise<void> {
-    const [west, south, east, north] = config.bounds;
-
-    const inside =
-      lon >= west &&
-      lon <= east &&
-      lat >= south &&
-      lat <= north;
-
-    if (!inside) {
-      setFeatureInfo(null);
-      return;
-    }
-
     const url = buildGetFeatureInfoUrl({
       baseUrl: config.baseUrl,
       layerName: config.layerName,

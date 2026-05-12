@@ -322,7 +322,7 @@ export default function App() {
 				}}
 			>
 				<PerformanceOverlay />
-				{legend && overlayLayers.some((l) => l.id === "pet-version-1") && (
+				{legend && overlayLayers.length > 0 && (
 					<LegendCard legend={legend} title="PET Index Legend" />
 				)}
 				{featureInfo && !buildingInfo ? (
