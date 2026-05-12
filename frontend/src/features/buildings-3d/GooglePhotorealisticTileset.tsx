@@ -34,7 +34,7 @@ export function GooglePhotorealisticTileset({ shadowsEnabled = false }: Props) {
 	return (
 		<Cesium3DTileset
 			url={url}
-			shadows={shadowsEnabled ? ShadowMode.ENABLED : ShadowMode.DISABLED}
+			shadows={shadowsEnabled ? ShadowMode.CAST_ONLY : ShadowMode.DISABLED}
 		/>
 	);
 }

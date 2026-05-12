@@ -65,7 +65,10 @@ export function BAG3DTileset({ heightOffset = 0, selectedBagId, shadowsEnabled =
 			style={style}
 			modelMatrix={modelMatrix}
 			colorBlendMode={Cesium3DTileColorBlendMode.REPLACE}
-			shadows={shadowsEnabled ? ShadowMode.ENABLED : ShadowMode.DISABLED}
+			// CAST_ONLY: buildings project shadows onto the ground but never
+			// receive shadows on their own surfaces — eliminates self-shadow acne
+			// at low sun angles without losing ground-level shadow coverage.
+			shadows={shadowsEnabled ? ShadowMode.CAST_ONLY : ShadowMode.DISABLED}
 		/>
 	);
 }

@@ -21,6 +21,7 @@ import {
 	ProviderViewModel,
 	IonImageryProvider,
 	buildModuleUrl,
+	ShadowMode,
 } from "cesium";
 import type { TileProperties } from "../features/buildings-3d/lib/buildingMetadataApi";
 
@@ -263,10 +264,22 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 		viewer.scene.globe.enableLighting = showSunShadow;
 		if (showSunShadow && viewer.shadowMap) {
 			viewer.shadowMap.softShadows = true;
-			// 4096px concentrated over 2 km → ~0.5 m/px shadow resolution in the
-			// visible area, which gives smooth, crisp shadow edges.
+			// Large shadow map concentrated over a tight distance → high texel density.
 			viewer.shadowMap.size = 4096;
-			viewer.shadowMap.maximumDistance = 2000;
+			// 1500 m is wide enough to cover a dense neighbourhood while keeping
+			// ~0.37 m/px resolution — tighter than 2000 m reduces low-sun-angle acne.
+			viewer.shadowMap.maximumDistance = 1500;
+			// Normal-offset pushes the shadow sample along the surface normal so a
+			// face cannot accidentally shadow itself.
+			viewer.shadowMap.normalOffset = true;
+			// Smooth the shadow boundary at maximumDistance instead of a hard cutoff.
+			viewer.shadowMap.fadingEnabled = true;
+			// Terrain receives building shadows; buildings use CAST_ONLY (see
+			// BAG3DTileset / GooglePhotorealisticTileset) so they never self-shadow.
+			viewer.terrainShadows = ShadowMode.RECEIVE_ONLY;
+		} else {
+			// Restore terrain shadow default when shadows are disabled.
+			viewer.terrainShadows = ShadowMode.RECEIVE_ONLY;
 		}
 		// Stop Cesium's own real-time clock advance so we control time manually.
 		viewer.clock.shouldAnimate = false;
