@@ -243,7 +243,9 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 
 	useImperativeHandle(
 		ref,
-		() => ({ togglePerspective: handleTogglePerspective }),
+		() => ({
+			togglePerspective: handleTogglePerspective,
+		}),
 		[isPerspective],
 	);
 
@@ -305,7 +307,7 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 				ref={viewerRef}
 				full
 				baseLayerPicker={true}
-				geocoder={false}
+				geocoder={true}
 				homeButton={true}
 				sceneModePicker={false}
 				navigationHelpButton={true}
