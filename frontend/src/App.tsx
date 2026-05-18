@@ -20,7 +20,10 @@ import { useBuildingHighlight } from "./features/buildings-3d/useBuildingHighlig
 import { QGIS_OVERLAY_LAYERS } from "./features/wms-overlay/lib/qgisLayers";
 import { SideMenu } from "./components/sideMenu/SideMenu";
 import { LayersIcon } from "./components/icons/LayersIcon";
-import { OverlayLayersPanel, type OverlayLayerConfig } from "./components/panels/OverlayLayersPanel";
+import {
+	OverlayLayersPanel,
+	type OverlayLayerConfig,
+} from "./components/panels/OverlayLayersPanel";
 import { TreeIcon } from "./components/icons/TreeIcon";
 import { HeatStressMeasuresPanel } from "./components/panels/HeatStressMeasuresPanel";
 import { BuildingIcon } from "./components/icons/BuildingIcon";
@@ -64,8 +67,10 @@ export default function App() {
 	);
 	const loaderLeft = activeSideMenuId ? "25.5rem" : "4rem";
 
-	// Height offset for the BAG 3D Tileset to align better with the terrain. Adjust as needed based on visual inspection.
-	const BAG_3D_HEIGHT_OFFSET = -45;
+	// 3D BAG uses AHN LiDAR (0.5 m) for ground heights; Cesium World Terrain uses
+	// coarser global data, so terrain mesh runs ~2 m lower than AHN in Middelburg.
+	// A small positive offset keeps building bases above the terrain surface.
+	const BAG_3D_HEIGHT_OFFSET = 1;
 
 	const [overlayLayers, setOverlayLayers] = useState<OverlayLayerConfig[]>([
 		{ id: QGIS_OVERLAY_LAYERS[0].id, opacity: 1 },
@@ -90,7 +95,8 @@ export default function App() {
 
 	const { featureInfo, legend, handleMapClick } = useWMSLayers({
 		showOverlay: overlayLayers.length > 0,
-		overlayLayerId: overlayLayers[overlayLayers.length - 1]?.id ?? QGIS_OVERLAY_LAYERS[0].id,
+		overlayLayerId:
+			overlayLayers[overlayLayers.length - 1]?.id ?? QGIS_OVERLAY_LAYERS[0].id,
 	});
 
 	const { handleBuildingClick, buildingInfo, tileProperties } =
@@ -157,7 +163,13 @@ export default function App() {
 				handleMapClick(lon, lat);
 			}
 		},
-		[showBuildings, isEditingMode, handleBuildingClick, handleInteraction, handleMapClick],
+		[
+			showBuildings,
+			isEditingMode,
+			handleBuildingClick,
+			handleInteraction,
+			handleMapClick,
+		],
 	);
 
 	const activeVbos =

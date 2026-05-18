@@ -3,6 +3,7 @@ import {
 	forwardRef,
 	useEffect,
 	useImperativeHandle,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
@@ -22,6 +23,7 @@ import {
 	IonImageryProvider,
 	buildModuleUrl,
 	ShadowMode,
+	Terrain,
 } from "cesium";
 import type { TileProperties } from "../features/buildings-3d/lib/buildingMetadataApi";
 
@@ -76,6 +78,9 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 	);
 	const [isPerspective, setIsPerspective] = useState(true);
 	const [initialFlyDone, setInitialFlyDone] = useState(false);
+	// World terrain gives Cesium real ground elevations so 3D BAG buildings
+	// (which are positioned at absolute NAP heights) sit on the correct surface.
+	const terrain = useMemo(() => Terrain.fromWorldTerrain(), []);
 
 	// Curate the basemap picker to exactly match the user's Ion account assets.
 	// Runs after mount — the default Bing Maps initial load is unaffected.
@@ -306,6 +311,7 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 			<Viewer
 				ref={viewerRef}
 				full
+				terrain={terrain}
 				baseLayerPicker={true}
 				geocoder={true}
 				homeButton={true}

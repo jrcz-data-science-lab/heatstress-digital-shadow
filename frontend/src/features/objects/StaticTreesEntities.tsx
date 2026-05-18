@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Entity, ModelGraphics } from "resium";
-import { Cartesian3 } from "cesium";
+import { Cartesian3, HeightReference } from "cesium";
 import { rdToLonLat } from "../../map/utils/crs";
 import { BBOX } from "../../map/utils/constants";
 
@@ -69,6 +69,7 @@ export function StaticTreesEntities({
 						uri={modelUrl}
 						scale={tree.scale * 0.5}
 						minimumPixelSize={16}
+						heightReference={HeightReference.CLAMP_TO_GROUND}
 					/>
 				</Entity>
 			))}
