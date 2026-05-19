@@ -17,7 +17,7 @@ export const FeatureInfoCard = ({
 }: FeatureInfoCardProps) => {
 	const formattedValue =
 		info.band != null
-			? `${info.band.toFixed(2)}${unit ? ` ${unit}` : ""}`
+			? info.band.toFixed(2) + (unit ? " " + unit : "")
 			: "n/a";
 	return (
 		<div
