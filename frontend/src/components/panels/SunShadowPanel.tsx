@@ -251,6 +251,7 @@ export function SunShadowPanel({
 									setIsPlaying(false);
 									const next = new Date(simulationDate);
 									next.setFullYear(2015, 6, 1); // July 1, 2015
+									next.setHours(18, 0, 0, 0);
 									onDateChange(next);
 								}}
 								style={{
