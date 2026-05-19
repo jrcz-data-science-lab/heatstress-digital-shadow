@@ -70,7 +70,13 @@ const PITCH_3D = CesiumMath.toRadians(-45); // tilted perspective
 const PITCH_2D = CesiumMath.toRadians(-90); // straight down
 
 const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
-	{ children, onLeftClick, isEditingMode, showSunShadow = false, simulationTime },
+	{
+		children,
+		onLeftClick,
+		isEditingMode,
+		showSunShadow = false,
+		simulationTime,
+	},
 	ref,
 ) {
 	const viewerRef = useRef<{ cesiumElement: import("cesium").Viewer } | null>(
@@ -92,10 +98,10 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 		// Strip anything not in the account: API-key Google/Azure Maps,
 		// Natural Earth II and Sentinel-2 (not in this Ion account).
 		const REMOVE = [
-			"Google Maps",   // API-key based — replaced by Ion-hosted versions below
-			"Azure Maps",    // Needs separate Azure key
+			"Google Maps", // API-key based — replaced by Ion-hosted versions below
+			"Azure Maps", // Needs separate Azure key
 			"Natural Earth", // Ion asset not in this account
-			"Sentinel",      // Ion asset not in this account
+			"Sentinel", // Ion asset not in this account
 		];
 		const kept = pickerVm.imageryProviderViewModels.filter(
 			(vm) => !REMOVE.some((kw) => vm.name.includes(kw)),
@@ -106,11 +112,11 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 			"Widgets/Images/ImageryProviders/openstreetmap.png",
 		);
 		const ionGoogle: ProviderViewModel[] = [
-			{ name: "Google Maps 2D Satellite",             assetId: 3830182 },
+			{ name: "Google Maps 2D Satellite", assetId: 3830182 },
 			{ name: "Google Maps 2D Satellite with Labels", assetId: 3830183 },
-			{ name: "Google Maps 2D Roadmap",               assetId: 3830184 },
-			{ name: "Google Maps 2D Labels Only",           assetId: 3830185 },
-			{ name: "Google Maps 2D Contour",               assetId: 3830186 },
+			{ name: "Google Maps 2D Roadmap", assetId: 3830184 },
+			{ name: "Google Maps 2D Labels Only", assetId: 3830185 },
+			{ name: "Google Maps 2D Contour", assetId: 3830186 },
 		].map(
 			({ name, assetId }) =>
 				new ProviderViewModel({
