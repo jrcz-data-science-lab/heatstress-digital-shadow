@@ -19,7 +19,6 @@ export const FeatureInfoCard = ({
 		info.band != null
 			? `${info.band.toFixed(2)}${unit ? ` ${unit}` : ""}`
 			: "n/a";
-
 	return (
 		<div
 			style={{
