@@ -238,6 +238,66 @@ export function SunShadowPanel({
 					</div>
 
 					<div style={divider}>
+						<div style={sectionTitle}>Quick date</div>
+						<div
+							style={{
+								display: "grid",
+								gridTemplateColumns: "1fr 1fr",
+								gap: "6px",
+							}}
+						>
+							<button
+								onClick={() => {
+									setIsPlaying(false);
+									const next = new Date(simulationDate);
+									next.setFullYear(2015, 6, 1); // July 1, 2015
+									onDateChange(next);
+								}}
+								style={{
+									padding: "8px 10px",
+									background: "#fef9ec",
+									border: "1px solid #f5c518",
+									borderRadius: "6px",
+									fontSize: "12px",
+									fontWeight: 700,
+									cursor: "pointer",
+									color: "#7a5900",
+									textAlign: "left",
+								}}
+							>
+								July 1, 2015 — Reference tropical day (RIVM)
+							</button>
+							<button
+								onClick={() => {
+									setIsPlaying(false);
+									const next = new Date();
+									next.setHours(
+										simulationDate.getHours(),
+										simulationDate.getMinutes(),
+										0,
+										0,
+									);
+									onDateChange(next);
+								}}
+								style={{
+									padding: "8px 10px",
+									background: "#f4f4f4",
+									border: "1px solid #e0e0e0",
+									borderRadius: "6px",
+									fontSize: "12px",
+									fontWeight: 600,
+									cursor: "pointer",
+									color: "#333",
+									textAlign: "left",
+									maxWidth: "140px",
+								}}
+							>
+								Today
+							</button>
+						</div>
+					</div>
+
+					<div style={divider}>
 						<div style={sectionTitle}>Quick jump</div>
 						<div
 							style={{
