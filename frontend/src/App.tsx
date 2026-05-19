@@ -93,10 +93,14 @@ export default function App() {
 		setSelectedObjectType,
 	);
 
+	const activeLayerId =
+		overlayLayers[overlayLayers.length - 1]?.id ?? QGIS_OVERLAY_LAYERS[0].id;
+	const activeLayerMeta =
+		QGIS_OVERLAY_LAYERS.find((l) => l.id === activeLayerId) ?? QGIS_OVERLAY_LAYERS[0];
+
 	const { featureInfo, legend, handleMapClick } = useWMSLayers({
 		showOverlay: overlayLayers.length > 0,
-		overlayLayerId:
-			overlayLayers[overlayLayers.length - 1]?.id ?? QGIS_OVERLAY_LAYERS[0].id,
+		overlayLayerId: activeLayerId,
 	});
 
 	const { handleBuildingClick, buildingInfo, tileProperties } =
@@ -335,10 +339,14 @@ export default function App() {
 			>
 				<PerformanceOverlay />
 				{legend && overlayLayers.length > 0 && (
-					<LegendCard legend={legend} title="PET Index Legend" />
+					<LegendCard legend={legend} title={activeLayerMeta.label} />
 				)}
 				{featureInfo && !buildingInfo ? (
-					<FeatureInfoCard info={featureInfo} />
+					<FeatureInfoCard
+						info={featureInfo}
+						valueLabel={activeLayerMeta.valueLabel}
+						unit={activeLayerMeta.unit}
+					/>
 				) : null}
 			</div>
 

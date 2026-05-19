@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { buildGetFeatureInfoUrl, type LonLatBBox } from "./wmsUtils";
+import { buildGetFeatureInfoUrl } from "./wmsUtils";
 
 export interface PetFeatureInfo {
   lon: number;
@@ -33,9 +33,6 @@ function isFeatureCollection(value: unknown): value is QgisFeatureCollection {
 }
 
 type Config = {
-  bounds: LonLatBBox;
-  width: number;
-  height: number;
   baseUrl: string;
   layerName: string;
 };
@@ -51,9 +48,6 @@ export function useQgisFeatureInfo(config: Config) {
     const url = buildGetFeatureInfoUrl({
       baseUrl: config.baseUrl,
       layerName: config.layerName,
-      bounds: config.bounds,
-      width: config.width,
-      height: config.height,
       coord: [lon, lat],
       infoFormat: "application/json",
     });

@@ -31,12 +31,10 @@ export function useWMSLayers({
 		error: legendError,
 	} = useWMSLegend({
 		enabled: showOverlay,
+		layerId: overlayLayerId,
 	});
 
 	const { featureInfo, request, clear } = useQgisFeatureInfo({
-		bounds: WMS_BOUNDS,
-		width: WMS_WIDTH,
-		height: WMS_HEIGHT,
 		baseUrl: WMS_BASE_URL,
 		layerName: overlayLayerId,
 	});
