@@ -12,12 +12,6 @@ export const QGIS_OVERLAY_LAYERS = [
 		unit: "°C",
 	},
 	{
-		id: "pet-zeeland",
-		label: "PET Zeeland 2019 5m",
-		valueLabel: "PET Index",
-		unit: "°C",
-	},
-	{
 		id: "pet-zeeland-2015",
 		label: "PET Zeeland 2015 2m",
 		valueLabel: "PET Index",
@@ -53,6 +47,12 @@ export const QGIS_OVERLAY_LAYERS = [
 		id: "bowen-ratio-middelburg",
 		label: "Bowen ratio",
 		valueLabel: "Bowen Ratio",
+		unit: "",
+	},
+	{
+		id: "dtm-nederland",
+		label: "Digital Terrain Model (DTM) 0.5m",
+		valueLabel: "Digital Terrain Model (DTM) 0.5m",
 		unit: "",
 	},
 	{ id: "ndvi-middelburg", label: "NDVI", valueLabel: "NDVI", unit: "" },
