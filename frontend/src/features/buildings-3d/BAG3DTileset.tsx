@@ -5,6 +5,7 @@ import {
 	Cesium3DTileColorBlendMode,
 	Cartesian3,
 	Matrix4,
+	ShadowMode,
 } from "cesium";
 
 // 3D BAG — LoD2.2 3D Tiles (Netherlands national building dataset)
@@ -12,10 +13,11 @@ import {
 const LOD22_URL =
 	"https://data.3dbag.nl/v20250903/cesium3dtiles/lod22/tileset.json";
 
-// Geographic center of the Netherlands — used to compute the ECEF radial direction
-// for the height offset translation.
-const NL_LON = 5.3;
-const NL_LAT = 52.1;
+// Geographic center of Middelburg — used to compute the ECEF radial (up) direction
+// for the height offset translation. Using the actual project location ensures the
+// translation vector is vertical here, not tilted from a distant reference point.
+const NL_LON = 3.613;
+const NL_LAT = 51.5;
 
 const DEFAULT_COLOR = "color('rgb(200, 205, 212)')";
 const SELECTED_COLOR_HIGHLIGHT = "color('yellow')";
@@ -25,9 +27,15 @@ type Props = {
 	/** Numeric BAG identificatie of the selected building (without NL.IMBAG.Pand. prefix).
 	 *  All tile features whose identificatie matches are highlighted yellow. */
 	selectedBagId?: string | null;
+	/** When true the tileset casts and receives shadows from the Cesium sun. */
+	shadowsEnabled?: boolean;
 };
 
-export function BAG3DTileset({ heightOffset = 0, selectedBagId }: Props) {
+export function BAG3DTileset({
+	heightOffset = 0,
+	selectedBagId,
+	shadowsEnabled = false,
+}: Props) {
 	// Translate the tileset radially (along the ECEF up-direction at the NL center).
 	// Matrix4.IDENTITY when heightOffset is 0 so no transform is applied.
 	const modelMatrix = useMemo(() => {
@@ -62,6 +70,10 @@ export function BAG3DTileset({ heightOffset = 0, selectedBagId }: Props) {
 			style={style}
 			modelMatrix={modelMatrix}
 			colorBlendMode={Cesium3DTileColorBlendMode.REPLACE}
+			// CAST_ONLY: buildings project shadows onto the ground but never
+			// receive shadows on their own surfaces — eliminates self-shadow acne
+			// at low sun angles without losing ground-level shadow coverage.
+			shadows={shadowsEnabled ? ShadowMode.CAST_ONLY : ShadowMode.DISABLED}
 		/>
 	);
 }

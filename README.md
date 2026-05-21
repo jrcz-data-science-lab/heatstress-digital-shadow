@@ -25,7 +25,23 @@ cp backend/.env.example backend/.env
 
 Edit `backend/.env` and fill in your API keys (see [backend/README.md](backend/README.md) for details).
 
-### 2. Start all services
+### 2. Configure the Cesium Ion token
+
+The frontend basemap picker (Bing Maps, Esri imagery, etc.) requires a free Cesium Ion access token.
+
+```bash
+cp frontend/.env.example frontend/.env.local
+```
+
+Edit `frontend/.env.local` and paste your token:
+
+```
+VITE_CESIUM_ION_TOKEN=your_token_here
+```
+
+Get a free token at [ion.cesium.com/tokens](https://ion.cesium.com/tokens). The `.env.local` file is gitignored — never commit real tokens.
+
+### 4. Start all services
 
 ```bash
 docker compose up -d

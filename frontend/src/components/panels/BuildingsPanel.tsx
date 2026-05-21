@@ -34,6 +34,8 @@ interface BuildingInfo {
 type BuildingsPanelProps = {
 	showBuildings: boolean;
 	onToggleBuildings: (value: boolean) => void;
+	showGoogleTiles: boolean;
+	onToggleGoogleTiles: (value: boolean) => void;
 	buildingInfo?: BuildingInfo | null;
 	activeVbos?: VboData[];
 	tileProperties?: TileProperties | null;
@@ -519,6 +521,8 @@ function VboCard({
 export function BuildingsPanel({
 	showBuildings,
 	onToggleBuildings,
+	showGoogleTiles,
+	onToggleGoogleTiles,
 	buildingInfo,
 	activeVbos = [],
 	tileProperties: tp,
@@ -528,12 +532,44 @@ export function BuildingsPanel({
 
 	return (
 		<div style={{ padding: "0 4px" }}>
-			<h3>3DBAG Buildings</h3>
+			<h3>3D Buildings</h3>
+
+			{/* ── 3DBAG ── */}
 			<CheckboxItem
-				label="Display Buildings"
+				label="Display BAG 3D Buildings (3D Meta Data)"
 				checked={showBuildings}
 				onChange={onToggleBuildings}
 			/>
+
+			{/* ── Google Photorealistic 3D Tiles ── */}
+			<div style={{ marginTop: "8px" }}>
+				<CheckboxItem
+					label="Google Photorealistic 3D Tiles (Visual Only)"
+					checked={showGoogleTiles}
+					onChange={onToggleGoogleTiles}
+				/>
+			</div>
+			{showGoogleTiles && (
+				<div
+					style={{
+						marginTop: "20px",
+						marginBottom: "4px",
+						backgroundColor: "#ef5e5e",
+						padding: "8px 10px",
+						borderRadius: "6px",
+						fontSize: "12px",
+						color: "#000000",
+						borderLeft: "3px solid #ae1919",
+					}}
+				>
+					Google Photorealistic 3D Tiles are active. This is only for
+					visualization purposes. Data / PET or Tree data cannot be accessed.
+					<br />
+					<br />
+					WARNING : Intensive hardware requirements. May cause browser
+					instability or crashes.
+				</div>
+			)}
 
 			{/* Intro hint */}
 			<div

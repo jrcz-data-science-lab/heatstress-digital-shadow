@@ -221,6 +221,20 @@ export function OverlayLayersPanel({
 					);
 				})}
 			</div>
+
+			{/* ── Methodology note ── */}
+			<hr style={{ border: "none", borderTop: "1px solid #e5e5e5", margin: "16px 0 12px" }} />
+			<p style={sectionLabelStyle}>About this data</p>
+			<p style={infoTextStyle}>
+				The perceived temperature (PET) has been calculated for every outdoor
+				location for the period between 12:00 and 18:00. July 1, 2015 was chosen
+				as a representative tropical day (RIVM, 2019). A maximum temperature of
+				33.1&nbsp;°C was measured in De Bilt on that day. The measured air
+				temperature, solar radiation, and humidity from that day in De Bilt were
+				used to calculate the perceived temperature across the Netherlands.
+				Additionally, a near-calm wind situation was assumed for the entire
+				Netherlands.
+			</p>
 		</div>
 	);
 }
@@ -281,4 +295,11 @@ const checkboxRowStyle: React.CSSProperties = {
 	padding: "7px 4px",
 	cursor: "pointer",
 	borderBottom: "1px solid #f0f0f0",
+};
+
+const infoTextStyle: React.CSSProperties = {
+	fontSize: "0.8rem",
+	color: "#555",
+	lineHeight: 1.55,
+	margin: 0,
 };

@@ -3,6 +3,7 @@ import {
 	forwardRef,
 	useEffect,
 	useImperativeHandle,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
@@ -16,8 +17,20 @@ import {
 	Camera,
 	Rectangle,
 	Cesium3DTileFeature,
+	JulianDate,
+	Ion,
+	ProviderViewModel,
+	IonImageryProvider,
+	buildModuleUrl,
+	ShadowMode,
+	Terrain,
 } from "cesium";
 import type { TileProperties } from "../features/buildings-3d/lib/buildingMetadataApi";
+
+// ── Cesium Ion token ──────────────────────────────────────────────────────────
+// Set via VITE_CESIUM_ION_TOKEN in your .env.local file.
+// All default basemaps (Bing Maps, Esri, etc.) require a valid Ion token.
+Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_TOKEN ?? "";
 
 export type CesiumClickInfo = {
 	coordinate: [lon: number, lat: number] | null;
@@ -36,6 +49,8 @@ type Props = {
 	children?: ReactNode;
 	onLeftClick?: (info: CesiumClickInfo) => void;
 	isEditingMode?: boolean;
+	showSunShadow?: boolean;
+	simulationTime?: Date | null;
 };
 
 // Home button position and default view rectangle are set to cover Zeeland by default, but can be adjusted as needed.
@@ -55,7 +70,13 @@ const PITCH_3D = CesiumMath.toRadians(-45); // tilted perspective
 const PITCH_2D = CesiumMath.toRadians(-90); // straight down
 
 const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
-	{ children, onLeftClick, isEditingMode },
+	{
+		children,
+		onLeftClick,
+		isEditingMode,
+		showSunShadow = false,
+		simulationTime,
+	},
 	ref,
 ) {
 	const viewerRef = useRef<{ cesiumElement: import("cesium").Viewer } | null>(
@@ -63,25 +84,56 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 	);
 	const [isPerspective, setIsPerspective] = useState(true);
 	const [initialFlyDone, setInitialFlyDone] = useState(false);
-	const basemapSet = useRef(false);
+	// World terrain gives Cesium real ground elevations so 3D BAG buildings
+	// (which are positioned at absolute NAP heights) sit on the correct surface.
+	const terrain = useMemo(() => Terrain.fromWorldTerrain(), []);
 
-	// Set up click handler (also sets default base layer once, since the viewer
-	// isn't ready during the initial mount render and needs onLeftClick to be stable first)
+	// Curate the basemap picker to exactly match the user's Ion account assets.
+	// Runs after mount — the default Bing Maps initial load is unaffected.
+	useEffect(() => {
+		const viewer = viewerRef.current?.cesiumElement;
+		if (!viewer) return;
+		const pickerVm = viewer.baseLayerPicker.viewModel;
+
+		// Strip anything not in the account: API-key Google/Azure Maps,
+		// Natural Earth II and Sentinel-2 (not in this Ion account).
+		const REMOVE = [
+			"Google Maps", // API-key based — replaced by Ion-hosted versions below
+			"Azure Maps", // Needs separate Azure key
+			"Natural Earth", // Ion asset not in this account
+			"Sentinel", // Ion asset not in this account
+		];
+		const kept = pickerVm.imageryProviderViewModels.filter(
+			(vm) => !REMOVE.some((kw) => vm.name.includes(kw)),
+		);
+
+		// Add the Ion-hosted Google Maps 2D assets (from this account).
+		const ICON = buildModuleUrl(
+			"Widgets/Images/ImageryProviders/openstreetmap.png",
+		);
+		const ionGoogle: ProviderViewModel[] = [
+			{ name: "Google Maps 2D Satellite", assetId: 3830182 },
+			{ name: "Google Maps 2D Satellite with Labels", assetId: 3830183 },
+			{ name: "Google Maps 2D Roadmap", assetId: 3830184 },
+			{ name: "Google Maps 2D Labels Only", assetId: 3830185 },
+			{ name: "Google Maps 2D Contour", assetId: 3830186 },
+		].map(
+			({ name, assetId }) =>
+				new ProviderViewModel({
+					name,
+					iconUrl: ICON,
+					tooltip: `${name} — Ion asset ${assetId}`,
+					creationFunction: () => IonImageryProvider.fromAssetId(assetId),
+				}),
+		);
+
+		pickerVm.imageryProviderViewModels = [...kept, ...ionGoogle];
+	}, []);
+
+	// Set up click handler
 	useEffect(() => {
 		const viewer = viewerRef.current?.cesiumElement;
 		if (!viewer || !onLeftClick) return;
-
-		if (!basemapSet.current) {
-			const viewModels =
-				viewer.baseLayerPicker.viewModel.imageryProviderViewModels;
-			const stadia = viewModels.find(
-				(vm) => vm.name === "Stadia Alidade Smooth",
-			);
-			if (stadia) {
-				viewer.baseLayerPicker.viewModel.selectedImagery = stadia;
-				basemapSet.current = true;
-			}
-		}
 
 		const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
 
@@ -202,9 +254,56 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 
 	useImperativeHandle(
 		ref,
-		() => ({ togglePerspective: handleTogglePerspective }),
+		() => ({
+			togglePerspective: handleTogglePerspective,
+		}),
 		[isPerspective],
 	);
+
+	// One-time render quality boost — MSAA smooths all 3D geometry edges regardless
+	// of whether shadows are on. 4 samples is a good quality/performance balance.
+	useEffect(() => {
+		const viewer = viewerRef.current?.cesiumElement;
+		if (!viewer) return;
+		viewer.scene.msaaSamples = 4;
+		viewer.scene.fxaa = true;
+	}, []);
+
+	// Enable/disable Cesium shadow map and sun-based globe lighting.
+	useEffect(() => {
+		const viewer = viewerRef.current?.cesiumElement;
+		if (!viewer) return;
+		viewer.shadows = showSunShadow;
+		viewer.scene.globe.enableLighting = showSunShadow;
+		if (showSunShadow && viewer.shadowMap) {
+			viewer.shadowMap.softShadows = true;
+			// Large shadow map concentrated over a tight distance → high texel density.
+			viewer.shadowMap.size = 4096;
+			// 1500 m is wide enough to cover a dense neighbourhood while keeping
+			// ~0.37 m/px resolution — tighter than 2000 m reduces low-sun-angle acne.
+			viewer.shadowMap.maximumDistance = 1500;
+			// Normal-offset pushes the shadow sample along the surface normal so a
+			// face cannot accidentally shadow itself.
+			viewer.shadowMap.normalOffset = true;
+			// Smooth the shadow boundary at maximumDistance instead of a hard cutoff.
+			viewer.shadowMap.fadingEnabled = true;
+			// Terrain receives building shadows; buildings use CAST_ONLY (see
+			// BAG3DTileset / GooglePhotorealisticTileset) so they never self-shadow.
+			viewer.terrainShadows = ShadowMode.RECEIVE_ONLY;
+		} else {
+			// Restore terrain shadow default when shadows are disabled.
+			viewer.terrainShadows = ShadowMode.RECEIVE_ONLY;
+		}
+		// Stop Cesium's own real-time clock advance so we control time manually.
+		viewer.clock.shouldAnimate = false;
+	}, [showSunShadow]);
+
+	// Sync the Cesium clock to the manually chosen simulation time.
+	useEffect(() => {
+		const viewer = viewerRef.current?.cesiumElement;
+		if (!viewer || !simulationTime) return;
+		viewer.clock.currentTime = JulianDate.fromDate(simulationTime);
+	}, [simulationTime]);
 
 	return (
 		<div
@@ -218,8 +317,9 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 			<Viewer
 				ref={viewerRef}
 				full
+				terrain={terrain}
 				baseLayerPicker={true}
-				geocoder={false}
+				geocoder={true}
 				homeButton={true}
 				sceneModePicker={false}
 				navigationHelpButton={true}
@@ -244,7 +344,6 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 				)}
 				{children}
 			</Viewer>
-
 		</div>
 	);
 });

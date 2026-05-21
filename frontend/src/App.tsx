@@ -13,13 +13,17 @@ import {
 } from "./features/existing-trees/ExistingTreesEntities";
 import { UserObjectsEntities } from "./features/objects/UserObjectsEntities";
 import { BAG3DTileset } from "./features/buildings-3d/BAG3DTileset";
+import { GooglePhotorealisticTileset } from "./features/buildings-3d/GooglePhotorealisticTileset";
 import { useUserObjectsLayer } from "./features/objects/useUserObjectsLayer";
 import { useWMSLayers } from "./features/wms-overlay/useWMSLayers";
 import { useBuildingHighlight } from "./features/buildings-3d/useBuildingHighlight";
 import { QGIS_OVERLAY_LAYERS } from "./features/wms-overlay/lib/qgisLayers";
 import { SideMenu } from "./components/sideMenu/SideMenu";
 import { LayersIcon } from "./components/icons/LayersIcon";
-import { OverlayLayersPanel, type OverlayLayerConfig } from "./components/panels/OverlayLayersPanel";
+import {
+	OverlayLayersPanel,
+	type OverlayLayerConfig,
+} from "./components/panels/OverlayLayersPanel";
 import { TreeIcon } from "./components/icons/TreeIcon";
 import { HeatStressMeasuresPanel } from "./components/panels/HeatStressMeasuresPanel";
 import { BuildingIcon } from "./components/icons/BuildingIcon";
@@ -31,9 +35,20 @@ import { TreeLoadingIndicator } from "./components/loading/TreeLoadingIndicator"
 import { LegendCard } from "./components/legend/LegendCard";
 import { PerspectiveIcon } from "./components/icons/PerspectiveIcon";
 import { InformationIcon } from "./components/icons/InformationIcon";
+import { SunIcon } from "./components/icons/SunIcon";
+import { SunShadowPanel } from "./components/panels/SunShadowPanel";
+import { PerformanceOverlay } from "./components/performance/PerformanceOverlay";
 
 export default function App() {
 	const [showBuildings, setShowBuildings] = React.useState(false);
+	const [showGoogleTiles, setShowGoogleTiles] = React.useState(false);
+	const [showSunShadow, setShowSunShadow] = useState(false);
+	// Default to today at noon local time for a sensible starting point
+	const [simulationDate, setSimulationDate] = useState<Date>(() => {
+		const d = new Date();
+		d.setHours(12, 0, 0, 0);
+		return d;
+	});
 	const [showObjects, setShowObjects] = useState(false);
 	const [showExistingTrees, setShowExistingTrees] = useState(false);
 	const [treeLoadStatus, setTreeLoadStatus] = useState<TreeLoadStatus>({
@@ -52,8 +67,10 @@ export default function App() {
 	);
 	const loaderLeft = activeSideMenuId ? "25.5rem" : "4rem";
 
-	// Height offset for the BAG 3D Tileset to align better with the terrain. Adjust as needed based on visual inspection.
-	const BAG_3D_HEIGHT_OFFSET = -45;
+	// 3D BAG uses AHN LiDAR (0.5 m) for ground heights; Cesium World Terrain uses
+	// coarser global data, so terrain mesh runs ~2 m lower than AHN in Middelburg.
+	// A small positive offset keeps building bases above the terrain surface.
+	const BAG_3D_HEIGHT_OFFSET = 1;
 
 	const [overlayLayers, setOverlayLayers] = useState<OverlayLayerConfig[]>([
 		{ id: QGIS_OVERLAY_LAYERS[0].id, opacity: 1 },
@@ -76,9 +93,14 @@ export default function App() {
 		setSelectedObjectType,
 	);
 
+	const activeLayerId =
+		overlayLayers[overlayLayers.length - 1]?.id ?? QGIS_OVERLAY_LAYERS[0].id;
+	const activeLayerMeta =
+		QGIS_OVERLAY_LAYERS.find((l) => l.id === activeLayerId) ?? QGIS_OVERLAY_LAYERS[0];
+
 	const { featureInfo, legend, handleMapClick } = useWMSLayers({
 		showOverlay: overlayLayers.length > 0,
-		overlayLayerId: overlayLayers[overlayLayers.length - 1]?.id ?? QGIS_OVERLAY_LAYERS[0].id,
+		overlayLayerId: activeLayerId,
 	});
 
 	const { handleBuildingClick, buildingInfo, tileProperties } =
@@ -145,7 +167,13 @@ export default function App() {
 				handleMapClick(lon, lat);
 			}
 		},
-		[showBuildings, isEditingMode, handleBuildingClick, handleInteraction, handleMapClick],
+		[
+			showBuildings,
+			isEditingMode,
+			handleBuildingClick,
+			handleInteraction,
+			handleMapClick,
+		],
 	);
 
 	const activeVbos =
@@ -197,9 +225,24 @@ export default function App() {
 				<BuildingsPanel
 					showBuildings={showBuildings}
 					onToggleBuildings={setShowBuildings}
+					showGoogleTiles={showGoogleTiles}
+					onToggleGoogleTiles={setShowGoogleTiles}
 					buildingInfo={buildingInfo}
 					activeVbos={activeVbos}
 					tileProperties={tileProperties}
+				/>
+			),
+		},
+		{
+			id: "sunShadow",
+			icon: <SunIcon />,
+			label: "Sun & Shadow",
+			panel: (
+				<SunShadowPanel
+					enabled={showSunShadow}
+					onToggle={setShowSunShadow}
+					simulationDate={simulationDate}
+					onDateChange={setSimulationDate}
 				/>
 			),
 		},
@@ -226,6 +269,8 @@ export default function App() {
 				ref={cesiumMapRef}
 				onLeftClick={handleCesiumClick}
 				isEditingMode={isEditingMode}
+				showSunShadow={showSunShadow}
+				simulationTime={showSunShadow ? simulationDate : null}
 			>
 				{overlayLayers.map((layer) => (
 					<WMSOverlayLayer
@@ -253,7 +298,12 @@ export default function App() {
 					<BAG3DTileset
 						heightOffset={BAG_3D_HEIGHT_OFFSET}
 						selectedBagId={buildingInfo?.bag_id ?? null}
+						shadowsEnabled={showSunShadow}
 					/>
+				)}
+
+				{showGoogleTiles && (
+					<GooglePhotorealisticTileset shadowsEnabled={showSunShadow} />
 				)}
 			</CesiumMap>
 
@@ -287,11 +337,16 @@ export default function App() {
 					gap: "12px",
 				}}
 			>
-				{legend && overlayLayers.some((l) => l.id === "pet-version-1") && (
-					<LegendCard legend={legend} title="PET Index Legend" />
+				<PerformanceOverlay />
+				{legend && overlayLayers.length > 0 && (
+					<LegendCard legend={legend} title={activeLayerMeta.label} />
 				)}
 				{featureInfo && !buildingInfo ? (
-					<FeatureInfoCard info={featureInfo} />
+					<FeatureInfoCard
+						info={featureInfo}
+						valueLabel={activeLayerMeta.valueLabel}
+						unit={activeLayerMeta.unit}
+					/>
 				) : null}
 			</div>
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Entity, ModelGraphics, PointGraphics, useCesium } from "resium";
-import { Cartesian3, Color, Math as CesiumMath } from "cesium";
+import { Cartesian3, Color, HeightReference, Math as CesiumMath } from "cesium";
 
 /** Below this altitude: full 3D tree models */
 const HIGH_DETAIL_HEIGHT = 500;
@@ -181,6 +181,7 @@ export function ExistingTreesEntities({
 							uri={modelUrl}
 							scale={TREE_SCALE}
 							minimumPixelSize={12}
+							heightReference={HeightReference.CLAMP_TO_GROUND}
 						/>
 					) : (
 						<PointGraphics
@@ -188,6 +189,7 @@ export function ExistingTreesEntities({
 							color={Color.fromCssColorString("#2d8a4e")}
 							outlineColor={Color.fromCssColorString("#1a5c33")}
 							outlineWidth={1}
+							heightReference={HeightReference.CLAMP_TO_GROUND}
 						/>
 					)}
 				</Entity>

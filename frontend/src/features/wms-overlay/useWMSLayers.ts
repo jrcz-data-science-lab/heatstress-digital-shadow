@@ -3,11 +3,12 @@ import { useQgisFeatureInfo } from "./lib/qgisFeatureInfo";
 import type { QgisLayerId } from "./lib/qgisLayers";
 import { useWMSLegend } from "./useWMSLegend";
 
+// Broad bounds covering all WMS layers in Zeeland (Middelburg, Kapelle, etc.)
 export const WMS_BOUNDS: [number, number, number, number] = [
-	3.588347, // west
-	51.4626817, // south
-	3.6581358, // east
-	51.5199357, // north
+	3.3,  // west
+	51.3, // south
+	4.2,  // east
+	51.7, // north
 ];
 
 export const WMS_WIDTH = 2048;
@@ -30,12 +31,10 @@ export function useWMSLayers({
 		error: legendError,
 	} = useWMSLegend({
 		enabled: showOverlay,
+		layerId: overlayLayerId,
 	});
 
 	const { featureInfo, request, clear } = useQgisFeatureInfo({
-		bounds: WMS_BOUNDS,
-		width: WMS_WIDTH,
-		height: WMS_HEIGHT,
 		baseUrl: WMS_BASE_URL,
 		layerName: overlayLayerId,
 	});

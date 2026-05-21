@@ -1,5 +1,5 @@
 import { Entity, ModelGraphics } from 'resium';
-import { Cartesian3 } from 'cesium';
+import { Cartesian3, HeightReference } from 'cesium';
 import type { MeasureType, ObjectInstance } from './lib/objectLayer';
 
 type Props = {
@@ -32,6 +32,7 @@ export function UserObjectsEntities({ objectsToSave, objectTypes }: Props) {
               uri={type.model}
               scale={obj.scale * 0.5}
               minimumPixelSize={16}
+              heightReference={HeightReference.CLAMP_TO_GROUND}
             />
           </Entity>
         );
