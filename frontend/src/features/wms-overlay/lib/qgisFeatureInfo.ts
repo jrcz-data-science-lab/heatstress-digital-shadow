@@ -1,104 +1,104 @@
-import { useState } from "react";
-import { buildGetFeatureInfoUrl, type LonLatBBox } from "./wmsLayer";
+import { useState } from 'react';
+import { buildGetFeatureInfoUrl, type LonLatBBox } from './wmsLayer';
 
 export interface PetFeatureInfo {
-  lon: number;
-  lat: number;
-  band: number | null;
+	lon: number;
+	lat: number;
+	band: number | null;
 }
 
 interface QgisFeature {
-  type: string;
-  id?: string | number;
-  properties?: Record<string, unknown>;
+	type: string;
+	id?: string | number;
+	properties?: Record<string, unknown>;
 }
 
 interface QgisFeatureCollection {
-  type: string;
-  features: QgisFeature[];
+	type: string;
+	features: QgisFeature[];
 }
 
 function isFeatureCollection(value: unknown): value is QgisFeatureCollection {
-  if (typeof value !== "object" || value === null || !("features" in value)) {
-    return false;
-  }
+	if (typeof value !== 'object' || value === null || !('features' in value)) {
+		return false;
+	}
 
-  const fc = value as { features: unknown };
+	const fc = value as { features: unknown };
 
-  return Array.isArray(fc.features);
+	return Array.isArray(fc.features);
 }
 
 type Config = {
-  bounds: LonLatBBox;
-  width: number;
-  height: number;
-  baseUrl: string;
-  layerName: string;
+	bounds: LonLatBBox;
+	width: number;
+	height: number;
+	baseUrl: string;
+	layerName: string;
 };
 
 export function useQgisFeatureInfo(config: Config) {
-  const [featureInfo, setFeatureInfo] = useState<PetFeatureInfo | null>(null);
+	const [featureInfo, setFeatureInfo] = useState<PetFeatureInfo | null>(null);
 
-  function clear() {
-    setFeatureInfo(null);
-  }
+	function clear() {
+		setFeatureInfo(null);
+	}
 
-  async function request(lon: number, lat: number): Promise<void> {
-    const [west, south, east, north] = config.bounds;
+	async function request(lon: number, lat: number): Promise<void> {
+		const [west, south, east, north] = config.bounds;
 
-    const inside = lon >= west && lon <= east && lat >= south && lat <= north;
+		const inside = lon >= west && lon <= east && lat >= south && lat <= north;
 
-    if (!inside) {
-      setFeatureInfo(null);
-      return;
-    }
+		if (!inside) {
+			setFeatureInfo(null);
+			return;
+		}
 
-    const url = buildGetFeatureInfoUrl({
-      baseUrl: config.baseUrl,
-      layerName: config.layerName,
-      bounds: config.bounds,
-      width: config.width,
-      height: config.height,
-      coord: [lon, lat],
-      infoFormat: "application/json",
-    });
+		const url = buildGetFeatureInfoUrl({
+			baseUrl: config.baseUrl,
+			layerName: config.layerName,
+			bounds: config.bounds,
+			width: config.width,
+			height: config.height,
+			coord: [lon, lat],
+			infoFormat: 'application/json',
+		});
 
-    let json: unknown;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) {
-        setFeatureInfo(null);
-        return;
-      }
-      json = await res.json();
-    } catch {
-      setFeatureInfo(null);
-      return;
-    }
+		let json: unknown;
+		try {
+			const res = await fetch(url);
+			if (!res.ok) {
+				setFeatureInfo(null);
+				return;
+			}
+			json = await res.json();
+		} catch {
+			setFeatureInfo(null);
+			return;
+		}
 
-    if (!isFeatureCollection(json)) {
-      setFeatureInfo(null);
-      return;
-    }
+		if (!isFeatureCollection(json)) {
+			setFeatureInfo(null);
+			return;
+		}
 
-    const firstFeature = json.features[0];
-    const properties: Record<string, unknown> = firstFeature?.properties ?? {};
+		const firstFeature = json.features[0];
+		const properties: Record<string, unknown> = firstFeature?.properties ?? {};
 
-    const rawBand = properties["Band 1"] ?? properties["band_1"] ?? null;
+		const rawBand = properties['Band 1'] ?? properties['band_1'] ?? null;
 
-    let band: number | null = null;
+		let band: number | null = null;
 
-    if (typeof rawBand === "number") {
-      band = rawBand;
-    } else if (typeof rawBand === "string") {
-      const parsed = Number(rawBand);
-      if (!Number.isNaN(parsed)) {
-        band = parsed;
-      }
-    }
+		if (typeof rawBand === 'number') {
+			band = rawBand;
+		} else if (typeof rawBand === 'string') {
+			const parsed = Number(rawBand);
+			if (!Number.isNaN(parsed)) {
+				band = parsed;
+			}
+		}
 
-    setFeatureInfo({ lon, lat, band });
-  }
+		setFeatureInfo({ lon, lat, band });
+	}
 
-  return { featureInfo, request, clear };
+	return { featureInfo, request, clear };
 }
