@@ -9,8 +9,7 @@ class AspectService:
     Full pipeline:
     1. Calculate aspect from a height raster (trees-height / buildings-height) using GDAL Aspect.
     2. Separate the aspect into 4 directional bands (N=1, E=2, S=3, W=4).
-    3. Multiply each direction by the object mask to isolate only tree/building pixels facing that direction.
-    4. Produce 8 masked outputs: 4 directions x 2 object types (trees + buildings).
+    3. Extract only the selected wind direction and mask it to the target object type.
     """
 
     DIRECTIONS = {
@@ -66,7 +65,7 @@ class AspectService:
             formula=formula,
             input_rasters={"A": aspect_path},
             output_path=output_path,
-            no_data=None,
+            no_data=0,
             rtype=0
         )
         return {"path": output_path, "layer": layer}
@@ -92,7 +91,7 @@ class AspectService:
             formula=formula,
             input_rasters={"A": aspect_separated_path, "B": mask_path},
             output_path=output_path,
-            no_data=None,
+            no_data=0,
             rtype=0
         )
         return {"path": output_path, "layer": layer}
@@ -102,6 +101,7 @@ class AspectService:
         buildings_height_path: str,
         buildings_mask_path: str,
         output_dir: str,
+        wind_direction: str,
     ) -> dict:
         """
         Bin aspect for buildings and extract directional masks.
@@ -109,8 +109,9 @@ class AspectService:
         :param str buildings_height_path: Path to buildings height raster
         :param str buildings_mask_path: Path to binary buildings mask raster
         :param str output_dir: Directory for all output files
-        :return: Dictionary with 'aspect', 'aspect_separated', and 'north'/'east'/'south'/'west' keys.
-                 Each value is a dict with 'path' and 'layer' keys.
+        :param str wind_direction: Direction to extract (north/east/south/west).
+        :return: Dictionary with 'aspect', 'aspect_separated', and one selected direction key.
+             Each value is a dict with 'path' and 'layer' keys.
         """
         aspect_path = os.path.join(output_dir, "buildings-aspect.tif")
         aspect_sep_path = os.path.join(output_dir, "buildings-aspect-separated.tif")
@@ -120,14 +121,18 @@ class AspectService:
             "aspect_separated": self.separate_aspect_directions(aspect_path, aspect_sep_path),
         }
 
-        for direction_name, direction_value in self.DIRECTIONS.items():
-            out_path = os.path.join(output_dir, f"buildings-aspect-{direction_name}.tif")
-            results[direction_name] = self.extract_directional_aspect(
-                aspect_separated_path=aspect_sep_path,
-                mask_path=buildings_mask_path,
-                direction_value=direction_value,
-                output_path=out_path,
-            )
+        selected_direction = wind_direction.strip().lower()
+        if selected_direction not in self.DIRECTIONS:
+            valid = ", ".join(self.DIRECTIONS.keys())
+            raise ValueError(f"Invalid wind_direction '{wind_direction}'. Valid values: {valid}")
+
+        out_path = os.path.join(output_dir, f"buildings-aspect-{selected_direction}.tif")
+        results[selected_direction] = self.extract_directional_aspect(
+            aspect_separated_path=aspect_sep_path,
+            mask_path=buildings_mask_path,
+            direction_value=self.DIRECTIONS[selected_direction],
+            output_path=out_path,
+        )
 
         return results
 
@@ -136,6 +141,7 @@ class AspectService:
         trees_height_path: str,
         trees_mask_path: str,
         output_dir: str,
+        wind_direction: str,
     ) -> dict:
         """
         Bin aspect for trees and extract directional masks.
@@ -143,8 +149,9 @@ class AspectService:
         :param str trees_height_path: Path to trees height raster
         :param str trees_mask_path: Path to binary trees mask raster
         :param str output_dir: Directory for all output files
-        :return: Dictionary with 'aspect', 'aspect_separated', and 'north'/'east'/'south'/'west' keys.
-                 Each value is a dict with 'path' and 'layer' keys.
+        :param str wind_direction: Direction to extract (north/east/south/west).
+        :return: Dictionary with 'aspect', 'aspect_separated', and one selected direction key.
+             Each value is a dict with 'path' and 'layer' keys.
         """
         aspect_path = os.path.join(output_dir, "trees-aspect.tif")
         aspect_sep_path = os.path.join(output_dir, "trees-aspect-separated.tif")
@@ -154,13 +161,17 @@ class AspectService:
             "aspect_separated": self.separate_aspect_directions(aspect_path, aspect_sep_path),
         }
 
-        for direction_name, direction_value in self.DIRECTIONS.items():
-            out_path = os.path.join(output_dir, f"trees-aspect-{direction_name}.tif")
-            results[direction_name] = self.extract_directional_aspect(
-                aspect_separated_path=aspect_sep_path,
-                mask_path=trees_mask_path,
-                direction_value=direction_value,
-                output_path=out_path,
-            )
+        selected_direction = wind_direction.strip().lower()
+        if selected_direction not in self.DIRECTIONS:
+            valid = ", ".join(self.DIRECTIONS.keys())
+            raise ValueError(f"Invalid wind_direction '{wind_direction}'. Valid values: {valid}")
+
+        out_path = os.path.join(output_dir, f"trees-aspect-{selected_direction}.tif")
+        results[selected_direction] = self.extract_directional_aspect(
+            aspect_separated_path=aspect_sep_path,
+            mask_path=trees_mask_path,
+            direction_value=self.DIRECTIONS[selected_direction],
+            output_path=out_path,
+        )
 
         return results

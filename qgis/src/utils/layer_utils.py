@@ -40,26 +40,30 @@ def load_raster_layer(path: str | None, name: str = "Layer") -> QgsRasterLayer |
     return layer
 
 
-def export_layer_to_geojson(
+def export_layer_to_geopackage(
     layer: QgsVectorLayer,
     output_path: str,
     extent: Optional[QgsRectangle] = None,
-) -> None:
+) -> str:
     """
-    Export a vector layer to GeoJSON format.
+    Export a vector layer to GeoPackage format.
     
     :param QgsVectorLayer layer: Layer to export
-    :param str output_path: Path where GeoJSON will be saved
+    :param str output_path: Path where GeoPackage will be saved
     :param QgsRectangle extent: Optional extent to filter features (default: None)
+    :return: Normalized GeoPackage output path
     :raises Exception: If export fails or file is not created
     """
+    base_path, extension = os.path.splitext(output_path)
+    resolved_output_path = output_path if extension.lower() == ".gpkg" else f"{base_path}.gpkg"
+
     # Ensure output directory exists
-    output_dir = os.path.dirname(output_path)
+    output_dir = os.path.dirname(resolved_output_path)
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
     
     save_options = QgsVectorFileWriter.SaveVectorOptions()
-    save_options.driverName = "GeoJSON"
+    save_options.driverName = "GPKG"
     save_options.fileEncoding = "UTF-8"
     
     if extent != None:
@@ -67,13 +71,15 @@ def export_layer_to_geojson(
     
     error = QgsVectorFileWriter.writeAsVectorFormatV3(
         layer,
-        output_path,
+        resolved_output_path,
         QgsCoordinateTransformContext(),
         save_options
     )
     
     if error[0] != QgsVectorFileWriter.NoError:
-        raise Exception(f"Failed to export to GeoJSON: {error[1]}")
+        raise Exception(f"Failed to export to GeoPackage: {error[1]}")
     
-    if not os.path.exists(output_path):
-        raise Exception(f"Export completed but file not found at {output_path}")
+    if not os.path.exists(resolved_output_path):
+        raise Exception(f"Export completed but file not found at {resolved_output_path}")
+
+    return resolved_output_path

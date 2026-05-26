@@ -1,69 +1,69 @@
-import { useState } from "react";
-import { HeightMapTab } from "./wind/HeightMapTab";
-import { BuildingsTab } from "./wind/BuildingsTab";
-import { TreesTab } from "./wind/TreesTab";
+import { useState } from 'react';
+import { HeightMapTab } from './wind/HeightMapTab';
+import { BuildingsTab } from './wind/BuildingsTab';
+import { TreesTab } from './wind/TreesTab';
+import { GridTab } from './wind/GridTab';
+import { WindReductionTab } from './wind/WindReductionTab';
+import './WindPanel.css';
+
+const WIND_TABS = [
+	{
+		id: 'reduction',
+		label: 'Wind Reduction',
+		Component: WindReductionTab,
+	},
+	{
+		id: 'height',
+		label: 'Height Map',
+		Component: HeightMapTab,
+	},
+	{
+		id: 'buildings',
+		label: 'Buildings',
+		Component: BuildingsTab,
+	},
+	{
+		id: 'trees',
+		label: 'Trees',
+		Component: TreesTab,
+	},
+	{
+		id: 'grid',
+		label: 'Grid',
+		Component: GridTab,
+	},
+] as const;
+
+type WindTabId = (typeof WIND_TABS)[number]['id'];
 
 export function WindPanel() {
-  const [activeTab, setActiveTab] = useState<"height" | "buildings" | "trees">("height");
+	const [activeTab, setActiveTab] = useState<WindTabId>('reduction');
+	const activeTabConfig = WIND_TABS.find((tab) => tab.id === activeTab) ?? WIND_TABS[0];
+	const ActiveTab = activeTabConfig.Component;
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* Tab Navigation */}
-      <div style={{ display: "flex", borderBottom: "2px solid #ddd", marginBottom: "1rem", flexShrink: 0 }}>
-        <button
-          onClick={() => setActiveTab("height")}
-          style={{
-            flex: 1,
-            padding: "0.75rem",
-            backgroundColor: activeTab === "height" ? "#4CAF50" : "#f5f5f5",
-            color: activeTab === "height" ? "white" : "#333",
-            border: "none",
-            borderBottom: activeTab === "height" ? "3px solid #2e7d32" : "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.95rem",
-          }}
-        >
-          Height Map
-        </button>
-        <button
-          onClick={() => setActiveTab("buildings")}
-          style={{
-            flex: 1,
-            padding: "0.75rem",
-            backgroundColor: activeTab === "buildings" ? "#2196F3" : "#f5f5f5",
-            color: activeTab === "buildings" ? "white" : "#333",
-            border: "none",
-            borderBottom: activeTab === "buildings" ? "3px solid #1565c0" : "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.95rem",
-          }}
-        >
-          Buildings
-        </button>
-        <button
-          onClick={() => setActiveTab("trees")}
-          style={{
-            flex: 1,
-            padding: "0.75rem",
-            backgroundColor: activeTab === "trees" ? "#4CAF50" : "#f5f5f5",
-            color: activeTab === "trees" ? "white" : "#333",
-            border: "none",
-            borderBottom: activeTab === "trees" ? "3px solid #2e7d32" : "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.95rem",
-          }}
-        >
-          Trees
-        </button>
-      </div>
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingRight: "0.5rem" }}>
-        {activeTab === "height" && <HeightMapTab />}
-        {activeTab === "buildings" && <BuildingsTab />}
-        {activeTab === "trees" && <TreesTab />}
-      </div>
-    </div>
-  );
+	return (
+		<div className="wind-panel">
+			<h3>Wind (Debug)</h3>
+
+			<div className="wind-panel__tabs">
+				{WIND_TABS.map((tab) => {
+					const isActive = activeTab === tab.id;
+					const tabClassName = `wind-panel__tab wind-panel__tab--${tab.id}${isActive ? ' is-active' : ''}`;
+
+					return (
+						<button
+							key={tab.id}
+							onClick={() => setActiveTab(tab.id)}
+							className={tabClassName}
+						>
+							{tab.label}
+						</button>
+					);
+				})}
+			</div>
+			<div className="wind-panel__content">
+				<ActiveTab />
+			</div>
+		</div>
+	);
 }

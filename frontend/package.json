@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch"
@@ -23,6 +25,7 @@
     "@loaders.gl/schema": "^4.3.4",
     "@material-tailwind/react": "^2.1.10",
     "iconoir-react": "^7.11.0",
+    "prettier": "^3.8.3",
     "proj4": "^2.19.10",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

@@ -1,413 +1,420 @@
-import { useState } from "react";
-import { CollapsibleHelpBox } from "../../CollapsibleHelpBox";
-import { CollapsibleSection } from "../../CollapsibleSection";
-import { FormInput, LoadingButton, MessageBox, ResultBox, LockToggle } from "../../form";
-
-type WindApiResult = Record<string, string>;
+import { useState } from 'react';
+import { CollapsibleHelpBox } from '../../CollapsibleHelpBox';
+import { DropdownInput, FormInput, LoadingButton, MessageBox, ResultBox } from '../../form';
+import { WindSection } from './WindSection';
+import { postWindJson } from './windApi';
+import { WIND_DIRECTION_OPTIONS } from './windConstants';
+import type { WindApiResult, WindDirection } from './windConstants';
+import { useWindRequest } from './useWindRequest';
+import { getValidatedValue, requirePositiveNumber } from './windValidation';
 
 export function TreesTab() {
-  const [treesReferencePath, setTreesReferencePath] = useState("/data/wind/height.tif");
-  const [treesOutputPath, setTreesOutputPath] = useState("/data/wind/trees.geojson");
-  const [isTreesLoading, setIsTreesLoading] = useState(false);
-  const [treesResult, setTreesResult] = useState<WindApiResult | null>(null);
-  const [treesError, setTreesError] = useState<string | null>(null);
-  const [isImportLocked, setIsImportLocked] = useState(true);
+	const [treesReferencePath, setTreesReferencePath] = useState('/data/wind/height.tif');
+	const [treesOutputPath, setTreesOutputPath] = useState('/data/wind/trees.gpkg');
+	const [isImportLocked, setIsImportLocked] = useState(true);
+	const importRequest = useWindRequest<WindApiResult>();
 
-  // Rasterization state
-  const [rasterizeInput, setRasterizeInput] = useState("/data/wind/trees.geojson");
-  const [rasterizeOutput, setRasterizeOutput] = useState("/data/wind/trees-mask.tif");
-  const [isRasterizing, setIsRasterizing] = useState(false);
-  const [rasterizeResult, setRasterizeResult] = useState<WindApiResult | null>(null);
-  const [rasterizeError, setRasterizeError] = useState<string | null>(null);
-  const [isRasterizeLocked, setIsRasterizeLocked] = useState(true);
+	const [rasterizeInput, setRasterizeInput] = useState('/data/wind/trees.gpkg');
+	const [rasterizeOutput, setRasterizeOutput] = useState('/data/wind/trees-mask.tif');
+	const [rasterizeResolution, setRasterizeResolution] = useState('1');
+	const [bufferDistance, setBufferDistance] = useState('3');
+	const [isRasterizeLocked, setIsRasterizeLocked] = useState(true);
+	const rasterizeRequest = useWindRequest<WindApiResult>();
 
-  // Height extraction state
-  const [heightMapPath, setHeightMapPath] = useState("/data/wind/height.tif");
-  const [treesMaskPath, setTreesMaskPath] = useState("/data/wind/trees-mask.tif");
-  const [treesHeightOutput, setTreesHeightOutput] = useState("/data/wind/trees-height.tif");
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [extractResult, setExtractResult] = useState<WindApiResult | null>(null);
-  const [extractError, setExtractError] = useState<string | null>(null);
-  const [isExtractLocked, setIsExtractLocked] = useState(true);
+	const [heightMapPath, setHeightMapPath] = useState('/data/wind/height.tif');
+	const [treesMaskPath, setTreesMaskPath] = useState('/data/wind/trees-mask.tif');
+	const [treesHeightOutput, setTreesHeightOutput] = useState('/data/wind/trees-height.tif');
+	const [isExtractLocked, setIsExtractLocked] = useState(true);
+	const extractRequest = useWindRequest<WindApiResult>();
 
-  const [aspectHeightPath, setAspectHeightPath] = useState("/data/wind/trees-height.tif");
-  const [aspectMaskPath, setAspectMaskPath] = useState("/data/wind/trees-mask.tif");
-  const [aspectOutputDir, setAspectOutputDir] = useState("/data/wind");
-  const [isAspectLoading, setIsAspectLoading] = useState(false);
-  const [aspectResult, setAspectResult] = useState<WindApiResult | null>(null);
-  const [aspectError, setAspectError] = useState<string | null>(null);
-  const [isAspectLocked, setIsAspectLocked] = useState(true);
+	const [aspectHeightPath, setAspectHeightPath] = useState('/data/wind/trees-height.tif');
+	const [aspectMaskPath, setAspectMaskPath] = useState('/data/wind/trees-mask.tif');
+	const [aspectOutputDir, setAspectOutputDir] = useState('/data/wind');
+	const [aspectWindDirection, setAspectWindDirection] = useState<WindDirection>('west');
+	const [isAspectLocked, setIsAspectLocked] = useState(true);
+	const aspectRequest = useWindRequest<WindApiResult>();
 
-  const handleImportTrees = async () => {
-    setIsTreesLoading(true);
-    setTreesError(null);
-    setTreesResult(null);
+	const handleImportTrees = () => {
+		void importRequest.run(() =>
+			postWindJson<WindApiResult>(
+				'/trees',
+				{
+					output_geojson_path: treesOutputPath,
+					height_map_path: treesReferencePath,
+				},
+				'Failed to import trees',
+			),
+		);
+	};
 
-    try {
-      const response = await fetch("http://localhost:9000/wind/trees", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          output_geojson_path: treesOutputPath,
-          height_map_path: treesReferencePath,
-        }),
-      });
+	const handleRasterizeTrees = () => {
+		const rasterResolutionValue = getValidatedValue(
+			requirePositiveNumber(
+				rasterizeResolution,
+				'Raster resolution must be a positive number',
+			),
+			rasterizeRequest.setError,
+		);
+		if (rasterResolutionValue === null) {
+			return;
+		}
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to import trees");
-      }
+		const bufferDistanceValue = getValidatedValue(
+			requirePositiveNumber(bufferDistance, 'Buffer distance must be a positive number'),
+			rasterizeRequest.setError,
+		);
+		if (bufferDistanceValue === null) {
+			return;
+		}
 
-      const data = await response.json();
-      setTreesResult(data);
-    } catch (err) {
-      setTreesError(err instanceof Error ? err.message : "Unknown error occurred");
-    } finally {
-      setIsTreesLoading(false);
-    }
-  };
+		void rasterizeRequest.run(() =>
+			postWindJson<WindApiResult>(
+				'/rasterize-trees',
+				{
+					input_geojson_path: rasterizeInput,
+					output_raster_path: rasterizeOutput,
+					height_map_path: heightMapPath,
+					raster_resolution: rasterResolutionValue,
+					trees_buffer_distance: bufferDistanceValue,
+				},
+				'Failed to rasterize trees',
+			),
+		);
+	};
 
-  const handleRasterizeTrees = async () => {
-    setIsRasterizing(true);
-    setRasterizeError(null);
-    setRasterizeResult(null);
+	const handleTreesAspect = () => {
+		void aspectRequest.run(() =>
+			postWindJson<WindApiResult>(
+				'/aspect-trees',
+				{
+					height_path: aspectHeightPath,
+					mask_path: aspectMaskPath,
+					output_dir: aspectOutputDir,
+					wind_direction: aspectWindDirection,
+				},
+				'Failed to calculate trees aspect',
+			),
+		);
+	};
 
-    try {
-      const response = await fetch("http://localhost:9000/wind/rasterize-trees", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          input_geojson_path: rasterizeInput,
-          output_raster_path: rasterizeOutput,
-          height_map_path: heightMapPath,
-        }),
-      });
+	const handleExtractTreesHeight = () => {
+		void extractRequest.run(() =>
+			postWindJson<WindApiResult>(
+				'/extract-height-trees',
+				{
+					height_map_path: heightMapPath,
+					mask_path: treesMaskPath,
+					output_path: treesHeightOutput,
+				},
+				'Failed to extract trees height',
+			),
+		);
+	};
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to rasterize trees");
-      }
+	return (
+		<div className="wind-panel__tab-content">
+			<WindSection
+				title="Import Trees"
+				isLocked={isImportLocked}
+				onToggleLock={() => setIsImportLocked(!isImportLocked)}
+			>
+				<FormInput
+					label="Reference Layer Path (Height Map):"
+					value={treesReferencePath}
+					onChange={setTreesReferencePath}
+					disabled={isImportLocked}
+				/>
 
-      const data = await response.json();
-      setRasterizeResult(data);
-    } catch (err) {
-      setRasterizeError(err instanceof Error ? err.message : "Unknown error occurred");
-    } finally {
-      setIsRasterizing(false);
-    }
-  };
+				<FormInput
+					label="Output GeoPackage Path:"
+					value={treesOutputPath}
+					onChange={setTreesOutputPath}
+					disabled={isImportLocked}
+				/>
 
-  const handleTreesAspect = async () => {
-    setIsAspectLoading(true);
-    setAspectError(null);
-    setAspectResult(null);
+				<LoadingButton
+					onClick={handleImportTrees}
+					isLoading={importRequest.isLoading}
+					loadingText="Importing..."
+					text="Import Trees"
+					color="#4CAF50"
+				/>
 
-    try {
-      const response = await fetch("http://localhost:9000/wind/aspect-trees", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          height_path: aspectHeightPath,
-          mask_path: aspectMaskPath,
-          output_dir: aspectOutputDir,
-        }),
-      });
+				{importRequest.error && <MessageBox message={importRequest.error} type="error" />}
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to calculate trees aspect");
-      }
+				{importRequest.result && (
+					<ResultBox
+						status={importRequest.result.status}
+						outputPath={importRequest.result.trees_path}
+						message={importRequest.result.message}
+					/>
+				)}
 
-      setAspectResult(await response.json());
-    } catch (err) {
-      setAspectError(err instanceof Error ? err.message : "Unknown error occurred");
-    } finally {
-      setIsAspectLoading(false);
-    }
-  };
+				<CollapsibleHelpBox
+					title="Help: Trees Import"
+					backgroundColor="var(--wind-color-trees-surface)"
+					borderColor="var(--wind-color-trees)"
+				>
+					<p>
+						This tool imports tree/vegetation objects from the PDOK BGT WFS service and
+						exports them as point features in a GeoPackage.
+					</p>
+					<p>
+						<strong>How it works:</strong>
+					</p>
+					<ul style={{ marginLeft: '1rem' }}>
+						<li>
+							Loads the entire vegetatieobject_punt layer from BGT (no bbox limit)
+						</li>
+						<li>Filters features by the reference layer extent during export</li>
+						<li>Exports trees within the extent as point features in a GeoPackage</li>
+					</ul>
+					<p>
+						The reference layer is typically the height map generated in the Height Map
+						tab. This approach avoids the 1000 object API limit by loading the full
+						dataset and filtering locally.
+					</p>
+				</CollapsibleHelpBox>
+			</WindSection>
 
-  const handleExtractTreesHeight = async () => {
-    setIsExtracting(true);
-    setExtractError(null);
-    setExtractResult(null);
+			<WindSection
+				title="Rasterize Trees"
+				separator
+				isLocked={isRasterizeLocked}
+				onToggleLock={() => setIsRasterizeLocked(!isRasterizeLocked)}
+			>
+				<FormInput
+					label="Height Map Reference Path:"
+					value={heightMapPath}
+					onChange={setHeightMapPath}
+					disabled={isRasterizeLocked}
+				/>
 
-    try {
-      const response = await fetch("http://localhost:9000/wind/extract-height-trees", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          height_map_path: heightMapPath,
-          mask_path: treesMaskPath,
-          output_path: treesHeightOutput,
-        }),
-      });
+				<FormInput
+					label="Input GeoPackage Path:"
+					value={rasterizeInput}
+					onChange={setRasterizeInput}
+					disabled={isRasterizeLocked}
+				/>
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to extract trees height");
-      }
+				<FormInput
+					label="Output Raster Path:"
+					value={rasterizeOutput}
+					onChange={setRasterizeOutput}
+					disabled={isRasterizeLocked}
+				/>
 
-      const data = await response.json();
-      setExtractResult(data);
-    } catch (err) {
-      setExtractError(err instanceof Error ? err.message : "Unknown error occurred");
-    } finally {
-      setIsExtracting(false);
-    }
-  };
+				<FormInput
+					label="Raster Resolution (m):"
+					value={rasterizeResolution}
+					onChange={setRasterizeResolution}
+					disabled={isRasterizeLocked}
+					type="number"
+					step="0.1"
+					min="0"
+				/>
 
-  return (
-    <div style={{ maxWidth: "100%", overflowX: "hidden" }}>
-      <CollapsibleSection title="Import Trees">
-        <LockToggle isLocked={isImportLocked} onToggle={() => setIsImportLocked(!isImportLocked)} />
-        <FormInput
-          label="Reference Layer Path (Height Map):"
-          value={treesReferencePath}
-          onChange={setTreesReferencePath}
-          disabled={isImportLocked}
-        />
+				<FormInput
+					label="Buffer Distance (m):"
+					value={bufferDistance}
+					onChange={setBufferDistance}
+					disabled={isRasterizeLocked}
+					type="number"
+					step="0.1"
+					min="0"
+				/>
 
-        <FormInput
-          label="Output GeoJSON Path:"
-          value={treesOutputPath}
-          onChange={setTreesOutputPath}
-          disabled={isImportLocked}
-        />
+				<LoadingButton
+					onClick={handleRasterizeTrees}
+					isLoading={rasterizeRequest.isLoading}
+					loadingText="Rasterizing..."
+					text="Rasterize Trees"
+					color="#4CAF50"
+				/>
 
-        <LoadingButton
-          onClick={handleImportTrees}
-          isLoading={isTreesLoading}
-          loadingText="Importing..."
-          text="Import Trees"
-          color="#4CAF50"
-        />
+				{rasterizeRequest.error && (
+					<MessageBox message={rasterizeRequest.error} type="error" />
+				)}
 
-        {treesError && <MessageBox message={treesError} type="error" />}
+				{rasterizeRequest.result && (
+					<ResultBox
+						status={rasterizeRequest.result.status}
+						outputPath={rasterizeRequest.result.mask_path}
+						message={rasterizeRequest.result.message}
+					/>
+				)}
 
-        {treesResult && (
-          <ResultBox
-            status={treesResult.status}
-            outputPath={treesResult.trees_path}
-            message={treesResult.message}
-          />
-        )}
+				<CollapsibleHelpBox
+					title="Help: Trees Rasterization"
+					backgroundColor="var(--wind-color-trees-surface)"
+					borderColor="var(--wind-color-trees)"
+				>
+					<p>
+						This tool converts tree points from a GeoPackage to a binary raster mask
+						with buffering.
+					</p>
+					<p>
+						<strong>How it works:</strong>
+					</p>
+					<ul style={{ marginLeft: '1rem' }}>
+						<li>Reads tree point features from the input GeoPackage file</li>
+						<li>Buffers each point into a circular polygon (default 3m radius)</li>
+						<li>Uses height map reference to match extent, resolution, and CRS</li>
+						<li>Rasterizes buffered trees with default 1m resolution</li>
+						<li>Creates a binary mask where trees = 1, no trees = 0</li>
+					</ul>
+					<p>
+						<strong>Important:</strong> The height map reference ensures the mask aligns
+						perfectly with the height map for later height extraction operations. The
+						default 3m buffer represents typical tree canopy radius.
+					</p>
+				</CollapsibleHelpBox>
+			</WindSection>
 
-        <CollapsibleHelpBox
-          title="Help: Trees Import"
-          backgroundColor="#e8f5e9"
-          borderColor="#4CAF50"
-        >
-          <p>
-            This tool imports tree/vegetation objects from the PDOK BGT WFS service
-            and exports them as GeoJSON points.
-          </p>
-          <p>
-            <strong>How it works:</strong>
-          </p>
-          <ul style={{ marginLeft: "1rem" }}>
-            <li>Loads the entire vegetatieobject_punt layer from BGT (no bbox limit)</li>
-            <li>Filters features by the reference layer extent during export</li>
-            <li>Exports trees within the extent as GeoJSON points</li>
-          </ul>
-          <p>
-            The reference layer is typically the height map generated in the Height Map tab.
-            This approach avoids the 1000 object API limit by loading the full dataset and filtering locally.
-          </p>
-        </CollapsibleHelpBox>
-      </CollapsibleSection>
+			<WindSection
+				title="Extract Trees Height"
+				separator
+				isLocked={isExtractLocked}
+				onToggleLock={() => setIsExtractLocked(!isExtractLocked)}
+			>
+				<FormInput
+					label="Height Map Path:"
+					value={heightMapPath}
+					onChange={setHeightMapPath}
+					disabled={isExtractLocked}
+				/>
 
-      <CollapsibleSection title="Rasterize Trees" separator>
-        <LockToggle isLocked={isRasterizeLocked} onToggle={() => setIsRasterizeLocked(!isRasterizeLocked)} />
-        <FormInput
-          label="Height Map Reference Path:"
-          value={heightMapPath}
-          onChange={setHeightMapPath}
-          disabled={isRasterizeLocked}
-        />
+				<FormInput
+					label="Trees Mask Path:"
+					value={treesMaskPath}
+					onChange={setTreesMaskPath}
+					disabled={isExtractLocked}
+				/>
 
-        <FormInput
-          label="Input GeoJSON Path:"
-          value={rasterizeInput}
-          onChange={setRasterizeInput}
-          disabled={isRasterizeLocked}
-        />
+				<FormInput
+					label="Output Trees Height Path:"
+					value={treesHeightOutput}
+					onChange={setTreesHeightOutput}
+					disabled={isExtractLocked}
+				/>
 
-        <FormInput
-          label="Output Raster Path:"
-          value={rasterizeOutput}
-          onChange={setRasterizeOutput}
-          disabled={isRasterizeLocked}
-        />
+				<LoadingButton
+					onClick={handleExtractTreesHeight}
+					isLoading={extractRequest.isLoading}
+					loadingText="Extracting..."
+					text="Extract Trees Height"
+					color="#4CAF50"
+				/>
 
-        <LoadingButton
-          onClick={handleRasterizeTrees}
-          isLoading={isRasterizing}
-          loadingText="Rasterizing..."
-          text="Rasterize Trees"
-          color="#4CAF50"
-        />
+				{extractRequest.error && <MessageBox message={extractRequest.error} type="error" />}
 
-        {rasterizeError && <MessageBox message={rasterizeError} type="error" />}
+				{extractRequest.result && (
+					<ResultBox
+						status={extractRequest.result.status}
+						outputPath={extractRequest.result.height_path}
+						message={extractRequest.result.message}
+						variant="green"
+					/>
+				)}
 
-        {rasterizeResult && (
-          <ResultBox
-            status={rasterizeResult.status}
-            outputPath={rasterizeResult.mask_path}
-            message={rasterizeResult.message}
-          />
-        )}
+				<CollapsibleHelpBox
+					title="Help: Trees Height Extraction"
+					backgroundColor="var(--wind-color-trees-surface)"
+					borderColor="var(--wind-color-trees)"
+				>
+					<p>This tool extracts tree heights from the height map using the trees mask.</p>
+					<p>
+						<strong>How it works:</strong>
+					</p>
+					<ul style={{ marginLeft: '1rem' }}>
+						<li>Applies the formula: (corrected DSM-DTM) * (trees-mask == 1)</li>
+						<li>Creates a raster where only tree pixels have height values</li>
+						<li>All non-tree pixels are set to 0</li>
+					</ul>
+					<p>
+						This output layer contains only the heights of trees, which can be used for
+						wind flow calculations, vegetation analysis, and urban forestry planning.
+					</p>
+				</CollapsibleHelpBox>
+			</WindSection>
 
-        <CollapsibleHelpBox
-          title="Help: Trees Rasterization"
-          backgroundColor="#e8f5e9"
-          borderColor="#4CAF50"
-        >
-          <p>
-            This tool converts tree points from GeoJSON to a binary raster mask with buffering.
-          </p>
-          <p>
-            <strong>How it works:</strong>
-          </p>
-          <ul style={{ marginLeft: "1rem" }}>
-            <li>Reads tree point features from the input GeoJSON file</li>
-            <li>Buffers each point into a circular polygon (3m radius)</li>
-            <li>Uses height map reference to match extent, resolution, and CRS</li>
-            <li>Rasterizes buffered trees with 1m resolution</li>
-            <li>Creates a binary mask where trees = 1, no trees = 0</li>
-          </ul>
-          <p>
-            <strong>Important:</strong> The height map reference ensures the mask aligns perfectly
-            with the height map for later height extraction operations. The 3m buffer represents
-            typical tree canopy radius.
-          </p>
-        </CollapsibleHelpBox>
-      </CollapsibleSection>
+			<WindSection
+				title="Trees Aspect"
+				separator
+				isLocked={isAspectLocked}
+				onToggleLock={() => setIsAspectLocked(!isAspectLocked)}
+			>
+				<FormInput
+					label="Trees Height Path:"
+					value={aspectHeightPath}
+					onChange={setAspectHeightPath}
+					disabled={isAspectLocked}
+				/>
+				<FormInput
+					label="Trees Mask Path:"
+					value={aspectMaskPath}
+					onChange={setAspectMaskPath}
+					disabled={isAspectLocked}
+				/>
+				<FormInput
+					label="Output Directory:"
+					value={aspectOutputDir}
+					onChange={setAspectOutputDir}
+					disabled={isAspectLocked}
+				/>
 
-      <CollapsibleSection title="Extract Trees Height" separator>
-        <LockToggle isLocked={isExtractLocked} onToggle={() => setIsExtractLocked(!isExtractLocked)} />
-        <FormInput
-          label="Height Map Path:"
-          value={heightMapPath}
-          onChange={setHeightMapPath}
-          disabled={isExtractLocked}
-        />
+				<DropdownInput
+					label="Wind Direction (Blowing From):"
+					value={aspectWindDirection}
+					onChange={setAspectWindDirection}
+					options={WIND_DIRECTION_OPTIONS}
+					disabled={isAspectLocked}
+				/>
 
-        <FormInput
-          label="Trees Mask Path:"
-          value={treesMaskPath}
-          onChange={setTreesMaskPath}
-          disabled={isExtractLocked}
-        />
+				<LoadingButton
+					onClick={handleTreesAspect}
+					isLoading={aspectRequest.isLoading}
+					loadingText="Calculating..."
+					text="Calculate Trees Aspect"
+					color="#4CAF50"
+				/>
 
-        <FormInput
-          label="Output Trees Height Path:"
-          value={treesHeightOutput}
-          onChange={setTreesHeightOutput}
-          disabled={isExtractLocked}
-        />
+				{aspectRequest.error && <MessageBox message={aspectRequest.error} type="error" />}
 
-        <LoadingButton
-          onClick={handleExtractTreesHeight}
-          isLoading={isExtracting}
-          loadingText="Extracting..."
-          text="Extract Trees Height"
-          color="#8BC34A"
-        />
+				{aspectRequest.result && (
+					<ResultBox
+						status={aspectRequest.result.status}
+						outputPath={
+							aspectRequest.result.directional_aspect_path ??
+							aspectRequest.result.aspect_separated_path
+						}
+						outputLabel="Directional Aspect:"
+						message={aspectRequest.result.message}
+					/>
+				)}
 
-        {extractError && <MessageBox message={extractError} type="error" />}
-
-        {extractResult && (
-          <ResultBox
-            status={extractResult.status}
-            outputPath={extractResult.height_path}
-            message={extractResult.message}
-            variant="green"
-          />
-        )}
-
-        <CollapsibleHelpBox
-          title="Help: Trees Height Extraction"
-          backgroundColor="#f1f8e9"
-          borderColor="#8BC34A"
-        >
-          <p>
-            This tool extracts tree heights from the height map using the trees mask.
-          </p>
-          <p>
-            <strong>How it works:</strong>
-          </p>
-          <ul style={{ marginLeft: "1rem" }}>
-            <li>Applies the formula: (corrected DSM-DTM) * (trees-mask == 1)</li>
-            <li>Creates a raster where only tree pixels have height values</li>
-            <li>All non-tree pixels are set to 0</li>
-          </ul>
-          <p>
-            This output layer contains only the heights of trees, which can be used
-            for wind flow calculations, vegetation analysis, and urban forestry planning.
-          </p>
-        </CollapsibleHelpBox>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Trees Aspect" separator>
-        <LockToggle isLocked={isAspectLocked} onToggle={() => setIsAspectLocked(!isAspectLocked)} />
-        <FormInput
-          label="Trees Height Path:"
-          value={aspectHeightPath}
-          onChange={setAspectHeightPath}
-          disabled={isAspectLocked}
-        />
-        <FormInput
-          label="Trees Mask Path:"
-          value={aspectMaskPath}
-          onChange={setAspectMaskPath}
-          disabled={isAspectLocked}
-        />
-        <FormInput
-          label="Output Directory:"
-          value={aspectOutputDir}
-          onChange={setAspectOutputDir}
-          disabled={isAspectLocked}
-        />
-
-        <LoadingButton
-          onClick={handleTreesAspect}
-          isLoading={isAspectLoading}
-          loadingText="Calculating..."
-          text="Calculate Trees Aspect"
-          color="#E91E63"
-        />
-
-        {aspectError && <MessageBox message={aspectError} type="error" />}
-
-        {aspectResult && (
-          <ResultBox
-            status={aspectResult.status}
-            outputPath={aspectResult.aspect_separated_path}
-            outputLabel="Aspect Separated:"
-            message={aspectResult.message}
-          />
-        )}
-
-        <CollapsibleHelpBox
-          title="Help: Trees Aspect"
-          backgroundColor="#fce4ec"
-          borderColor="#E91E63"
-        >
-          <p>Calculates which compass direction each tree is facing and produces 4 binary direction masks (N/E/S/W).</p>
-          <ul style={{ marginLeft: "1rem" }}>
-            <li>Runs GDAL Aspect on the trees height layer (0–360°, true north)</li>
-            <li>Bins into N=1 (315–45°), E=2 (45–135°), S=3 (135–225°), W=4 (225–315°)</li>
-            <li>Multiplies each band by the trees mask to isolate only tree pixels</li>
-            <li>Outputs: aspect, aspect-separated, and north/east/south/west masks</li>
-          </ul>
-        </CollapsibleHelpBox>
-      </CollapsibleSection>
-    </div>
-  );
+				<CollapsibleHelpBox
+					title="Help: Trees Aspect"
+					backgroundColor="var(--wind-color-trees-surface)"
+					borderColor="var(--wind-color-trees)"
+				>
+					<p>
+						Calculates tree-facing aspect and extracts only the selected wind direction
+						mask.
+					</p>
+					<ul style={{ marginLeft: '1rem' }}>
+						<li>Runs GDAL Aspect on the trees height layer (0-360°, true north)</li>
+						<li>
+							Bins into N=1 (315-45°), E=2 (45-135°), S=3 (135-225°), W=4 (225-315°)
+						</li>
+						<li>
+							Uses the selected wind direction (blowing from) to extract one
+							directional mask
+						</li>
+						<li>Outputs: aspect, aspect-separated, and one directional mask</li>
+					</ul>
+				</CollapsibleHelpBox>
+			</WindSection>
+		</div>
+	);
 }

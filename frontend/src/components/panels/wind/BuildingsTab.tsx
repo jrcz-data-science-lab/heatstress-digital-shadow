@@ -1,410 +1,401 @@
-import { useState } from "react";
-import { CollapsibleHelpBox } from "../../CollapsibleHelpBox";
-import { CollapsibleSection } from "../../CollapsibleSection";
-import { FormInput, LoadingButton, MessageBox, ResultBox, LockToggle } from "../../form";
-
-type WindApiResult = Record<string, string>;
+import { useState } from 'react';
+import { CollapsibleHelpBox } from '../../CollapsibleHelpBox';
+import { DropdownInput, FormInput, LoadingButton, MessageBox, ResultBox } from '../../form';
+import { WindSection } from './WindSection';
+import { postWindJson } from './windApi';
+import { WIND_DIRECTION_OPTIONS } from './windConstants';
+import type { WindApiResult, WindDirection } from './windConstants';
+import { useWindRequest } from './useWindRequest';
+import { getValidatedValue, requirePositiveNumber } from './windValidation';
 
 export function BuildingsTab() {
-  const [buildingsReferencePath, setBuildingsReferencePath] = useState("/data/wind/height.tif");
-  const [buildingsOutputPath, setBuildingsOutputPath] = useState("/data/wind/buildings.geojson");
-  const [isBuildingsLoading, setIsBuildingsLoading] = useState(false);
-  const [buildingsResult, setBuildingsResult] = useState<WindApiResult | null>(null);
-  const [buildingsError, setBuildingsError] = useState<string | null>(null);
-  const [isImportLocked, setIsImportLocked] = useState(true);
+	const [buildingsReferencePath, setBuildingsReferencePath] = useState('/data/wind/height.tif');
+	const [buildingsOutputPath, setBuildingsOutputPath] = useState('/data/wind/buildings.gpkg');
+	const [isImportLocked, setIsImportLocked] = useState(true);
+	const importRequest = useWindRequest<WindApiResult>();
 
-  const [rasterizeInput, setRasterizeInput] = useState("/data/wind/buildings.geojson");
-  const [rasterizeOutput, setRasterizeOutput] = useState("/data/wind/buildings-mask.tif");
-  const [isRasterizing, setIsRasterizing] = useState(false);
-  const [rasterizeResult, setRasterizeResult] = useState<WindApiResult | null>(null);
-  const [rasterizeError, setRasterizeError] = useState<string | null>(null);
-  const [isRasterizeLocked, setIsRasterizeLocked] = useState(true);
+	const [rasterizeInput, setRasterizeInput] = useState('/data/wind/buildings.gpkg');
+	const [rasterizeOutput, setRasterizeOutput] = useState('/data/wind/buildings-mask.tif');
+	const [rasterizeResolution, setRasterizeResolution] = useState('1');
+	const [isRasterizeLocked, setIsRasterizeLocked] = useState(true);
+	const rasterizeRequest = useWindRequest<WindApiResult>();
 
-  const [heightMapPath, setHeightMapPath] = useState("/data/wind/height.tif");
-  const [buildingsMaskPath, setBuildingsMaskPath] = useState("/data/wind/buildings-mask.tif");
-  const [buildingsHeightOutput, setBuildingsHeightOutput] = useState("/data/wind/buildings-height.tif");
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [extractResult, setExtractResult] = useState<WindApiResult | null>(null);
-  const [extractError, setExtractError] = useState<string | null>(null);
-  const [isExtractLocked, setIsExtractLocked] = useState(true);
+	const [heightMapPath, setHeightMapPath] = useState('/data/wind/height.tif');
+	const [buildingsMaskPath, setBuildingsMaskPath] = useState('/data/wind/buildings-mask.tif');
+	const [buildingsHeightOutput, setBuildingsHeightOutput] = useState(
+		'/data/wind/buildings-height.tif',
+	);
+	const [isExtractLocked, setIsExtractLocked] = useState(true);
+	const extractRequest = useWindRequest<WindApiResult>();
 
-  const [aspectHeightPath, setAspectHeightPath] = useState("/data/wind/buildings-height.tif");
-  const [aspectMaskPath, setAspectMaskPath] = useState("/data/wind/buildings-mask.tif");
-  const [aspectOutputDir, setAspectOutputDir] = useState("/data/wind");
-  const [isAspectLoading, setIsAspectLoading] = useState(false);
-  const [aspectResult, setAspectResult] = useState<WindApiResult | null>(null);
-  const [aspectError, setAspectError] = useState<string | null>(null);
-  const [isAspectLocked, setIsAspectLocked] = useState(true);
+	const [aspectHeightPath, setAspectHeightPath] = useState('/data/wind/buildings-height.tif');
+	const [aspectMaskPath, setAspectMaskPath] = useState('/data/wind/buildings-mask.tif');
+	const [aspectOutputDir, setAspectOutputDir] = useState('/data/wind');
+	const [aspectWindDirection, setAspectWindDirection] = useState<WindDirection>('west');
+	const [isAspectLocked, setIsAspectLocked] = useState(true);
+	const aspectRequest = useWindRequest<WindApiResult>();
 
-  const handleImportBuildings = async () => {
-    setIsBuildingsLoading(true);
-    setBuildingsError(null);
-    setBuildingsResult(null);
+	const handleImportBuildings = () => {
+		void importRequest.run(() =>
+			postWindJson<WindApiResult>(
+				'/buildings',
+				{
+					output_geojson_path: buildingsOutputPath,
+					height_map_path: buildingsReferencePath,
+				},
+				'Failed to import buildings',
+			),
+		);
+	};
 
-    try {
-      const response = await fetch("http://localhost:9000/wind/buildings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          output_geojson_path: buildingsOutputPath,
-          height_map_path: buildingsReferencePath,
-        }),
-      });
+	const handleRasterizeBuildings = () => {
+		const rasterResolutionValue = getValidatedValue(
+			requirePositiveNumber(
+				rasterizeResolution,
+				'Raster resolution must be a positive number',
+			),
+			rasterizeRequest.setError,
+		);
+		if (rasterResolutionValue === null) {
+			return;
+		}
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to import buildings");
-      }
+		void rasterizeRequest.run(() =>
+			postWindJson<WindApiResult>(
+				'/rasterize-buildings',
+				{
+					input_geojson_path: rasterizeInput,
+					output_raster_path: rasterizeOutput,
+					height_map_path: heightMapPath,
+					raster_resolution: rasterResolutionValue,
+				},
+				'Failed to rasterize buildings',
+			),
+		);
+	};
 
-      const data = await response.json();
-      setBuildingsResult(data);
-    } catch (err) {
-      setBuildingsError(err instanceof Error ? err.message : "Unknown error occurred");
-    } finally {
-      setIsBuildingsLoading(false);
-    }
-  };
+	const handleBuildingsAspect = () => {
+		void aspectRequest.run(() =>
+			postWindJson<WindApiResult>(
+				'/aspect-buildings',
+				{
+					height_path: aspectHeightPath,
+					mask_path: aspectMaskPath,
+					output_dir: aspectOutputDir,
+					wind_direction: aspectWindDirection,
+				},
+				'Failed to calculate buildings aspect',
+			),
+		);
+	};
 
-  const handleRasterizeBuildings = async () => {
-    setIsRasterizing(true);
-    setRasterizeError(null);
-    setRasterizeResult(null);
+	const handleExtractBuildingsHeight = () => {
+		void extractRequest.run(() =>
+			postWindJson<WindApiResult>(
+				'/extract-height-buildings',
+				{
+					height_map_path: heightMapPath,
+					mask_path: buildingsMaskPath,
+					output_path: buildingsHeightOutput,
+				},
+				'Failed to extract buildings height',
+			),
+		);
+	};
 
-    try {
-      const response = await fetch("http://localhost:9000/wind/rasterize-buildings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          input_geojson_path: rasterizeInput,
-          output_raster_path: rasterizeOutput,
-          height_map_path: heightMapPath,
-        }),
-      });
+	return (
+		<div className="wind-panel__tab-content">
+			<WindSection
+				title="Import Buildings"
+				isLocked={isImportLocked}
+				onToggleLock={() => setIsImportLocked(!isImportLocked)}
+			>
+				<FormInput
+					label="Reference Layer Path (Height Map):"
+					value={buildingsReferencePath}
+					onChange={setBuildingsReferencePath}
+					disabled={isImportLocked}
+				/>
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to rasterize buildings");
-      }
+				<FormInput
+					label="Output GeoPackage Path:"
+					value={buildingsOutputPath}
+					onChange={setBuildingsOutputPath}
+					disabled={isImportLocked}
+				/>
 
-      const data = await response.json();
-      setRasterizeResult(data);
-    } catch (err) {
-      setRasterizeError(err instanceof Error ? err.message : "Unknown error occurred");
-    } finally {
-      setIsRasterizing(false);
-    }
-  };
+				<LoadingButton
+					onClick={handleImportBuildings}
+					isLoading={importRequest.isLoading}
+					loadingText="Importing..."
+					text="Import Buildings"
+					color="#2196F3"
+				/>
 
-  const handleBuildingsAspect = async () => {
-    setIsAspectLoading(true);
-    setAspectError(null);
-    setAspectResult(null);
+				{importRequest.error && <MessageBox message={importRequest.error} type="error" />}
 
-    try {
-      const response = await fetch("http://localhost:9000/wind/aspect-buildings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          height_path: aspectHeightPath,
-          mask_path: aspectMaskPath,
-          output_dir: aspectOutputDir,
-        }),
-      });
+				{importRequest.result && (
+					<ResultBox
+						status={importRequest.result.status}
+						outputPath={importRequest.result.buildings_path}
+						message={importRequest.result.message}
+						variant="blue"
+					/>
+				)}
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to calculate buildings aspect");
-      }
+				<CollapsibleHelpBox
+					title="Help: Buildings Import"
+					backgroundColor="#e3f2fd"
+					borderColor="#2196F3"
+				>
+					<p>
+						This tool imports building footprints from the PDOK BAG WFS service and
+						exports them as a GeoPackage.
+					</p>
+					<p>
+						<strong>How it works:</strong>
+					</p>
+					<ul style={{ marginLeft: '1rem' }}>
+						<li>Reads the bounding box from the reference layer (height map)</li>
+						<li>Fetches building polygons from PDOK BAG WFS v2.0</li>
+						<li>Exports buildings within the extent as a GeoPackage</li>
+					</ul>
+					<p>
+						The reference layer is typically the height map generated in the previous
+						step. The bounding box is automatically extracted from its extent.
+					</p>
+				</CollapsibleHelpBox>
+			</WindSection>
 
-      setAspectResult(await response.json());
-    } catch (err) {
-      setAspectError(err instanceof Error ? err.message : "Unknown error occurred");
-    } finally {
-      setIsAspectLoading(false);
-    }
-  };
+			<WindSection
+				title="Rasterize Buildings"
+				separator
+				isLocked={isRasterizeLocked}
+				onToggleLock={() => setIsRasterizeLocked(!isRasterizeLocked)}
+			>
+				<FormInput
+					label="Height Map Reference Path:"
+					value={heightMapPath}
+					onChange={setHeightMapPath}
+					disabled={isRasterizeLocked}
+				/>
 
-  const handleExtractBuildingsHeight = async () => {
-    setIsExtracting(true);
-    setExtractError(null);
-    setExtractResult(null);
+				<FormInput
+					label="Input GeoPackage Path:"
+					value={rasterizeInput}
+					onChange={setRasterizeInput}
+					disabled={isRasterizeLocked}
+				/>
 
-    try {
-      const response = await fetch("http://localhost:9000/wind/extract-height-buildings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          height_map_path: heightMapPath,
-          mask_path: buildingsMaskPath,
-          output_path: buildingsHeightOutput,
-        }),
-      });
+				<FormInput
+					label="Output Raster Path:"
+					value={rasterizeOutput}
+					onChange={setRasterizeOutput}
+					disabled={isRasterizeLocked}
+				/>
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to extract buildings height");
-      }
+				<FormInput
+					label="Raster Resolution (m):"
+					value={rasterizeResolution}
+					onChange={setRasterizeResolution}
+					disabled={isRasterizeLocked}
+					type="number"
+					step="0.1"
+					min="0"
+				/>
 
-      const data = await response.json();
-      setExtractResult(data);
-    } catch (err) {
-      setExtractError(err instanceof Error ? err.message : "Unknown error occurred");
-    } finally {
-      setIsExtracting(false);
-    }
-  };
+				<LoadingButton
+					onClick={handleRasterizeBuildings}
+					isLoading={rasterizeRequest.isLoading}
+					loadingText="Rasterizing..."
+					text="Rasterize Buildings"
+					color="#2196F3"
+				/>
 
-  return (
-    <div style={{ maxWidth: "100%", overflowX: "hidden" }}>
-      <CollapsibleSection title="Import Buildings">
-        <LockToggle isLocked={isImportLocked} onToggle={() => setIsImportLocked(!isImportLocked)} />
-        <FormInput
-          label="Reference Layer Path (Height Map):"
-          value={buildingsReferencePath}
-          onChange={setBuildingsReferencePath}
-          disabled={isImportLocked}
-        />
+				{rasterizeRequest.error && (
+					<MessageBox message={rasterizeRequest.error} type="error" />
+				)}
 
-        <FormInput
-          label="Output GeoJSON Path:"
-          value={buildingsOutputPath}
-          onChange={setBuildingsOutputPath}
-          disabled={isImportLocked}
-        />
+				{rasterizeRequest.result && (
+					<ResultBox
+						status={rasterizeRequest.result.status}
+						outputPath={rasterizeRequest.result.mask_path}
+						message={rasterizeRequest.result.message}
+					/>
+				)}
 
-        <LoadingButton
-          onClick={handleImportBuildings}
-          isLoading={isBuildingsLoading}
-          loadingText="Importing..."
-          text="Import Buildings"
-          color="#2196F3"
-        />
+				<CollapsibleHelpBox
+					title="Help: Buildings Rasterization"
+					backgroundColor="var(--wind-color-buildings-surface)"
+					borderColor="var(--wind-color-buildings)"
+				>
+					<p>
+						This tool converts building footprints from a GeoPackage to a binary raster
+						mask.
+					</p>
+					<p>
+						<strong>How it works:</strong>
+					</p>
+					<ul style={{ marginLeft: '1rem' }}>
+						<li>Reads building polygons from the input GeoPackage file</li>
+						<li>Uses height map reference to match extent, resolution, and CRS</li>
+						<li>Rasterizes buildings with burn value 1.0 (default 1m resolution)</li>
+						<li>Creates a binary mask where buildings = 1, no buildings = 0</li>
+					</ul>
+					<p>
+						<strong>Important:</strong> The height map reference ensures the mask aligns
+						perfectly with the height map for later height extraction operations.
+					</p>
+				</CollapsibleHelpBox>
+			</WindSection>
 
-        {buildingsError && <MessageBox message={buildingsError} type="error" />}
+			<WindSection
+				title="Extract Buildings Height"
+				separator
+				isLocked={isExtractLocked}
+				onToggleLock={() => setIsExtractLocked(!isExtractLocked)}
+			>
+				<FormInput
+					label="Height Map Path:"
+					value={heightMapPath}
+					onChange={setHeightMapPath}
+					disabled={isExtractLocked}
+				/>
 
-        {buildingsResult && (
-          <ResultBox
-            status={buildingsResult.status}
-            outputPath={buildingsResult.buildings_path}
-            message={buildingsResult.message}
-            variant="blue"
-          />
-        )}
+				<FormInput
+					label="Buildings Mask Path:"
+					value={buildingsMaskPath}
+					onChange={setBuildingsMaskPath}
+					disabled={isExtractLocked}
+				/>
 
-        <CollapsibleHelpBox
-          title="Help: Buildings Import"
-          backgroundColor="#e3f2fd"
-          borderColor="#2196F3"
-        >
-          <p>
-            This tool imports building footprints from the PDOK BAG WFS service
-            and exports them as GeoJSON.
-          </p>
-          <p>
-            <strong>How it works:</strong>
-          </p>
-          <ul style={{ marginLeft: "1rem" }}>
-            <li>Reads the bounding box from the reference layer (height map)</li>
-            <li>Fetches building polygons from PDOK BAG WFS v2.0</li>
-            <li>Exports buildings within the extent as GeoJSON</li>
-          </ul>
-          <p>
-            The reference layer is typically the height map generated in the previous step.
-            The bounding box is automatically extracted from its extent.
-          </p>
-        </CollapsibleHelpBox>
-      </CollapsibleSection>
+				<FormInput
+					label="Output Buildings Height Path:"
+					value={buildingsHeightOutput}
+					onChange={setBuildingsHeightOutput}
+					disabled={isExtractLocked}
+				/>
 
-      <CollapsibleSection title="Rasterize Buildings" separator>
-        <LockToggle isLocked={isRasterizeLocked} onToggle={() => setIsRasterizeLocked(!isRasterizeLocked)} />
-        <FormInput
-          label="Height Map Reference Path:"
-          value={heightMapPath}
-          onChange={setHeightMapPath}
-          disabled={isRasterizeLocked}
-        />
+				<LoadingButton
+					onClick={handleExtractBuildingsHeight}
+					isLoading={extractRequest.isLoading}
+					loadingText="Extracting..."
+					text="Extract Buildings Height"
+					color="#2196F3"
+				/>
 
-        <FormInput
-          label="Input GeoJSON Path:"
-          value={rasterizeInput}
-          onChange={setRasterizeInput}
-          disabled={isRasterizeLocked}
-        />
+				{extractRequest.error && <MessageBox message={extractRequest.error} type="error" />}
 
-        <FormInput
-          label="Output Raster Path:"
-          value={rasterizeOutput}
-          onChange={setRasterizeOutput}
-          disabled={isRasterizeLocked}
-        />
+				{extractRequest.result && (
+					<ResultBox
+						status={extractRequest.result.status}
+						outputPath={extractRequest.result.height_path}
+						message={extractRequest.result.message}
+					/>
+				)}
 
-        <LoadingButton
-          onClick={handleRasterizeBuildings}
-          isLoading={isRasterizing}
-          loadingText="Rasterizing..."
-          text="Rasterize Buildings"
-          color="#4CAF50"
-        />
+				<CollapsibleHelpBox
+					title="Help: Buildings Height Extraction"
+					backgroundColor="var(--wind-color-buildings-surface)"
+					borderColor="var(--wind-color-buildings)"
+				>
+					<p>
+						This tool extracts building heights from the height map using the buildings
+						mask.
+					</p>
+					<p>
+						<strong>How it works:</strong>
+					</p>
+					<ul style={{ marginLeft: '1rem' }}>
+						<li>Applies the formula: (corrected DSM-DTM) * (buildings-mask == 1)</li>
+						<li>Creates a raster where only building pixels have height values</li>
+						<li>All non-building pixels are set to 0</li>
+					</ul>
+					<p>
+						This output layer contains only the heights of buildings, which can be used
+						for wind flow calculations and urban planning analyses.
+					</p>
+				</CollapsibleHelpBox>
+			</WindSection>
 
-        {rasterizeError && <MessageBox message={rasterizeError} type="error" />}
+			<WindSection
+				title="Buildings Aspect"
+				separator
+				isLocked={isAspectLocked}
+				onToggleLock={() => setIsAspectLocked(!isAspectLocked)}
+			>
+				<FormInput
+					label="Buildings Height Path:"
+					value={aspectHeightPath}
+					onChange={setAspectHeightPath}
+					disabled={isAspectLocked}
+				/>
+				<FormInput
+					label="Buildings Mask Path:"
+					value={aspectMaskPath}
+					onChange={setAspectMaskPath}
+					disabled={isAspectLocked}
+				/>
+				<FormInput
+					label="Output Directory:"
+					value={aspectOutputDir}
+					onChange={setAspectOutputDir}
+					disabled={isAspectLocked}
+				/>
 
-        {rasterizeResult && (
-          <ResultBox
-            status={rasterizeResult.status}
-            outputPath={rasterizeResult.mask_path}
-            message={rasterizeResult.message}
-          />
-        )}
+				<DropdownInput
+					label="Wind Direction (Blowing From):"
+					value={aspectWindDirection}
+					onChange={setAspectWindDirection}
+					options={WIND_DIRECTION_OPTIONS}
+					disabled={isAspectLocked}
+				/>
 
-        <CollapsibleHelpBox
-          title="Help: Buildings Rasterization"
-          backgroundColor="#e8f5e9"
-          borderColor="#4CAF50"
-        >
-          <p>
-            This tool converts building footprints from GeoJSON to a binary raster mask.
-          </p>
-          <p>
-            <strong>How it works:</strong>
-          </p>
-          <ul style={{ marginLeft: "1rem" }}>
-            <li>Reads building polygons from the input GeoJSON file</li>
-            <li>Uses height map reference to match extent, resolution, and CRS</li>
-            <li>Rasterizes buildings with burn value 1.0 (1m resolution)</li>
-            <li>Creates a binary mask where buildings = 1, no buildings = 0</li>
-          </ul>
-          <p>
-            <strong>Important:</strong> The height map reference ensures the mask aligns perfectly
-            with the height map for later height extraction operations.
-          </p>
-        </CollapsibleHelpBox>
-      </CollapsibleSection>
+				<LoadingButton
+					onClick={handleBuildingsAspect}
+					isLoading={aspectRequest.isLoading}
+					loadingText="Calculating..."
+					text="Calculate Buildings Aspect"
+					color="#2196F3"
+				/>
 
-      <CollapsibleSection title="Extract Buildings Height" separator>
-        <LockToggle isLocked={isExtractLocked} onToggle={() => setIsExtractLocked(!isExtractLocked)} />
-        <FormInput
-          label="Height Map Path:"
-          value={heightMapPath}
-          onChange={setHeightMapPath}
-          disabled={isExtractLocked}
-        />
+				{aspectRequest.error && <MessageBox message={aspectRequest.error} type="error" />}
 
-        <FormInput
-          label="Buildings Mask Path:"
-          value={buildingsMaskPath}
-          onChange={setBuildingsMaskPath}
-          disabled={isExtractLocked}
-        />
+				{aspectRequest.result && (
+					<ResultBox
+						status={aspectRequest.result.status}
+						outputPath={
+							aspectRequest.result.directional_aspect_path ??
+							aspectRequest.result.aspect_separated_path
+						}
+						outputLabel="Directional Aspect:"
+						message={aspectRequest.result.message}
+						variant="blue"
+					/>
+				)}
 
-        <FormInput
-          label="Output Buildings Height Path:"
-          value={buildingsHeightOutput}
-          onChange={setBuildingsHeightOutput}
-          disabled={isExtractLocked}
-        />
-
-        <LoadingButton
-          onClick={handleExtractBuildingsHeight}
-          isLoading={isExtracting}
-          loadingText="Extracting..."
-          text="Extract Buildings Height"
-          color="#FF9800"
-        />
-
-        {extractError && <MessageBox message={extractError} type="error" />}
-
-        {extractResult && (
-          <ResultBox
-            status={extractResult.status}
-            outputPath={extractResult.height_path}
-            message={extractResult.message}
-          />
-        )}
-
-        <CollapsibleHelpBox
-          title="Help: Buildings Height Extraction"
-          backgroundColor="#fff3e0"
-          borderColor="#FF9800"
-        >
-          <p>
-            This tool extracts building heights from the height map using the buildings mask.
-          </p>
-          <p>
-            <strong>How it works:</strong>
-          </p>
-          <ul style={{ marginLeft: "1rem" }}>
-            <li>Applies the formula: (corrected DSM-DTM) * (buildings-mask == 1)</li>
-            <li>Creates a raster where only building pixels have height values</li>
-            <li>All non-building pixels are set to 0</li>
-          </ul>
-          <p>
-            This output layer contains only the heights of buildings, which can be used
-            for wind flow calculations and urban planning analyses.
-          </p>
-        </CollapsibleHelpBox>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Buildings Aspect" separator>
-        <LockToggle isLocked={isAspectLocked} onToggle={() => setIsAspectLocked(!isAspectLocked)} />
-        <FormInput
-          label="Buildings Height Path:"
-          value={aspectHeightPath}
-          onChange={setAspectHeightPath}
-          disabled={isAspectLocked}
-        />
-        <FormInput
-          label="Buildings Mask Path:"
-          value={aspectMaskPath}
-          onChange={setAspectMaskPath}
-          disabled={isAspectLocked}
-        />
-        <FormInput
-          label="Output Directory:"
-          value={aspectOutputDir}
-          onChange={setAspectOutputDir}
-          disabled={isAspectLocked}
-        />
-
-        <LoadingButton
-          onClick={handleBuildingsAspect}
-          isLoading={isAspectLoading}
-          loadingText="Calculating..."
-          text="Calculate Buildings Aspect"
-          color="#E91E63"
-        />
-
-        {aspectError && <MessageBox message={aspectError} type="error" />}
-
-        {aspectResult && (
-          <ResultBox
-            status={aspectResult.status}
-            outputPath={aspectResult.aspect_separated_path}
-            outputLabel="Aspect Separated:"
-            message={aspectResult.message}
-            variant="blue"
-          />
-        )}
-
-        <CollapsibleHelpBox
-          title="Help: Buildings Aspect"
-          backgroundColor="#fce4ec"
-          borderColor="#E91E63"
-        >
-          <p>Calculates which compass direction each building face is facing and produces 4 binary direction masks (N/E/S/W).</p>
-          <ul style={{ marginLeft: "1rem" }}>
-            <li>Runs GDAL Aspect on the buildings height layer (0–360°, true north)</li>
-            <li>Bins into N=1 (315–45°), E=2 (45–135°), S=3 (135–225°), W=4 (225–315°)</li>
-            <li>Multiplies each band by the buildings mask to isolate only building pixels</li>
-            <li>Outputs: aspect, aspect-separated, and north/east/south/west masks</li>
-          </ul>
-        </CollapsibleHelpBox>
-      </CollapsibleSection>
-    </div>
-  );
+				<CollapsibleHelpBox
+					title="Help: Buildings Aspect"
+					backgroundColor="var(--wind-color-buildings-surface)"
+					borderColor="var(--wind-color-buildings)"
+				>
+					<p>
+						Calculates building-facing aspect and extracts only the selected wind
+						direction mask.
+					</p>
+					<ul style={{ marginLeft: '1rem' }}>
+						<li>Runs GDAL Aspect on the buildings height layer (0–360°, true north)</li>
+						<li>
+							Bins into N=1 (315–45°), E=2 (45–135°), S=3 (135–225°), W=4 (225–315°)
+						</li>
+						<li>
+							Uses the selected wind direction (blowing from) to extract one
+							directional mask
+						</li>
+						<li>Outputs: aspect, aspect-separated, and one directional mask</li>
+					</ul>
+				</CollapsibleHelpBox>
+			</WindSection>
+		</div>
+	);
 }

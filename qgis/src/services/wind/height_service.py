@@ -8,7 +8,6 @@ class HeightService:
     """Service class for height map generation and height extraction operations."""
     
     def __init__(self):
-        """Initialize the HeightService with a RasterService instance."""
         self.raster_service = RasterService()
     
     def create_height_map(
@@ -21,16 +20,6 @@ class HeightService:
     ) -> dict:
         """
         Create corrected height map from DSM and DTM layers.
-        
-        Processing pipeline:
-        1. Warp DSM/DTM to 1m resolution using bilinear resampling
-        2. Fill DTM NoData gaps (buildings) using GDAL interpolation (~10m)
-        3. Fill remaining NoData (water bodies) with 0
-        4. Calculate absolute heights (DSM - DTM)
-        5. Correct negative values from approximation errors to 0
-        
-        All intermediate files are temporary and cleaned up automatically.
-        Only the final corrected height map is saved.
         
         :param dsm_input_path: Path to input DSM raster
         :param dtm_input_path: Path to input DTM raster

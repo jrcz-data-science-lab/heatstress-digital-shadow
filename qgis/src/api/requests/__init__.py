@@ -1,19 +1,23 @@
 from .placed_objects_request import PlacedObjectsRequest
 from .shadow_map_request import ShadowMapRequest
 from .wind import (
-    WindMapRequest,
+    HeightMapRequest,
     ImportGeoJSONRequest,
     RasterizeGeoJSONRequest,
     ExtractHeightRequest,
     AspectRequest,
+    GridRequest,
+    WindReductionMapRequest,
 )
 
 __all__ = [
     "PlacedObjectsRequest",
     "ShadowMapRequest",
-    "WindMapRequest",
+    "HeightMapRequest",
     "ImportGeoJSONRequest",
     "RasterizeGeoJSONRequest",
     "ExtractHeightRequest",
     "AspectRequest",
+    "GridRequest",
+    "WindReductionMapRequest",
 ]

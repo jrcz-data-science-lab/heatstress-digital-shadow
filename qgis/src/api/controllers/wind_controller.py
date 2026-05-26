@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from src.api.requests import WindMapRequest, ImportGeoJSONRequest, RasterizeGeoJSONRequest, ExtractHeightRequest, AspectRequest
+from src.api.requests import HeightMapRequest, ImportGeoJSONRequest, RasterizeGeoJSONRequest, ExtractHeightRequest, AspectRequest, GridRequest, WindReductionMapRequest
 from src.services.wind import WindService
 from src.utils.layer_utils import load_raster_layer
 
@@ -7,7 +7,7 @@ router = APIRouter()
 wind_service = WindService()
 
 @router.post("/height-map")
-def create_height_map(req: WindMapRequest):
+def create_height_map(req: HeightMapRequest):
     """
     Create height map from DSM and DTM layers.
     
@@ -48,7 +48,7 @@ def import_buildings(req: ImportGeoJSONRequest):
     Import buildings from PDOK BAG WFS service.
     
     Fetches building polygons (pand layer) from the Dutch national building registry
-    within the specified bounding box and exports them as GeoJSON.
+        within the specified bounding box and exports them as a GeoPackage.
     
     The bounding box is derived from the height map extent.
     
@@ -58,7 +58,7 @@ def import_buildings(req: ImportGeoJSONRequest):
         reference_layer = load_raster_layer(req.height_map_path, "Height Map")
         
         result = wind_service.wfs.import_buildings(
-            output_geojson_path=req.output_geojson_path,
+            output_geopackage_path=req.output_geojson_path,
             extent=reference_layer.extent(),
         )
         
@@ -78,7 +78,7 @@ def import_trees(req: ImportGeoJSONRequest):
     Import trees from PDOK BGT WFS service.
     
     Fetches vegetation objects (vegetatieobject layer) from the Dutch national BGT registry
-    within a bounding box and exports them as GeoJSON. The bounding box is derived from the 
+        within a bounding box and exports them as a GeoPackage. The bounding box is derived from the 
     height map extent.
     
     Returns: JSON with output path and processing status
@@ -90,7 +90,7 @@ def import_trees(req: ImportGeoJSONRequest):
         reference_layer = load_raster_layer(req.height_map_path, "Height Map")
         
         result = wind_service.wfs.import_trees(
-            output_geojson_path=req.output_geojson_path,
+            output_geopackage_path=req.output_geojson_path,
             extent=reference_layer.extent(),
         )
         
@@ -123,7 +123,8 @@ def rasterize_buildings(req: RasterizeGeoJSONRequest):
         result = wind_service.rasterization.rasterize_buildings(
             buildings_geojson_path=req.input_geojson_path,
             output_raster_path=req.output_raster_path,
-            reference_layer=reference_layer
+            reference_layer=reference_layer,
+            raster_resolution=req.raster_resolution,
         )
         
         return {
@@ -156,7 +157,9 @@ def rasterize_trees(req: RasterizeGeoJSONRequest):
         result = wind_service.rasterization.rasterize_trees(
             trees_geojson_path=req.input_geojson_path,
             output_raster_path=req.output_raster_path,
-            reference_layer=reference_layer
+            reference_layer=reference_layer,
+            raster_resolution=req.raster_resolution,
+            trees_buffer_distance=req.trees_buffer_distance,
         )
         
         return {
@@ -175,7 +178,7 @@ def extract_height_buildings(req: ExtractHeightRequest):
     Extract building heights from height map using buildings mask.
     
     Applies the formula: (corrected DSM-DTM) * (mask == 1)
-    This creates a layer containing only the building heights, with zeros elsewhere.
+    This creates a layer containing only the building heights.
     
     Returns: JSON with output path and processing status
     """
@@ -226,22 +229,22 @@ def extract_height_trees(req: ExtractHeightRequest):
 
 @router.post("/aspect-buildings")
 def aspect_buildings(req: AspectRequest):
-    """Calculate aspect for buildings and extract N/E/S/W direction masks."""
+    """Calculate buildings aspect and extract only the selected wind direction mask."""
     try:
+        direction = req.wind_direction.strip().lower()
         result = wind_service.aspect.calculate_buildings_aspect(
             buildings_height_path=req.height_path,
             buildings_mask_path=req.mask_path,
             output_dir=req.output_dir,
+            wind_direction=direction,
         )
 
         return {
             "status": "success",
             "aspect_path": result["aspect"]["path"],
             "aspect_separated_path": result["aspect_separated"]["path"],
-            "north_path": result["north"]["path"],
-            "east_path": result["east"]["path"],
-            "south_path": result["south"]["path"],
-            "west_path": result["west"]["path"],
+            "wind_direction": direction,
+            "directional_aspect_path": result[direction]["path"],
             "message": "Successfully calculated buildings aspect",
         }
     except ValueError as e:
@@ -252,25 +255,126 @@ def aspect_buildings(req: AspectRequest):
 
 @router.post("/aspect-trees")
 def aspect_trees(req: AspectRequest):
-    """Calculate aspect for trees and extract N/E/S/W direction masks."""
+    """Calculate trees aspect and extract only the selected wind direction mask."""
     try:
+        direction = req.wind_direction.strip().lower()
         result = wind_service.aspect.calculate_trees_aspect(
             trees_height_path=req.height_path,
             trees_mask_path=req.mask_path,
             output_dir=req.output_dir,
+            wind_direction=direction,
         )
 
         return {
             "status": "success",
             "aspect_path": result["aspect"]["path"],
             "aspect_separated_path": result["aspect_separated"]["path"],
-            "north_path": result["north"]["path"],
-            "east_path": result["east"]["path"],
-            "south_path": result["south"]["path"],
-            "west_path": result["west"]["path"],
+            "wind_direction": direction,
+            "directional_aspect_path": result[direction]["path"],
             "message": "Successfully calculated trees aspect",
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calculating trees aspect: {str(e)}")
+
+
+@router.post("/grid")
+def create_grid(req: GridRequest):
+    """
+    Create a rectangular analysis grid and compute zonal statistics for buildings and trees.
+
+    Processing pipeline:
+    1. Create a rectangular vector grid aligned to the corrected DSM-DTM extent.
+       Default cell size: 125 m (width) x 250 m (height).
+    2. Zonal statistics - buildings height (count, sum, mean) with prefix "buildings_height_".
+    3. Zonal statistics - trees height    (count, sum, mean) with prefix "trees_height_",
+       using the layer produced in step 2 as input.
+    4. Normalise buildings_height_mean: values in (0, 5) are raised to 5.
+    5. Normalise trees_height_mean:     values in (0, 3) are raised to 3.
+
+    Returns: JSON with grid output path and processing status.
+    """
+    try:
+        result = wind_service.grid.create_grid_with_zonal_stats(
+            height_map_path=req.height_map_path,
+            buildings_height_path=req.buildings_height_path,
+            trees_height_path=req.trees_height_path,
+            output_grid_path=req.output_grid_path,
+            grid_width=req.grid_width,
+            grid_height=req.grid_height,
+            buildings_min_height=req.buildings_min_height,
+            trees_min_height=req.trees_min_height,
+            lambda_buildings_weight=req.lambda_buildings_weight,
+            lambda_trees_weight=req.lambda_trees_weight,
+            lambda_background=req.lambda_background,
+            u_60=req.u_60,
+            reference_height=req.reference_height,
+            von_karman_constant=req.von_karman_constant,
+            target_height=req.target_height,
+            stability_exponent=req.stability_exponent,
+            buildings_aspect_west_path=req.buildings_aspect_west_path,
+            trees_aspect_west_path=req.trees_aspect_west_path,
+            buildings_polygon_path=req.buildings_polygon_path,
+            trees_points_path=req.trees_points_path,
+        )
+
+        return {
+            "status": "success",
+            "grid_path": result["grid_path"],
+            "message": "Grid with zonal statistics created successfully",
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating grid: {str(e)}")
+
+
+@router.post("/generate-wind-reduction-map")
+def generate_wind_reduction_map(req: WindReductionMapRequest):
+    """
+    Generate complete wind reduction map from raw DSM and DTM data.
+    
+    This endpoint orchestrates the entire wind reduction workflow:
+    1. Create height map (DSM - DTM)
+    2. Import buildings from PDOK BAG WFS
+    3. Import trees from PDOK BGT WFS
+    4. Rasterize buildings and trees to grid
+    5. Calculate aspect angles for buildings and trees
+    6. Create rectangular grid with zonal statistics and wind parameters
+    
+    Returns: JSON with output paths and final results from all processing steps.
+    """
+    try:
+        result = wind_service.generate_wind_reduction_map(
+            dsm_path=req.dsm_path,
+            dtm_path=req.dtm_path,
+            output_dir=req.output_dir,
+            wind_direction=req.wind_direction,
+            grid_cell_width=req.grid_cell_width,
+            grid_cell_height=req.grid_cell_height,
+            buildings_min_height=req.buildings_min_height,
+            trees_min_height=req.trees_min_height,
+            raster_resolution=req.raster_resolution,
+            trees_buffer_distance=req.trees_buffer_distance,
+            lambda_buildings_weight=req.lambda_buildings_weight,
+            lambda_trees_weight=req.lambda_trees_weight,
+            lambda_background=req.lambda_background,
+            u_60=req.u_60,
+            reference_height=req.reference_height,
+            von_karman_constant=req.von_karman_constant,
+            target_height=req.target_height,
+            stability_exponent=req.stability_exponent,
+        )
+        
+        return {
+            "status": "success",
+            "message": "Wind reduction map generated successfully",
+            "outputs": result["outputs"],
+            "results": result["results"],
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating wind reduction map: {str(e)}")
+

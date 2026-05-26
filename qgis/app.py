@@ -7,7 +7,7 @@ from src.api.router import api_router
 qgs = init_qgis() 
 app = FastAPI()
 
-# Configure CORS
+# temp solution to allow CORS for development - adjust in production
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all origins in development
