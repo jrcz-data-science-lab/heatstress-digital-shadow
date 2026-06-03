@@ -235,8 +235,8 @@ class WindService:
             von_karman_constant=von_karman_constant,
             target_height=target_height,
             stability_exponent=stability_exponent,
-            buildings_aspect_west_path=os.path.join(run_output_dir, f"buildings-aspect-{direction_key}.tif"),
-            trees_aspect_west_path=os.path.join(run_output_dir, f"trees-aspect-{direction_key}.tif"),
+            buildings_aspect_path=os.path.join(run_output_dir, f"buildings-aspect-{direction_key}.tif"),
+            trees_aspect_path=os.path.join(run_output_dir, f"trees-aspect-{direction_key}.tif"),
             buildings_polygon_path=buildings_geopackage_path,
             trees_points_path=trees_geopackage_path,
         )

@@ -6,13 +6,13 @@ from qgis.core import (
 )
 
 class GeoJSONService:
-    def calculate_wind_speed_1_2(self, zonal_layer: QgsVectorLayer, u_1_2_field="u_1.2", ff10=7.677) -> QgsVectorLayer:
+    def calculate_wind_speed_1_2(self, zonal_layer: QgsVectorLayer, u_1_2_field="u_1_2", ff10=7.677) -> QgsVectorLayer:
         """
         Adds a 'geschaalde_u_1_2' field to the given vector layer and calculates it using:
-        geschaalde_u_1.2 = ff10 * ((u_1.2 - 0.0796) * 0.9175 + 0.1254)
-        
+        geschaalde_u_1_2 = ff10 * ((u_1_2 - 0.0796) * 0.9175 + 0.1254)
+
         :param QgsVectorLayer zonal_layer: The zonal statistics layer on which the calculation will be performed
-        :param str u_1_2_field: The field in the zonal layer containing u_1.2 values
+        :param str u_1_2_field: The field in the zonal layer containing u_1_2 values
         :param float ff10: The wind speed 10m (if from KNMI / 10 to match units)
         :return: The updated QgsVectorLayer with the new field added
         """

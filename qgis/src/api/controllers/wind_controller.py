@@ -77,7 +77,7 @@ def import_trees(req: ImportGeoJSONRequest):
     """
     Import trees from PDOK BGT WFS service.
     
-    Fetches vegetation objects (vegetatieobject layer) from the Dutch national BGT registry
+    Fetches vegetation objects (vegetatieobject_punt layer) from the Dutch national BGT registry
         within a bounding box and exports them as a GeoPackage. The bounding box is derived from the 
     height map extent.
     
@@ -313,8 +313,8 @@ def create_grid(req: GridRequest):
             von_karman_constant=req.von_karman_constant,
             target_height=req.target_height,
             stability_exponent=req.stability_exponent,
-            buildings_aspect_west_path=req.buildings_aspect_west_path,
-            trees_aspect_west_path=req.trees_aspect_west_path,
+            buildings_aspect_path=req.buildings_aspect_path,
+            trees_aspect_path=req.trees_aspect_path,
             buildings_polygon_path=req.buildings_polygon_path,
             trees_points_path=req.trees_points_path,
         )

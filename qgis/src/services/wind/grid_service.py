@@ -42,8 +42,8 @@ class GridService:
         output_grid_path: str,
         grid_width: float,
         grid_height: float,
-        buildings_aspect_west_path: str,
-        trees_aspect_west_path: str,
+        buildings_aspect_path: str,
+        trees_aspect_path: str,
         buildings_polygon_path: str,
         trees_points_path: str,
         buildings_min_height: float = 5.0,
@@ -71,8 +71,8 @@ class GridService:
         if target_height <= 0 or stability_exponent <= 0:
             raise ValueError("Target height and stability exponent must be positive values")
         missing_inputs = {
-            "buildings_aspect_west_path": buildings_aspect_west_path,
-            "trees_aspect_west_path": trees_aspect_west_path,
+            "buildings_aspect_path": buildings_aspect_path,
+            "trees_aspect_path": trees_aspect_path,
             "buildings_polygon_path": buildings_polygon_path,
             "trees_points_path": trees_points_path,
         }
@@ -147,11 +147,11 @@ class GridService:
 
             # frontal area
             norm_layer = zonal_count(
-                norm_layer, buildings_aspect_west_path, grid_frontal_buildings_path, "buildings_frontal_count_west_"
+                norm_layer, buildings_aspect_path, grid_frontal_buildings_path, "buildings_frontal_"
             )
 
             norm_layer = zonal_count(
-                norm_layer, trees_aspect_west_path, grid_frontal_trees_path, "trees_frontal_count_west_"
+                norm_layer, trees_aspect_path, grid_frontal_trees_path, "trees_frontal_"
             )
 
             # tree count
@@ -169,7 +169,7 @@ class GridService:
             norm_layer = calculate_field(
                 input_layer=norm_layer,
                 field_name="fa_t_side",
-                formula='sqrt("trees_frontal_count_west_count" * "tree_count")',
+                formula='sqrt("trees_frontal_count" * "tree_count")',
                 output_path=grid_tree_frontal_side_area_path,
             )
             
@@ -177,7 +177,7 @@ class GridService:
             norm_layer = calculate_field(
                 input_layer=norm_layer,
                 field_name="fa_b_side",
-                formula='sqrt("buildings_frontal_count_west_count" * "building_count")',
+                formula='sqrt("buildings_frontal_count" * "building_count")',
                 output_path=grid_building_frontal_side_area_path,
             )
 
@@ -323,7 +323,7 @@ class GridService:
 
             norm_layer = calculate_field(
                 input_layer=norm_layer,
-                field_name="u_1.2",
+                field_name="u_1_2",
                 formula=(
                     'CASE WHEN "u_h" * exp('
                     f'{stability_exponent} * "lambda_total" * (({target_height}/"buildings_height_mean")-1)) '

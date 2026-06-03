@@ -1,5 +1,4 @@
 import os
-from qgis.core import QgsRasterLayer
 from src.services.raster_service import RasterService
 from src.utils.layer_utils import load_raster_layer
 
@@ -29,12 +28,12 @@ class HeightService:
         :return: Dictionary with path and layer object
         """
         import tempfile
-        
+        import shutil
+
         dsm_layer = load_raster_layer(dsm_input_path, dsm_name)
         dtm_layer = load_raster_layer(dtm_input_path, dtm_name)
-        
-        # Create temporary file paths for intermediate layers
-        temp_dir = tempfile.gettempdir()
+
+        temp_dir = tempfile.mkdtemp(prefix="wind_height_")
         dsm_warped_temp = os.path.join(temp_dir, 'dsm_warped_temp.tif')
         dtm_warped_temp = os.path.join(temp_dir, 'dtm_warped_temp.tif')
         dtm_filled_temp1 = os.path.join(temp_dir, 'dtm_filled_temp1.tif')
@@ -70,7 +69,6 @@ class HeightService:
         except Exception as e:
             # If no NoData values remain, just use the GDAL-filled version
             if "no NoData" in str(e) or "NoData values" in str(e):
-                import shutil
                 shutil.copyfile(dtm_filled_temp1, dtm_filled_temp2)
             else:
                 raise
@@ -81,21 +79,16 @@ class HeightService:
             input_rasters={'A': dsm_warped_path, 'B': dtm_filled_temp2},
             output_path=height_temp
         )
-        
-        height_layer = QgsRasterLayer(height_temp, "Height")
-        self.raster_service.validate_layer(height_layer, height_temp, "height raster")
-        
+
         # Correct negative values
-        self.raster_service.gdal_raster_calculator(
+        height_layer_final = self.raster_service.gdal_raster_calculator(
             formula='(A<0)*0 + (A>=0)*A',
             input_rasters={'A': height_temp},
             output_path=corrected_height_output_path
         )
-        
-        height_layer_final = QgsRasterLayer(corrected_height_output_path, "Height")
-        self.raster_service.validate_layer(height_layer_final, corrected_height_output_path, "height raster")
-        
-        self.raster_service.cleanup_temp_files(dsm_warped_temp, dtm_warped_temp, dtm_filled_temp1, dtm_filled_temp2, height_temp)
+        height_layer_final.setName("Height")
+
+        shutil.rmtree(temp_dir, ignore_errors=True)
         
         return {
             "height_path": corrected_height_output_path,
@@ -118,14 +111,13 @@ class HeightService:
         :param str output_path: Path for output buildings-height raster
         :return: Dictionary with output path and layer object
         """
-        self.raster_service.gdal_raster_calculator(
+        height_layer = self.raster_service.gdal_raster_calculator(
             formula='A * (B == 1)',
             input_rasters={'A': height_map_path, 'B': buildings_mask_path},
             output_path=output_path
         )
-        
-        height_layer = load_raster_layer(output_path, "Buildings Height")
-        
+        height_layer.setName("Buildings Height")
+
         return {
             "height_path": output_path,
             "height_layer": height_layer,
@@ -147,14 +139,13 @@ class HeightService:
         :param str output_path: Path for output trees-height raster
         :return: Dictionary with output path and layer object
         """
-        self.raster_service.gdal_raster_calculator(
+        height_layer = self.raster_service.gdal_raster_calculator(
             formula='A * (B == 1)',
             input_rasters={'A': height_map_path, 'B': trees_mask_path},
             output_path=output_path
         )
-        
-        height_layer = load_raster_layer(output_path, "Trees Height")
-        
+        height_layer.setName("Trees Height")
+
         return {
             "height_path": output_path,
             "height_layer": height_layer,

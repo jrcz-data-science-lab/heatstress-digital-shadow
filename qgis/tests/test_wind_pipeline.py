@@ -170,8 +170,8 @@ def wind_grid_layer(pipeline_run):
     [
         "buildings_height_mean",
         "trees_height_mean",
-        "buildings_frontal_count_west_count",
-        "trees_frontal_count_west_count",
+        "buildings_frontal_count",
+        "trees_frontal_count",
         "tree_count",
         "building_count",
         "fa_t_side",
@@ -190,7 +190,7 @@ def wind_grid_layer(pipeline_run):
         "u_zw",
         "u_star",
         "u_h",
-        "u_1.2",
+        "u_1_2",
     ],
 )
 def test_wind_grid_has_field(wind_grid_layer, field_name):
@@ -218,15 +218,15 @@ def test_wind_grid_lambda_total_in_expected_range(wind_grid_layer):
 
 
 def test_wind_grid_u_1_2_non_negative(wind_grid_layer):
-    """Final wind speed `u_1.2` must never be negative."""
+    """Final wind speed `u_1_2` must never be negative."""
     negatives = 0
     total = 0
     for feat in wind_grid_layer.getFeatures():
-        v = feat["u_1.2"]
+        v = feat["u_1_2"]
         if v is None:
             continue
         total += 1
         if float(v) < 0:
             negatives += 1
-    assert total > 0, "No u_1.2 values found"
-    assert negatives == 0, f"{negatives}/{total} u_1.2 values are negative"
+    assert total > 0, "No u_1_2 values found"
+    assert negatives == 0, f"{negatives}/{total} u_1_2 values are negative"

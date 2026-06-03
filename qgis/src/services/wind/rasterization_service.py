@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 from qgis.core import QgsRasterLayer, QgsRectangle, QgsProcessingFeedback
 from src.services.raster_service import RasterService
@@ -73,27 +74,28 @@ class RasterizationService:
         if trees_buffer_distance <= 0:
             raise ValueError("trees_buffer_distance must be a positive value")
         trees_layer = load_vector_layer(trees_geojson_path, "Trees")
-        
-        buffer_layer_path = os.path.join(tempfile.gettempdir(), "trees_buffered.gpkg")
-        buffered_layer = self.raster_service.buffer_vector_layer(
-            vector_layer=trees_layer,
-            distance=trees_buffer_distance,
-            output_path=buffer_layer_path
-        )
-        
-        extent = reference_layer.extent()
-        
-        raster_layer = self.raster_service.rasterize_vector_layer(
-            vector_layer=buffered_layer,
-            attribute_field='',
-            output_path=output_raster_path,
-            extent=extent,
-            resolution=raster_resolution,
-        )
-        
-        if os.path.exists(buffer_layer_path):
-            os.remove(buffer_layer_path)
-        
+
+        buffer_dir = tempfile.mkdtemp(prefix="trees_buf_")
+        buffer_layer_path = os.path.join(buffer_dir, "trees_buffered.gpkg")
+        try:
+            buffered_layer = self.raster_service.buffer_vector_layer(
+                vector_layer=trees_layer,
+                distance=trees_buffer_distance,
+                output_path=buffer_layer_path
+            )
+
+            extent = reference_layer.extent()
+
+            raster_layer = self.raster_service.rasterize_vector_layer(
+                vector_layer=buffered_layer,
+                attribute_field='',
+                output_path=output_raster_path,
+                extent=extent,
+                resolution=raster_resolution,
+            )
+        finally:
+            shutil.rmtree(buffer_dir, ignore_errors=True)
+
         return {
             "mask_path": output_raster_path,
             "mask_layer": raster_layer,

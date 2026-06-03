@@ -18,7 +18,7 @@ class GridRequest(BaseModel):
     von_karman_constant: float = 0.4
     target_height: float = 1.2
     stability_exponent: float = 9.8
-    buildings_aspect_west_path: str
-    trees_aspect_west_path: str
+    buildings_aspect_path: str
+    trees_aspect_path: str
     buildings_polygon_path: str
     trees_points_path: str

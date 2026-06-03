@@ -431,18 +431,18 @@ class RasterService:
         target_resolution: float = 1,
         nodata_value: float = -9999,
     )-> str:
-        import processing
-        feedback = QgsProcessingFeedback()
         """
         Reprojects and resamples a raster to match the CRS and alignment of a target layer.
 
-        :param input_raster_path: file path or QgsRasterLayer to warp
-        :param target_layer_objr: QgsRasterLayer whose CRS/resolution/alignment will be matched
+        :param input_raster: file path or QgsRasterLayer to warp
+        :param target_layer_obj: QgsRasterLayer whose CRS/resolution/alignment will be matched
         :param resampled_output_path: output file path for the warped raster
         :param resampling: resampling method index (0=nearest, 1=bilinear, etc.)
         :param target_resolution: target resolution in map units
         :param nodata_value: NoData value to use in output (default: -9999)
         """
+        import processing
+        feedback = QgsProcessingFeedback()
 
         warp_params = {
             'INPUT': input_raster,
