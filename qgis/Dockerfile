@@ -3,7 +3,8 @@ FROM qgis/qgis:latest
 COPY requirements.txt .
 
 RUN apt-get update && apt-get install -y python3-pip
-RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages \
+    --ignore-installed typing_extensions -r requirements.txt
 
 WORKDIR /app
 
