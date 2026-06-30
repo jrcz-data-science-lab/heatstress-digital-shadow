@@ -6,58 +6,18 @@ A full-stack geospatial application for visualising and analysing urban heat str
 
 ## Services
 
-| Service | Port | Description |
-|---|---|---|
-| `frontend` | 5173 | React + CesiumJS dev server |
-| `backend` | 8000 | FastAPI — BAG / EP-Online / QGIS session API |
-| `qgis` | 9000 | QGIS microservice — PET raster computation |
-| `nginx` | 8010 | QGIS Server (WMS/WFS via FastCGI) |
+| Service    | Port | Description                                  |
+| ---------- | ---- | -------------------------------------------- |
+| `frontend` | 5173 | React + CesiumJS dev server                  |
+| `backend`  | 8000 | FastAPI — BAG / EP-Online / QGIS session API |
+| `qgis`     | 9000 | QGIS microservice — PET raster computation   |
+| `nginx`    | 8010 | QGIS Server (WMS/WFS via FastCGI)            |
 
 ---
 
 ## Quick start
 
-### 1. Configure the backend
-
-```bash
-cp backend/.env.example backend/.env
-```
-
-Edit `backend/.env` and fill in your API keys (see [backend/README.md](backend/README.md) for details).
-
-### 2. Configure the Cesium Ion token
-
-The frontend basemap picker (Bing Maps, Esri imagery, etc.) requires a free Cesium Ion access token.
-
-```bash
-cp frontend/.env.example frontend/.env.local
-```
-
-Edit `frontend/.env.local` and paste your token:
-
-```
-VITE_CESIUM_ION_TOKEN=your_token_here
-```
-
-Get a free token at [ion.cesium.com/tokens](https://ion.cesium.com/tokens). The `.env.local` file is gitignored — never commit real tokens.
-
-### 4. Start all services
-
-```bash
-docker compose up -d
-```
-
-The frontend will be available at [http://localhost:5173](http://localhost:5173).
-
----
-
-## Running the frontend locally (without Docker)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
+https://github.com/jrcz-data-science-lab/heatstress-digital-shadow/wiki/1.-Setting-up-the-application
 
 ---
 
