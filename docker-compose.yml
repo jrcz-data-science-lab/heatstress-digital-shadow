@@ -7,7 +7,7 @@ services:
       - "8010:80"
     networks:
       - qgis-server-net
-    restart: always
+    restart: "no"
     depends_on:
       - qgis-server
 
@@ -35,7 +35,7 @@ services:
       - ./plugins:/io/plugins
       - ./fonts:/usr/share/fonts:ro
       - ./svg:/var/lib/qgis/.local/share/QGIS/QGIS3/profiles/default/svg:rw
-    restart: always
+    restart: "no"
 
   qgis:
     container_name: qgis
