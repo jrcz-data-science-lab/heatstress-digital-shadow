@@ -1,4 +1,11 @@
-export const QGIS_OVERLAY_LAYERS = [
+type QgisOverlayLayer = {
+  id: string;
+  label: string;
+  valueLabel?: string;
+  unit?: string;
+};
+
+export const QGIS_OVERLAY_LAYERS: QgisOverlayLayer[] = [
 	{ id: "pet-version-1", label: "PET" },
 	{
 		id: "pet-session-updated",
