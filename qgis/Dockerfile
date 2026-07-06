@@ -2,11 +2,9 @@ FROM qgis/qgis:latest
 
 COPY requirements.txt .
 
-# changed to use venv to avoid conflicts with system packages
-RUN apt-get update && apt-get install -y python3-pip python3-venv
-RUN python3 -m venv --system-site-packages /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && apt-get install -y python3-pip
+RUN pip3 install --no-cache-dir --break-system-packages \
+    --ignore-installed typing_extensions -r requirements.txt
 
 WORKDIR /app
 
