@@ -7,12 +7,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/backend': {
-        target: 'http://localhost:8000',
+        target: 'http://backend:8000',
         changeOrigin: true,
         rewrite: p => p.replace(/^\/backend/, '')
       },
       '/nginx': {
-        target: 'http://localhost:8010',
+        target: 'http://nginx:80',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/nginx/, ''),
         configure: (proxy) => {
