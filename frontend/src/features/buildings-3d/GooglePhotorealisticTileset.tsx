@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { Cesium3DTileset, useCesium } from "resium";
-import { IonResource, ShadowMode } from "cesium";
+import { useEffect, useState } from 'react';
+import { Cesium3DTileset, useCesium } from 'resium';
+import { IonResource, ShadowMode } from 'cesium';
 
 // Cesium Ion asset 2275207 — Google Photorealistic 3D Tiles
 const ASSET_ID = 2275207;

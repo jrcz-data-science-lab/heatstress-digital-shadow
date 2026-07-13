@@ -1,8 +1,8 @@
-import { renderHook, act, waitFor } from "@testing-library/react";
-import { useQgisFeatureInfo } from "./qgisFeatureInfo";
-import { buildGetFeatureInfoUrl, type LonLatBBox } from "./wmsUtils";
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useQgisFeatureInfo } from './qgisFeatureInfo';
+import { buildGetFeatureInfoUrl, type LonLatBBox } from './wmsUtils';
 
-jest.mock("./wmsUtils", () => ({
+jest.mock('./wmsUtils', () => ({
 	buildGetFeatureInfoUrl: jest.fn(),
 }));
 
@@ -13,15 +13,15 @@ function mockResponse(body: unknown, ok = true): Partial<Response> {
 	};
 }
 
-describe("useQgisFeatureInfo", () => {
+describe('useQgisFeatureInfo', () => {
 	const bounds: LonLatBBox = [3.6, 51.49, 3.62, 51.51];
-	const baseUrl = "/qgis";
-	const layerName = "pet-version-1";
+	const baseUrl = '/qgis';
+	const layerName = 'pet-version-1';
 
 	beforeEach(() => {
 		jest.clearAllMocks();
 		global.fetch = jest.fn();
-		(buildGetFeatureInfoUrl as jest.Mock).mockReturnValue("/qgis?dummy");
+		(buildGetFeatureInfoUrl as jest.Mock).mockReturnValue('/qgis?dummy');
 	});
 
 	afterEach(() => {
@@ -29,7 +29,7 @@ describe("useQgisFeatureInfo", () => {
 		delete global.fetch;
 	});
 
-	test("initially has null featureInfo", () => {
+	test('initially has null featureInfo', () => {
 		const { result } = renderHook(() =>
 			useQgisFeatureInfo({
 				bounds,
@@ -42,13 +42,13 @@ describe("useQgisFeatureInfo", () => {
 		expect(result.current.featureInfo).toBeNull();
 	});
 
-	test("does nothing and clears info when click is outside bounds", async () => {
+	test('does nothing and clears info when click is outside bounds', async () => {
 		const mockFetch = global.fetch as jest.Mock;
 
 		mockFetch.mockResolvedValue(
 			mockResponse({
-				type: "FeatureCollection",
-				features: [{ properties: { "Band 1": 10 } }],
+				type: 'FeatureCollection',
+				features: [{ properties: { 'Band 1': 10 } }],
 			}) as Response,
 		);
 
@@ -84,13 +84,13 @@ describe("useQgisFeatureInfo", () => {
 		expect(result.current.featureInfo).toBeNull();
 	});
 
-	test("sets featureInfo when response contains numeric Band 1", async () => {
-		(buildGetFeatureInfoUrl as jest.Mock).mockReturnValue("/qgis?numeric");
+	test('sets featureInfo when response contains numeric Band 1', async () => {
+		(buildGetFeatureInfoUrl as jest.Mock).mockReturnValue('/qgis?numeric');
 		const mockFetch = global.fetch as jest.Mock;
 		mockFetch.mockResolvedValue(
 			mockResponse({
-				type: "FeatureCollection",
-				features: [{ properties: { "Band 1": 29.88 } }],
+				type: 'FeatureCollection',
+				features: [{ properties: { 'Band 1': 29.88 } }],
 			}) as Response,
 		);
 
@@ -117,7 +117,7 @@ describe("useQgisFeatureInfo", () => {
 			width: 1024,
 			height: 1024,
 			coord: [3.61, 51.5],
-			infoFormat: "application/json",
+			infoFormat: 'application/json',
 		});
 
 		expect(result.current.featureInfo).toEqual({
@@ -127,12 +127,12 @@ describe("useQgisFeatureInfo", () => {
 		});
 	});
 
-	test("parses string Band 1 to number", async () => {
+	test('parses string Band 1 to number', async () => {
 		const mockFetch = global.fetch as jest.Mock;
 		mockFetch.mockResolvedValue(
 			mockResponse({
-				type: "FeatureCollection",
-				features: [{ properties: { "Band 1": "42.5" } }],
+				type: 'FeatureCollection',
+				features: [{ properties: { 'Band 1': '42.5' } }],
 			}) as Response,
 		);
 
@@ -155,11 +155,11 @@ describe("useQgisFeatureInfo", () => {
 		expect(result.current.featureInfo?.band).toBeCloseTo(42.5);
 	});
 
-	test("sets band to null when property is missing or invalid", async () => {
+	test('sets band to null when property is missing or invalid', async () => {
 		const mockFetch = global.fetch as jest.Mock;
 		mockFetch.mockResolvedValue(
 			mockResponse({
-				type: "FeatureCollection",
+				type: 'FeatureCollection',
 				features: [{ properties: {} }],
 			}) as Response,
 		);
@@ -183,7 +183,7 @@ describe("useQgisFeatureInfo", () => {
 		expect(result.current.featureInfo?.band).toBeNull();
 	});
 
-	test("clears featureInfo when HTTP status is not ok", async () => {
+	test('clears featureInfo when HTTP status is not ok', async () => {
 		const mockFetch = global.fetch as jest.Mock;
 		mockFetch.mockResolvedValue({ ok: false } as Response);
 
@@ -204,9 +204,9 @@ describe("useQgisFeatureInfo", () => {
 		expect(result.current.featureInfo).toBeNull();
 	});
 
-	test("clears featureInfo when JSON is not a FeatureCollection", async () => {
+	test('clears featureInfo when JSON is not a FeatureCollection', async () => {
 		const mockFetch = global.fetch as jest.Mock;
-		mockFetch.mockResolvedValue(mockResponse({ foo: "bar" }) as Response);
+		mockFetch.mockResolvedValue(mockResponse({ foo: 'bar' }) as Response);
 
 		const { result } = renderHook(() =>
 			useQgisFeatureInfo({
@@ -225,12 +225,12 @@ describe("useQgisFeatureInfo", () => {
 		expect(result.current.featureInfo).toBeNull();
 	});
 
-	test("clear() resets featureInfo to null", async () => {
+	test('clear() resets featureInfo to null', async () => {
 		const mockFetch = global.fetch as jest.Mock;
 		mockFetch.mockResolvedValue(
 			mockResponse({
-				type: "FeatureCollection",
-				features: [{ properties: { "Band 1": 10 } }],
+				type: 'FeatureCollection',
+				features: [{ properties: { 'Band 1': 10 } }],
 			}) as Response,
 		);
 

@@ -1,43 +1,40 @@
-import type { MeasureType } from "./features/objects/lib/objectLayer";
-import type { SideMenuItem } from "./components/sideMenu/SideMenuItem";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import CesiumMap, {
-	type CesiumClickInfo,
-	type CesiumMapHandle,
-} from "./map/CesiumMap";
-import { WMSOverlayLayer } from "./features/wms-overlay/WMSOverlayLayer";
-import { StaticTreesEntities } from "./features/objects/StaticTreesEntities";
+import type { MeasureType } from './features/objects/lib/objectLayer';
+import type { SideMenuItem } from './components/sideMenu/SideMenuItem';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import CesiumMap, { type CesiumClickInfo, type CesiumMapHandle } from './map/CesiumMap';
+import { WMSOverlayLayer } from './features/wms-overlay/WMSOverlayLayer';
+import { StaticTreesEntities } from './features/objects/StaticTreesEntities';
 import {
 	ExistingTreesEntities,
 	type TreeLoadStatus,
-} from "./features/existing-trees/ExistingTreesEntities";
-import { UserObjectsEntities } from "./features/objects/UserObjectsEntities";
-import { BAG3DTileset } from "./features/buildings-3d/BAG3DTileset";
-import { GooglePhotorealisticTileset } from "./features/buildings-3d/GooglePhotorealisticTileset";
-import { useUserObjectsLayer } from "./features/objects/useUserObjectsLayer";
-import { useWMSLayers } from "./features/wms-overlay/useWMSLayers";
-import { useBuildingHighlight } from "./features/buildings-3d/useBuildingHighlight";
-import { QGIS_OVERLAY_LAYERS } from "./features/wms-overlay/lib/qgisLayers";
-import { SideMenu } from "./components/sideMenu/SideMenu";
-import { LayersIcon } from "./components/icons/LayersIcon";
+} from './features/existing-trees/ExistingTreesEntities';
+import { UserObjectsEntities } from './features/objects/UserObjectsEntities';
+import { BAG3DTileset } from './features/buildings-3d/BAG3DTileset';
+import { GooglePhotorealisticTileset } from './features/buildings-3d/GooglePhotorealisticTileset';
+import { useUserObjectsLayer } from './features/objects/useUserObjectsLayer';
+import { useWMSLayers } from './features/wms-overlay/useWMSLayers';
+import { useBuildingHighlight } from './features/buildings-3d/useBuildingHighlight';
+import { QGIS_OVERLAY_LAYERS } from './features/wms-overlay/lib/qgisLayers';
+import { SideMenu } from './components/sideMenu/SideMenu';
+import { LayersIcon } from './components/icons/LayersIcon';
 import {
 	OverlayLayersPanel,
 	type OverlayLayerConfig,
-} from "./components/panels/OverlayLayersPanel";
-import { TreeIcon } from "./components/icons/TreeIcon";
-import { HeatStressMeasuresPanel } from "./components/panels/HeatStressMeasuresPanel";
-import { BuildingIcon } from "./components/icons/BuildingIcon";
-import { BuildingsPanel } from "./components/panels/BuildingsPanel";
-import { InformationPanel } from "./components/panels/InformationPanel";
-import { FeatureInfoCard } from "./components/infoCards/FeatureInfoCard";
-import { LoadingIndicator } from "./components/loading/LoadingIndicator";
-import { TreeLoadingIndicator } from "./components/loading/TreeLoadingIndicator";
-import { LegendCard } from "./components/legend/LegendCard";
-import { PerspectiveIcon } from "./components/icons/PerspectiveIcon";
-import { InformationIcon } from "./components/icons/InformationIcon";
-import { SunIcon } from "./components/icons/SunIcon";
-import { SunShadowPanel } from "./components/panels/SunShadowPanel";
-import { PerformanceOverlay } from "./components/performance/PerformanceOverlay";
+} from './components/panels/OverlayLayersPanel';
+import { TreeIcon } from './components/icons/TreeIcon';
+import { HeatStressMeasuresPanel } from './components/panels/HeatStressMeasuresPanel';
+import { BuildingIcon } from './components/icons/BuildingIcon';
+import { BuildingsPanel } from './components/panels/BuildingsPanel';
+import { InformationPanel } from './components/panels/InformationPanel';
+import { FeatureInfoCard } from './components/infoCards/FeatureInfoCard';
+import { LoadingIndicator } from './components/loading/LoadingIndicator';
+import { TreeLoadingIndicator } from './components/loading/TreeLoadingIndicator';
+import { LegendCard } from './components/legend/LegendCard';
+import { PerspectiveIcon } from './components/icons/PerspectiveIcon';
+import { InformationIcon } from './components/icons/InformationIcon';
+import { SunIcon } from './components/icons/SunIcon';
+import { SunShadowPanel } from './components/panels/SunShadowPanel';
+import { PerformanceOverlay } from './components/performance/PerformanceOverlay';
 
 export default function App() {
 	const [showBuildings, setShowBuildings] = React.useState(false);
@@ -60,12 +57,9 @@ export default function App() {
 	});
 	const [editingIntent, setEditingIntent] = useState(false);
 	const [activeSideMenuId, setActiveSideMenuId] = useState<string | null>(null);
-	const isEditingMode =
-		editingIntent && activeSideMenuId === "heatstressmeasures";
-	const [selectedObjectType, setSelectedObjectType] = useState<string | null>(
-		null,
-	);
-	const loaderLeft = activeSideMenuId ? "25.5rem" : "4rem";
+	const isEditingMode = editingIntent && activeSideMenuId === 'heatstressmeasures';
+	const [selectedObjectType, setSelectedObjectType] = useState<string | null>(null);
+	const loaderLeft = activeSideMenuId ? '25.5rem' : '4rem';
 
 	// 3D BAG uses AHN LiDAR (0.5 m) for ground heights; Cesium World Terrain uses
 	// coarser global data, so terrain mesh runs ~2 m lower than AHN in Middelburg.
@@ -86,15 +80,9 @@ export default function App() {
 		objectsVersion,
 		isProcessing,
 		handleImport,
-	} = useUserObjectsLayer(
-		showObjects,
-		isEditingMode,
-		selectedObjectType,
-		setSelectedObjectType,
-	);
+	} = useUserObjectsLayer(showObjects, isEditingMode, selectedObjectType, setSelectedObjectType);
 
-	const activeLayerId =
-		overlayLayers[overlayLayers.length - 1]?.id ?? QGIS_OVERLAY_LAYERS[0].id;
+	const activeLayerId = overlayLayers[overlayLayers.length - 1]?.id ?? QGIS_OVERLAY_LAYERS[0].id;
 	const activeLayerMeta =
 		QGIS_OVERLAY_LAYERS.find((l) => l.id === activeLayerId) ?? QGIS_OVERLAY_LAYERS[0];
 
@@ -103,19 +91,18 @@ export default function App() {
 		overlayLayerId: activeLayerId,
 	});
 
-	const { handleBuildingClick, buildingInfo, tileProperties } =
-		useBuildingHighlight({
-			enabled: showBuildings,
-		});
+	const { handleBuildingClick, buildingInfo, tileProperties } = useBuildingHighlight({
+		enabled: showBuildings,
+	});
 
 	useEffect(() => {
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
 			if (!hasUnsavedChanges) return;
 			event.preventDefault();
-			event.returnValue = "";
+			event.returnValue = '';
 		};
-		window.addEventListener("beforeunload", handleBeforeUnload);
-		return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+		window.addEventListener('beforeunload', handleBeforeUnload);
+		return () => window.removeEventListener('beforeunload', handleBeforeUnload);
 	}, [hasUnsavedChanges]);
 
 	const handleToggleObjects = (value: boolean) => {
@@ -132,11 +119,9 @@ export default function App() {
 			setEditingIntent(false);
 			return;
 		}
-		const typeExists = objectTypes.find((t) => t.name === type.name)
-			? true
-			: false;
+		const typeExists = objectTypes.find((t) => t.name === type.name) ? true : false;
 		if (!typeExists) {
-			console.warn("Selected object type not found.");
+			console.warn('Selected object type not found.');
 			return;
 		}
 		setSelectedObjectType(type.name);
@@ -144,19 +129,14 @@ export default function App() {
 	};
 
 	const handleCesiumClick = useCallback(
-		({
-			coordinate,
-			pickedEntityId,
-			bagId,
-			tileProperties,
-		}: CesiumClickInfo) => {
+		({ coordinate, pickedEntityId, bagId, tileProperties }: CesiumClickInfo) => {
 			const lon = coordinate?.[0];
 			const lat = coordinate?.[1];
 
 			if (showBuildings && !isEditingMode && lon != null && lat != null) {
 				handleBuildingClick(lon, lat, bagId, tileProperties);
 				// Auto-open the buildings panel so the user sees the details immediately.
-				setActiveSideMenuId("buildings");
+				setActiveSideMenuId('buildings');
 			}
 
 			if (pickedEntityId || (lon != null && lat != null)) {
@@ -167,27 +147,21 @@ export default function App() {
 				handleMapClick(lon, lat);
 			}
 		},
-		[
-			showBuildings,
-			isEditingMode,
-			handleBuildingClick,
-			handleInteraction,
-			handleMapClick,
-		],
+		[showBuildings, isEditingMode, handleBuildingClick, handleInteraction, handleMapClick],
 	);
 
 	const activeVbos =
 		buildingInfo?.verblijfsobject_data?.filter(
-			(vbo) => vbo.status === "Verblijfsobject in gebruik",
+			(vbo) => vbo.status === 'Verblijfsobject in gebruik',
 		) ?? [];
 
 	const cesiumMapRef = useRef<CesiumMapHandle>(null);
 
 	const items: SideMenuItem[] = [
 		{
-			id: "overlayLayers",
+			id: 'overlayLayers',
 			icon: <LayersIcon />,
-			label: "Overlay Layers",
+			label: 'Overlay Layers',
 			panel: (
 				<OverlayLayersPanel
 					layers={overlayLayers}
@@ -198,9 +172,9 @@ export default function App() {
 			),
 		},
 		{
-			id: "heatstressmeasures",
+			id: 'heatstressmeasures',
 			icon: <TreeIcon />,
-			label: "Heat Stress Measures",
+			label: 'Heat Stress Measures',
 			panel: (
 				<HeatStressMeasuresPanel
 					showObjects={showObjects}
@@ -218,9 +192,9 @@ export default function App() {
 			),
 		},
 		{
-			id: "buildings",
+			id: 'buildings',
 			icon: <BuildingIcon />,
-			label: "Buildings (3D View)",
+			label: 'Buildings (3D View)',
 			panel: (
 				<BuildingsPanel
 					showBuildings={showBuildings}
@@ -234,9 +208,9 @@ export default function App() {
 			),
 		},
 		{
-			id: "sunShadow",
+			id: 'sunShadow',
 			icon: <SunIcon />,
-			label: "Sun & Shadow",
+			label: 'Sun & Shadow',
 			panel: (
 				<SunShadowPanel
 					enabled={showSunShadow}
@@ -247,24 +221,24 @@ export default function App() {
 			),
 		},
 		{
-			id: "togglePerspective",
+			id: 'togglePerspective',
 			icon: <PerspectiveIcon />,
-			label: "Toggle Perspective",
+			label: 'Toggle Perspective',
 			onClick: () => {
 				cesiumMapRef.current?.togglePerspective();
 			},
 			panel: undefined,
 		},
 		{
-			id: "information",
+			id: 'information',
 			icon: <InformationIcon />,
-			label: "Information",
+			label: 'Information',
 			panel: <InformationPanel />,
 		},
 	];
 
 	return (
-		<div style={{ position: "relative", height: "100dvh", width: "100%" }}>
+		<div style={{ position: 'relative', height: '100dvh', width: '100%' }}>
 			<CesiumMap
 				ref={cesiumMapRef}
 				onLeftClick={handleCesiumClick}
@@ -281,17 +255,12 @@ export default function App() {
 					/>
 				))}
 
-				{showExistingTrees && (
-					<ExistingTreesEntities onStatusChange={setTreeLoadStatus} />
-				)}
+				{showExistingTrees && <ExistingTreesEntities onStatusChange={setTreeLoadStatus} />}
 
 				{showObjects && <StaticTreesEntities />}
 
 				{showObjects && (
-					<UserObjectsEntities
-						objectsToSave={objectsToSave}
-						objectTypes={objectTypes}
-					/>
+					<UserObjectsEntities objectsToSave={objectsToSave} objectTypes={objectTypes} />
 				)}
 
 				{showBuildings && (
@@ -302,9 +271,7 @@ export default function App() {
 					/>
 				)}
 
-				{showGoogleTiles && (
-					<GooglePhotorealisticTileset shadowsEnabled={showSunShadow} />
-				)}
+				{showGoogleTiles && <GooglePhotorealisticTileset shadowsEnabled={showSunShadow} />}
 			</CesiumMap>
 
 			{isProcessing && (
@@ -326,15 +293,15 @@ export default function App() {
 			{/* BOTTOM RIGHT INFO PANEL */}
 			<div
 				style={{
-					position: "absolute",
+					position: 'absolute',
 					bottom: 40,
 					right: 10,
 					zIndex: 1000,
-					pointerEvents: "none",
-					display: "flex",
-					flexDirection: "column",
-					alignItems: "flex-end",
-					gap: "12px",
+					pointerEvents: 'none',
+					display: 'flex',
+					flexDirection: 'column',
+					alignItems: 'flex-end',
+					gap: '12px',
 				}}
 			>
 				<PerformanceOverlay />
@@ -350,13 +317,13 @@ export default function App() {
 				) : null}
 			</div>
 
-			<div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+			<div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
 				<div
 					style={{
-						position: "absolute",
-						height: "100dvh",
+						position: 'absolute',
+						height: '100dvh',
 						width: 400,
-						pointerEvents: "auto",
+						pointerEvents: 'auto',
 					}}
 				>
 					<SideMenu
