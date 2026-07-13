@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import type { QgisLayerId } from "./lib/qgisLayers";
 
 export type LegendItem = {
   value: number;
@@ -30,16 +31,16 @@ type LegendState = {
 
 type Config = {
   enabled: boolean;
+  layerId: QgisLayerId;
 };
 
-export function useWMSLegend({ enabled }: Config): LegendState {
+export function useWMSLegend({ enabled, layerId }: Config): LegendState {
   const [legend, setLegend] = useState<LegendPayload | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const hasFetched = useRef(false);
 
   useEffect(() => {
-    if (!enabled || hasFetched.current) {
+    if (!enabled) {
       setLegend(null);
       setError(null);
       setIsLoading(false);
@@ -53,7 +54,7 @@ export function useWMSLegend({ enabled }: Config): LegendState {
       setError(null);
 
       try {
-        const res = await fetch("/backend/legend?layer=pet-version-1", {
+        const res = await fetch(`/backend/legend?layer=${layerId}`, {
           signal: controller.signal,
         });
 
@@ -65,7 +66,6 @@ export function useWMSLegend({ enabled }: Config): LegendState {
 
         const json = (await res.json()) as LegendPayload;
         setLegend(json);
-        hasFetched.current = true;
       } catch (err) {
         if ((err as { name?: string }).name !== "AbortError") {
           setLegend(null);
@@ -81,7 +81,7 @@ export function useWMSLegend({ enabled }: Config): LegendState {
     return () => {
       controller.abort();
     };
-  }, [enabled]);
+  }, [enabled, layerId]);
 
   return { legend, isLoading, error };
 }

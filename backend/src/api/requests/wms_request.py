@@ -8,7 +8,7 @@ class WMSRequest(ServerRequest):
     """
     SERVICE: str = "WMS"
     VERSION: str = "1.3.0"
-    CRS: str = "EPSG:4326"
+    CRS: str = "CRS:84"  # lon,lat axis order — EPSG:4326 in WMS 1.3.0 reverses to lat,lon
 
     LAYERS: str = Field(..., description="Comma-separated list of layer names to be rendered.")
     WIDTH: int = 256
