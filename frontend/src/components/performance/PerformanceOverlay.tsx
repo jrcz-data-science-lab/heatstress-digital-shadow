@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -18,21 +18,21 @@ interface MemoryInfo {
 // ── Shared styles (matching the rest of the app) ──────────────────────────────
 
 const lbl: React.CSSProperties = {
-	color: "#888",
-	fontSize: "10px",
+	color: '#888',
+	fontSize: '10px',
 	fontWeight: 600,
-	textTransform: "uppercase",
-	letterSpacing: "0.5px",
-	display: "block",
-	marginTop: "2px",
+	textTransform: 'uppercase',
+	letterSpacing: '0.5px',
+	display: 'block',
+	marginTop: '2px',
 };
 
 const val: React.CSSProperties = {
-	color: "#111",
-	fontSize: "22px",
+	color: '#111',
+	fontSize: '22px',
 	fontWeight: 700,
 	lineHeight: 1,
-	fontVariantNumeric: "tabular-nums",
+	fontVariantNumeric: 'tabular-nums',
 };
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
@@ -95,35 +95,35 @@ function usePerformanceStats(): PerfStats {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fpsColor(fps: number): string {
-	if (fps >= 55) return "#22c55e"; // green — smooth
-	if (fps >= 30) return "#f5a623"; // amber — acceptable
-	return "#ef4444";                // red   — struggling
+	if (fps >= 55) return '#22c55e'; // green — smooth
+	if (fps >= 30) return '#f5a623'; // amber — acceptable
+	return '#ef4444'; // red   — struggling
 }
 
 function frameMsColor(ms: number): string {
-	if (ms <= 18) return "#22c55e";
-	if (ms <= 34) return "#f5a623";
-	return "#ef4444";
+	if (ms <= 18) return '#22c55e';
+	if (ms <= 34) return '#f5a623';
+	return '#ef4444';
 }
 
 function Bar({ fill, color }: { fill: number; color: string }) {
 	return (
 		<div
 			style={{
-				height: "4px",
-				borderRadius: "2px",
-				background: "#e5e5e5",
-				overflow: "hidden",
-				marginTop: "6px",
+				height: '4px',
+				borderRadius: '2px',
+				background: '#e5e5e5',
+				overflow: 'hidden',
+				marginTop: '6px',
 			}}
 		>
 			<div
 				style={{
-					height: "100%",
+					height: '100%',
 					width: `${Math.min(fill * 100, 100)}%`,
 					background: color,
-					borderRadius: "2px",
-					transition: "width 0.3s ease, background 0.3s ease",
+					borderRadius: '2px',
+					transition: 'width 0.3s ease, background 0.3s ease',
 				}}
 			/>
 		</div>
@@ -139,38 +139,38 @@ export function PerformanceOverlay() {
 	return (
 		<div
 			style={{
-				padding: "12px 16px",
-				background: "#ffffff",
-				borderRadius: "12px",
-				boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-				border: "1px solid rgba(0,0,0,0.15)",
-				width: "220px",
-				pointerEvents: "none",
-				userSelect: "none",
+				padding: '12px 16px',
+				background: '#ffffff',
+				borderRadius: '12px',
+				boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+				border: '1px solid rgba(0,0,0,0.15)',
+				width: '220px',
+				pointerEvents: 'none',
+				userSelect: 'none',
 			}}
 		>
 			{/* Header */}
 			<div
 				style={{
-					fontSize: "11px",
+					fontSize: '11px',
 					fontWeight: 700,
-					color: "#444",
-					textTransform: "uppercase",
-					letterSpacing: "0.5px",
-					marginBottom: "10px",
+					color: '#444',
+					textTransform: 'uppercase',
+					letterSpacing: '0.5px',
+					marginBottom: '10px',
 				}}
 			>
 				Render Performance
 			</div>
 
 			{/* FPS + Frame time — two columns */}
-			<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+			<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
 				<div>
 					<span style={{ ...val, color }}>{fps}</span>
 					<span style={lbl}>FPS</span>
 				</div>
 				<div>
-					<span style={{ ...val, color: frameMsColor(frameMs), fontSize: "18px" }}>
+					<span style={{ ...val, color: frameMsColor(frameMs), fontSize: '18px' }}>
 						{frameMs}
 					</span>
 					<span style={lbl}>ms / frame</span>
@@ -184,29 +184,25 @@ export function PerformanceOverlay() {
 			{heapUsedMB !== null && heapLimitMB !== null && (
 				<div
 					style={{
-						marginTop: "10px",
-						borderTop: "1px solid #e5e5e5",
-						paddingTop: "8px",
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
+						marginTop: '10px',
+						borderTop: '1px solid #e5e5e5',
+						paddingTop: '8px',
+						display: 'flex',
+						justifyContent: 'space-between',
+						alignItems: 'center',
 					}}
 				>
-					<span style={{ ...lbl, display: "inline", marginTop: 0 }}>
-						JS Heap
-					</span>
+					<span style={{ ...lbl, display: 'inline', marginTop: 0 }}>JS Heap</span>
 					<span
 						style={{
-							fontSize: "12px",
+							fontSize: '12px',
 							fontWeight: 600,
-							color: "#111",
-							fontVariantNumeric: "tabular-nums",
+							color: '#111',
+							fontVariantNumeric: 'tabular-nums',
 						}}
 					>
 						{heapUsedMB}&thinsp;
-						<span style={{ color: "#aaa", fontWeight: 400 }}>
-							/ {heapLimitMB} MB
-						</span>
+						<span style={{ color: '#aaa', fontWeight: 400 }}>/ {heapLimitMB} MB</span>
 					</span>
 				</div>
 			)}

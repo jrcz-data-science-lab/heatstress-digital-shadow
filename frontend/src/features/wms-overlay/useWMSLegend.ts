@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import type { QgisLayerId } from "./lib/qgisLayers";
+import { useEffect, useState } from 'react';
+import type { QgisLayerId } from './lib/qgisLayers';
 
 export type LegendItem = {
 	value: number;
@@ -30,22 +30,22 @@ type LegendState = {
 };
 
 type Config = {
-  enabled: boolean;
-  layerId: QgisLayerId;
+	enabled: boolean;
+	layerId: QgisLayerId;
 };
 
 export function useWMSLegend({ enabled, layerId }: Config): LegendState {
-  const [legend, setLegend] = useState<LegendPayload | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+	const [legend, setLegend] = useState<LegendPayload | null>(null);
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!enabled) {
-      setLegend(null);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
+	useEffect(() => {
+		if (!enabled) {
+			setLegend(null);
+			setError(null);
+			setIsLoading(false);
+			return;
+		}
 
 		const controller = new AbortController();
 
@@ -53,10 +53,10 @@ export function useWMSLegend({ enabled, layerId }: Config): LegendState {
 			setIsLoading(true);
 			setError(null);
 
-      try {
-        const res = await fetch(`/backend/legend?layer=${layerId}`, {
-          signal: controller.signal,
-        });
+			try {
+				const res = await fetch(`/backend/legend?layer=${layerId}`, {
+					signal: controller.signal,
+				});
 
 				if (!res.ok) {
 					setLegend(null);
@@ -64,24 +64,24 @@ export function useWMSLegend({ enabled, layerId }: Config): LegendState {
 					return;
 				}
 
-        const json = (await res.json()) as LegendPayload;
-        setLegend(json);
-      } catch (err) {
-        if ((err as { name?: string }).name !== "AbortError") {
-          setLegend(null);
-          setError("Legend request failed");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    }
+				const json = (await res.json()) as LegendPayload;
+				setLegend(json);
+			} catch (err) {
+				if ((err as { name?: string }).name !== 'AbortError') {
+					setLegend(null);
+					setError('Legend request failed');
+				}
+			} finally {
+				setIsLoading(false);
+			}
+		}
 
 		void fetchLegend();
 
-    return () => {
-      controller.abort();
-    };
-  }, [enabled, layerId]);
+		return () => {
+			controller.abort();
+		};
+	}, [enabled, layerId]);
 
 	return { legend, isLoading, error };
 }

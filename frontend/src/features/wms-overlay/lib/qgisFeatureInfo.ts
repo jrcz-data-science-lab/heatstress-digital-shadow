@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { buildGetFeatureInfoUrl } from "./wmsUtils";
+import { useState } from 'react';
+import { buildGetFeatureInfoUrl } from './wmsUtils';
 
 export interface PetFeatureInfo {
 	lon: number;
@@ -29,8 +29,8 @@ function isFeatureCollection(value: unknown): value is QgisFeatureCollection {
 }
 
 type Config = {
-  baseUrl: string;
-  layerName: string;
+	baseUrl: string;
+	layerName: string;
 };
 
 export function useQgisFeatureInfo(config: Config) {
@@ -40,13 +40,13 @@ export function useQgisFeatureInfo(config: Config) {
 		setFeatureInfo(null);
 	}
 
-  async function request(lon: number, lat: number): Promise<void> {
-    const url = buildGetFeatureInfoUrl({
-      baseUrl: config.baseUrl,
-      layerName: config.layerName,
-      coord: [lon, lat],
-      infoFormat: "application/json",
-    });
+	async function request(lon: number, lat: number): Promise<void> {
+		const url = buildGetFeatureInfoUrl({
+			baseUrl: config.baseUrl,
+			layerName: config.layerName,
+			coord: [lon, lat],
+			infoFormat: 'application/json',
+		});
 
 		let json: unknown;
 		try {

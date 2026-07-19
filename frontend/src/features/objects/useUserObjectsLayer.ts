@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { LOCAL_STORAGE_KEY } from "../../map/utils/constants";
-import { lonLatToRd } from "../../map/utils/crs";
-import type { MeasureType, ObjectInstance } from "./lib/objectLayer";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { LOCAL_STORAGE_KEY } from '../../map/utils/constants';
+import { lonLatToRd } from '../../map/utils/crs';
+import type { MeasureType, ObjectInstance } from './lib/objectLayer';
 
 export type { MeasureType, ObjectInstance };
 
@@ -18,12 +18,12 @@ export function useUserObjectsLayer(
 		let cancelled = false;
 		async function fetchTypes() {
 			try {
-				const response = await fetch("/backend/measures");
+				const response = await fetch('/backend/measures');
 				if (!response.ok) throw new Error(response.statusText);
 				const data: MeasureType[] = await response.json();
 				if (!cancelled) setObjectTypes(data);
 			} catch (e) {
-				console.error("Failed to fetch measure types", e);
+				console.error('Failed to fetch measure types', e);
 			}
 		}
 		fetchTypes();
@@ -39,13 +39,12 @@ export function useUserObjectsLayer(
 			const parsed = JSON.parse(storedValue);
 			return Array.isArray(parsed) ? parsed : [];
 		} catch (e) {
-			console.error("Error loading user objects from local storage:", e);
+			console.error('Error loading user objects from local storage:', e);
 			return [];
 		}
 	});
 
-	const [objectsToSave, setObjectsToSave] =
-		useState<ObjectInstance[]>(userObjects);
+	const [objectsToSave, setObjectsToSave] = useState<ObjectInstance[]>(userObjects);
 	const [nextClientId, setNextClientId] = useState(0);
 	const [objectsVersion, setObjectsVersion] = useState(0);
 	const [error, setError] = useState<Error | null>(null);
@@ -70,8 +69,8 @@ export function useUserObjectsLayer(
 			if (!isEditingMode) return;
 
 			// If a user-placed entity was picked, remove it (coords not needed)
-			if (pickedEntityId?.startsWith("user-obj-CLIENT-")) {
-				const objectId = pickedEntityId.replace(/^user-obj-/, "");
+			if (pickedEntityId?.startsWith('user-obj-CLIENT-')) {
+				const objectId = pickedEntityId.replace(/^user-obj-/, '');
 				setObjectsToSave((prev) => prev.filter((t) => t.id !== objectId));
 				return true;
 			}
@@ -82,7 +81,7 @@ export function useUserObjectsLayer(
 			const selectedType = getSelectedTypeProperties();
 			if (!selectedType) {
 				console.warn(
-					"Cannot place object: Type properties not yet loaded or selected type is invalid.",
+					'Cannot place object: Type properties not yet loaded or selected type is invalid.',
 				);
 				return;
 			}
@@ -92,7 +91,7 @@ export function useUserObjectsLayer(
 
 			const newObject: ObjectInstance = {
 				id: newId,
-				objectType: selectedObjectType ?? "object",
+				objectType: selectedObjectType ?? 'object',
 				position: [lon, lat, 0],
 				scale: selectedType.scale,
 				height: selectedType.height,
@@ -103,12 +102,7 @@ export function useUserObjectsLayer(
 			setObjectsToSave((prev) => [...prev, newObject]);
 			return true;
 		},
-		[
-			isEditingMode,
-			selectedObjectType,
-			nextClientId,
-			getSelectedTypeProperties,
-		],
+		[isEditingMode, selectedObjectType, nextClientId, getSelectedTypeProperties],
 	);
 
 	// Suppress unused warning — showObjects is kept as a param for API symmetry
@@ -117,12 +111,8 @@ export function useUserObjectsLayer(
 	const hasUnsavedChanges = useMemo(() => {
 		if (userObjects === objectsToSave) return false;
 		if (userObjects.length !== objectsToSave.length) return true;
-		const sortedUser = [...userObjects].sort((a, b) =>
-			a.id.localeCompare(b.id),
-		);
-		const sortedDraft = [...objectsToSave].sort((a, b) =>
-			a.id.localeCompare(b.id),
-		);
+		const sortedUser = [...userObjects].sort((a, b) => a.id.localeCompare(b.id));
+		const sortedDraft = [...objectsToSave].sort((a, b) => a.id.localeCompare(b.id));
 		return JSON.stringify(sortedUser) !== JSON.stringify(sortedDraft);
 	}, [userObjects, objectsToSave]);
 
@@ -143,16 +133,14 @@ export function useUserObjectsLayer(
 				}),
 			};
 
-			const response = await fetch("/backend/update-pet", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
+			const response = await fetch('/backend/update-pet', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload),
 			});
 
 			if (!response.ok) {
-				throw new Error(
-					`Failed to update pet: ${response.status} ${response.statusText}`,
-				);
+				throw new Error(`Failed to update pet: ${response.status} ${response.statusText}`);
 			}
 
 			await Promise.resolve().then(() => {
@@ -161,7 +149,7 @@ export function useUserObjectsLayer(
 				setObjectsVersion((v) => v + 1);
 			});
 		} catch (e) {
-			console.error("Error saving objects:", e);
+			console.error('Error saving objects:', e);
 			setError(e instanceof Error ? e : new Error(String(e)));
 		} finally {
 			setIsProcessing(false);
@@ -171,7 +159,7 @@ export function useUserObjectsLayer(
 	const handleImport = useCallback(
 		(importedObjects: ObjectInstance[]) => {
 			if (importedObjects.length === 0) {
-				alert("Imported file contains no objects.");
+				alert('Imported file contains no objects.');
 				return;
 			}
 			const confirmReplace = window.confirm(

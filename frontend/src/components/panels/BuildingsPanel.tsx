@@ -1,12 +1,12 @@
-import { useState } from "react";
-import CheckboxItem from "./items/CheckboxItem";
+import { useState } from 'react';
+import CheckboxItem from './items/CheckboxItem';
 import type {
 	TileProperties,
 	EnergieLabel,
 	PandEnergieData,
 	BuildingAddressData,
 	VboAdres,
-} from "../../features/buildings-3d/lib/buildingMetadataApi";
+} from '../../features/buildings-3d/lib/buildingMetadataApi';
 
 interface VboData {
 	bag_id: string;
@@ -44,64 +44,64 @@ type BuildingsPanelProps = {
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
 const lbl: React.CSSProperties = {
-	color: "#888",
-	fontSize: "10px",
+	color: '#888',
+	fontSize: '10px',
 	fontWeight: 600,
-	textTransform: "uppercase",
-	letterSpacing: "0.5px",
-	display: "block",
-	marginBottom: "2px",
+	textTransform: 'uppercase',
+	letterSpacing: '0.5px',
+	display: 'block',
+	marginBottom: '2px',
 };
 
 const val: React.CSSProperties = {
-	color: "#111",
-	fontSize: "13px",
+	color: '#111',
+	fontSize: '13px',
 	fontWeight: 600,
 };
 
 const sectionTitle: React.CSSProperties = {
-	fontSize: "11px",
+	fontSize: '11px',
 	fontWeight: 700,
-	color: "#444",
-	textTransform: "uppercase",
-	letterSpacing: "0.5px",
-	marginBottom: "10px",
+	color: '#444',
+	textTransform: 'uppercase',
+	letterSpacing: '0.5px',
+	marginBottom: '10px',
 };
 
 const divider: React.CSSProperties = {
-	borderTop: "1px solid #e5e5e5",
-	paddingTop: "12px",
-	marginTop: "12px",
+	borderTop: '1px solid #e5e5e5',
+	paddingTop: '12px',
+	marginTop: '12px',
 };
 
 const grid2: React.CSSProperties = {
-	display: "grid",
-	gridTemplateColumns: "1fr 1fr",
-	gap: "10px",
+	display: 'grid',
+	gridTemplateColumns: '1fr 1fr',
+	gap: '10px',
 };
 
 const grid3: React.CSSProperties = {
-	display: "grid",
-	gridTemplateColumns: "1fr 1fr 1fr",
-	gap: "10px",
+	display: 'grid',
+	gridTemplateColumns: '1fr 1fr 1fr',
+	gap: '10px',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmt(n: number | undefined, decimals = 1, unit = ""): string {
-	if (n == null) return "—";
-	return `${n.toFixed(decimals)}${unit ? "\u202f" + unit : ""}`;
+function fmt(n: number | undefined, decimals = 1, unit = ''): string {
+	if (n == null) return '—';
+	return `${n.toFixed(decimals)}${unit ? '\u202f' + unit : ''}`;
 }
 
 function roofTypeLabel(type: string | undefined): string {
-	if (!type) return "—";
+	if (!type) return '—';
 	const map: Record<string, string> = {
-		slanted: "Slanted",
-		horizontal: "Flat",
-		"multiple horizontal": "Multi-flat",
-		unknown: "Unknown",
-		"no points": "No data",
-		"no planes": "No planes",
+		slanted: 'Slanted',
+		horizontal: 'Flat',
+		'multiple horizontal': 'Multi-flat',
+		unknown: 'Unknown',
+		'no points': 'No data',
+		'no planes': 'No planes',
 	};
 	return map[type] ?? type;
 }
@@ -110,11 +110,9 @@ function fmtAddress(
 	a: BuildingAddressData | null | undefined,
 ): { line1: string; line2: string } | null {
 	if (!a) return null;
-	const num = [a.house_number, a.house_letter, a.house_number_addition]
-		.filter(Boolean)
-		.join(" ");
-	const line1 = [a.street, num].filter(Boolean).join(" ");
-	const line2 = [a.postcode, a.city].filter(Boolean).join("  ");
+	const num = [a.house_number, a.house_letter, a.house_number_addition].filter(Boolean).join(' ');
+	const line1 = [a.street, num].filter(Boolean).join(' ');
+	const line2 = [a.postcode, a.city].filter(Boolean).join('  ');
 	return line1 || line2 ? { line1, line2 } : null;
 }
 
@@ -123,46 +121,42 @@ function fmtAddress(
  * Combines the building street with the unit's own number/letter/addition.
  * e.g. "Kanaalweg 2", "Kanaalweg 2 A", "Kanaalweg 2 toev. 01"
  */
-function fmtVboAddress(
-	street: string | undefined,
-	a: VboAdres | null | undefined,
-): string | null {
+function fmtVboAddress(street: string | undefined, a: VboAdres | null | undefined): string | null {
 	if (!a) return null;
 	const parts: string[] = [];
 	if (street) parts.push(street);
 	if (a.house_number != null) parts.push(String(a.house_number));
 	if (a.house_letter) parts.push(a.house_letter);
-	if (a.house_number_addition)
-		parts.push(`toev.\u00a0${a.house_number_addition}`);
-	return parts.length > 0 ? parts.join(" ") : null;
+	if (a.house_number_addition) parts.push(`toev.\u00a0${a.house_number_addition}`);
+	return parts.length > 0 ? parts.join(' ') : null;
 }
 
 /** EU energy label colour scale A+++ → G */
 const LABEL_COLORS: Record<string, { bg: string; text: string }> = {
-	"A+++++": { bg: "#00893a", text: "#fff" },
-	"A++++": { bg: "#00893a", text: "#fff" },
-	"A+++": { bg: "#00893a", text: "#fff" },
-	"A++": { bg: "#1aaa45", text: "#fff" },
-	"A+": { bg: "#57b944", text: "#fff" },
-	A: { bg: "#a8ce38", text: "#000" },
-	B: { bg: "#cede38", text: "#000" },
-	C: { bg: "#f5eb1a", text: "#000" },
-	D: { bg: "#f5c31a", text: "#000" },
-	E: { bg: "#f5961a", text: "#000" },
-	F: { bg: "#f0631a", text: "#fff" },
-	G: { bg: "#e8231a", text: "#fff" },
+	'A+++++': { bg: '#00893a', text: '#fff' },
+	'A++++': { bg: '#00893a', text: '#fff' },
+	'A+++': { bg: '#00893a', text: '#fff' },
+	'A++': { bg: '#1aaa45', text: '#fff' },
+	'A+': { bg: '#57b944', text: '#fff' },
+	A: { bg: '#a8ce38', text: '#000' },
+	B: { bg: '#cede38', text: '#000' },
+	C: { bg: '#f5eb1a', text: '#000' },
+	D: { bg: '#f5c31a', text: '#000' },
+	E: { bg: '#f5961a', text: '#000' },
+	F: { bg: '#f0631a', text: '#fff' },
+	G: { bg: '#e8231a', text: '#fff' },
 };
 
-const EP_ONLINE_SEARCH_URL = "https://www.ep-online.nl/Energylabel/Search";
+const EP_ONLINE_SEARCH_URL = 'https://www.ep-online.nl/Energylabel/Search';
 
 function InfoTooltip({ text }: { text: string }) {
 	const [visible, setVisible] = useState(false);
 	return (
 		<span
 			style={{
-				position: "relative",
-				display: "inline-flex",
-				alignItems: "center",
+				position: 'relative',
+				display: 'inline-flex',
+				alignItems: 'center',
 			}}
 		>
 			<span
@@ -173,13 +167,13 @@ function InfoTooltip({ text }: { text: string }) {
 				onFocus={() => setVisible(true)}
 				onBlur={() => setVisible(false)}
 				onKeyDown={(e) => {
-					if (e.key === "Enter" || e.key === " ") setVisible((v) => !v);
+					if (e.key === 'Enter' || e.key === ' ') setVisible((v) => !v);
 				}}
 				aria-label={text}
 				style={{
-					cursor: "default",
-					fontSize: "15px",
-					color: "#000000",
+					cursor: 'default',
+					fontSize: '15px',
+					color: '#000000',
 					lineHeight: 1,
 				}}
 			>
@@ -188,19 +182,19 @@ function InfoTooltip({ text }: { text: string }) {
 			{visible && (
 				<span
 					style={{
-						position: "absolute",
-						left: "50%",
-						top: "calc(100% + 6px)",
-						width: "max-content",
-						maxWidth: "100px",
-						background: "#000",
-						color: "#fff",
-						fontSize: "10px",
-						fontWeight: "bold",
-						padding: "6px 8px",
-						borderRadius: "4px",
+						position: 'absolute',
+						left: '50%',
+						top: 'calc(100% + 6px)',
+						width: 'max-content',
+						maxWidth: '100px',
+						background: '#000',
+						color: '#fff',
+						fontSize: '10px',
+						fontWeight: 'bold',
+						padding: '6px 8px',
+						borderRadius: '4px',
 						zIndex: 10,
-						pointerEvents: "none",
+						pointerEvents: 'none',
 					}}
 				>
 					{text}
@@ -211,22 +205,22 @@ function InfoTooltip({ text }: { text: string }) {
 }
 
 function LabelBadge({ klasse, href }: { klasse: string; href?: string }) {
-	const colors = LABEL_COLORS[klasse] ?? { bg: "#aaa", text: "#fff" };
+	const colors = LABEL_COLORS[klasse] ?? { bg: '#aaa', text: '#fff' };
 
 	const badge = (
 		<div
 			style={{
-				display: "inline-flex",
-				alignItems: "center",
-				justifyContent: "center",
+				display: 'inline-flex',
+				alignItems: 'center',
+				justifyContent: 'center',
 				background: colors.bg,
 				color: colors.text,
 				fontWeight: 800,
-				fontSize: "13px",
-				padding: "2px 9px",
-				borderRadius: "4px",
-				letterSpacing: "0.5px",
-				minWidth: "34px",
+				fontSize: '13px',
+				padding: '2px 9px',
+				borderRadius: '4px',
+				letterSpacing: '0.5px',
+				minWidth: '34px',
 			}}
 		>
 			{klasse}
@@ -238,7 +232,7 @@ function LabelBadge({ klasse, href }: { klasse: string; href?: string }) {
 			href={href}
 			target="_blank"
 			rel="noopener noreferrer"
-			style={{ textDecoration: "none" }}
+			style={{ textDecoration: 'none' }}
 			aria-label={`More information about energy label ${klasse}`}
 			title="Open energy label information"
 		>
@@ -252,51 +246,42 @@ function LabelBadge({ klasse, href }: { klasse: string; href?: string }) {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 /** Per-VBO energy label card content */
-function EnergieLabelBadge({
-	label,
-	bagId,
-}: {
-	label: EnergieLabel;
-	bagId?: string;
-}) {
+function EnergieLabelBadge({ label, bagId }: { label: EnergieLabel; bagId?: string }) {
 	const { energieklasse: klasse } = label;
 
 	return (
 		<div
 			style={{
-				marginTop: "8px",
-				borderTop: "1px solid #ececec",
-				paddingTop: "8px",
+				marginTop: '8px',
+				borderTop: '1px solid #ececec',
+				paddingTop: '8px',
 			}}
 		>
 			{/* Badge row */}
 			{klasse && (
 				<div
 					style={{
-						display: "flex",
-						alignItems: "center",
-						gap: "8px",
-						marginBottom: "8px",
+						display: 'flex',
+						alignItems: 'center',
+						gap: '8px',
+						marginBottom: '8px',
 					}}
 				>
-					<LabelBadge
-						klasse={klasse}
-						href={bagId ? EP_ONLINE_SEARCH_URL : undefined}
-					/>
+					<LabelBadge klasse={klasse} href={bagId ? EP_ONLINE_SEARCH_URL : undefined} />
 					{bagId && (
 						<InfoTooltip text="Click the label to open EP-Online. Enter the BAG ID shown above in the search box." />
 					)}
 					{label.gebouwklasse && (
-						<span style={{ fontSize: "11px", color: "#555" }}>
-							{label.gebouwklasse === "W"
-								? "Residential"
-								: label.gebouwklasse === "U"
-									? "Utility"
+						<span style={{ fontSize: '11px', color: '#555' }}>
+							{label.gebouwklasse === 'W'
+								? 'Residential'
+								: label.gebouwklasse === 'U'
+									? 'Utility'
 									: label.gebouwklasse}
 						</span>
 					)}
 					{label.energie_index != null && (
-						<span style={{ fontSize: "11px", color: "#888" }}>
+						<span style={{ fontSize: '11px', color: '#888' }}>
 							index {label.energie_index.toFixed(2)}
 						</span>
 					)}
@@ -304,38 +289,36 @@ function EnergieLabelBadge({
 			)}
 
 			{/* Figures */}
-			<div
-				style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}
-			>
+			<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
 				{label.energiebehoefte != null && (
 					<div>
 						<span style={lbl}>Energy demand</span>
-						<span style={{ ...val, fontSize: "12px" }}>
-							{fmt(label.energiebehoefte, 0, "kWh/m²")}
+						<span style={{ ...val, fontSize: '12px' }}>
+							{fmt(label.energiebehoefte, 0, 'kWh/m²')}
 						</span>
 					</div>
 				)}
 				{label.aandeel_hernieuwbare_energie != null && (
 					<div>
 						<span style={lbl}>Renewable share</span>
-						<span style={{ ...val, fontSize: "12px" }}>
-							{fmt(label.aandeel_hernieuwbare_energie, 1, "%")}
+						<span style={{ ...val, fontSize: '12px' }}>
+							{fmt(label.aandeel_hernieuwbare_energie, 1, '%')}
 						</span>
 					</div>
 				)}
 				{label.warmtebehoefte != null && (
 					<div>
 						<span style={lbl}>Heat demand</span>
-						<span style={{ ...val, fontSize: "12px" }}>
-							{fmt(label.warmtebehoefte, 0, "kWh/m²")}
+						<span style={{ ...val, fontSize: '12px' }}>
+							{fmt(label.warmtebehoefte, 0, 'kWh/m²')}
 						</span>
 					</div>
 				)}
 				{label.primaire_fossiele_energie != null && (
 					<div>
 						<span style={lbl}>Fossil energy</span>
-						<span style={{ ...val, fontSize: "12px" }}>
-							{fmt(label.primaire_fossiele_energie, 0, "kWh/m²")}
+						<span style={{ ...val, fontSize: '12px' }}>
+							{fmt(label.primaire_fossiele_energie, 0, 'kWh/m²')}
 						</span>
 					</div>
 				)}
@@ -343,9 +326,9 @@ function EnergieLabelBadge({
 
 			{/* Validity dates */}
 			{(label.registratiedatum || label.geldig_tot) && (
-				<div style={{ marginTop: "5px", fontSize: "10px", color: "#aaa" }}>
+				<div style={{ marginTop: '5px', fontSize: '10px', color: '#aaa' }}>
 					{label.registratiedatum && `Registered: ${label.registratiedatum}`}
-					{label.registratiedatum && label.geldig_tot && " · "}
+					{label.registratiedatum && label.geldig_tot && ' · '}
 					{label.geldig_tot && `Valid until: ${label.geldig_tot}`}
 				</div>
 			)}
@@ -354,13 +337,7 @@ function EnergieLabelBadge({
 }
 
 /** Building-level EP-Online pand section */
-function PandEnergieSection({
-	data,
-	bagId,
-}: {
-	data: PandEnergieData;
-	bagId?: string;
-}) {
+function PandEnergieSection({ data, bagId }: { data: PandEnergieData; bagId?: string }) {
 	return (
 		<div style={divider}>
 			<div style={sectionTitle}>Energy Performance</div>
@@ -368,10 +345,10 @@ function PandEnergieSection({
 			{/* Badge + type row */}
 			<div
 				style={{
-					display: "flex",
-					alignItems: "center",
-					gap: "10px",
-					marginBottom: "12px",
+					display: 'flex',
+					alignItems: 'center',
+					gap: '10px',
+					marginBottom: '12px',
 				}}
 			>
 				{data.energieklasse && (
@@ -385,16 +362,16 @@ function PandEnergieSection({
 				)}
 				<div>
 					{data.gebouwtype && (
-						<div style={{ fontSize: "12px", fontWeight: 600, color: "#111" }}>
+						<div style={{ fontSize: '12px', fontWeight: 600, color: '#111' }}>
 							{data.gebouwtype}
 						</div>
 					)}
 					{data.gebouwklasse && (
-						<div style={{ fontSize: "11px", color: "#666" }}>
-							{data.gebouwklasse === "W"
-								? "Residential"
-								: data.gebouwklasse === "U"
-									? "Utility"
+						<div style={{ fontSize: '11px', color: '#666' }}>
+							{data.gebouwklasse === 'W'
+								? 'Residential'
+								: data.gebouwklasse === 'U'
+									? 'Utility'
 									: data.gebouwklasse}
 						</div>
 					)}
@@ -402,7 +379,7 @@ function PandEnergieSection({
 			</div>
 
 			{data.projectnaam && (
-				<div style={{ marginBottom: "10px" }}>
+				<div style={{ marginBottom: '10px' }}>
 					<span style={lbl}>Project</span>
 					<span style={val}>{data.projectnaam}</span>
 				</div>
@@ -411,14 +388,14 @@ function PandEnergieSection({
 			<div style={grid2}>
 				<div>
 					<span style={lbl}>Energy demand</span>
-					<span style={val}>{fmt(data.energiebehoefte, 0, "kWh/m²")}</span>
+					<span style={val}>{fmt(data.energiebehoefte, 0, 'kWh/m²')}</span>
 				</div>
 				<div>
-					<div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+					<div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
 						<span style={lbl}>Required limit</span>
 						<InfoTooltip text="The legally required maximum energy demand for this building type. If energy demand exceeds this, the building does not meet current standards." />
 					</div>
-					<span style={val}>{fmt(data.eis_energiebehoefte, 0, "kWh/m²")}</span>
+					<span style={val}>{fmt(data.eis_energiebehoefte, 0, 'kWh/m²')}</span>
 				</div>
 			</div>
 		</div>
@@ -437,27 +414,26 @@ function VboCard({
 	isOnly: boolean;
 	street?: string;
 }) {
-	const title =
-		fmtVboAddress(street, vbo.adres) ?? (!isOnly ? `Unit ${index + 1}` : null);
-	const func = vbo.usage_function?.[0] ?? "Unknown";
+	const title = fmtVboAddress(street, vbo.adres) ?? (!isOnly ? `Unit ${index + 1}` : null);
+	const func = vbo.usage_function?.[0] ?? 'Unknown';
 
 	return (
 		<div
 			style={{
-				background: "#fff",
-				border: "1px solid #e0e0e0",
-				borderRadius: "8px",
-				padding: "10px 12px",
-				fontSize: "12px",
+				background: '#fff',
+				border: '1px solid #e0e0e0',
+				borderRadius: '8px',
+				padding: '10px 12px',
+				fontSize: '12px',
 			}}
 		>
 			{/* Header */}
 			<div
 				style={{
-					display: "flex",
-					justifyContent: "space-between",
-					alignItems: "flex-start",
-					marginBottom: "4px",
+					display: 'flex',
+					justifyContent: 'space-between',
+					alignItems: 'flex-start',
+					marginBottom: '4px',
 				}}
 			>
 				<div>
@@ -465,26 +441,26 @@ function VboCard({
 						<div
 							style={{
 								fontWeight: 700,
-								fontSize: "13px",
-								color: "#111",
-								marginBottom: "2px",
+								fontSize: '13px',
+								color: '#111',
+								marginBottom: '2px',
 							}}
 						>
 							{title}
 						</div>
 					)}
-					<div style={{ color: "#555", fontSize: "11px" }}>{func}</div>
+					<div style={{ color: '#555', fontSize: '11px' }}>{func}</div>
 				</div>
 				{vbo.surface_area_m2 != null && (
 					<div
 						style={{
-							background: "#f0f0f0",
-							borderRadius: "4px",
-							padding: "2px 7px",
-							fontSize: "11px",
+							background: '#f0f0f0',
+							borderRadius: '4px',
+							padding: '2px 7px',
+							fontSize: '11px',
 							fontWeight: 600,
-							color: "#444",
-							whiteSpace: "nowrap",
+							color: '#444',
+							whiteSpace: 'nowrap',
 						}}
 					>
 						{vbo.surface_area_m2} m²
@@ -493,9 +469,7 @@ function VboCard({
 			</div>
 
 			{/* Status */}
-			<div style={{ fontSize: "10px", color: "#aaa", marginBottom: "2px" }}>
-				{vbo.status}
-			</div>
+			<div style={{ fontSize: '10px', color: '#aaa', marginBottom: '2px' }}>{vbo.status}</div>
 
 			{/* Energy label */}
 			{vbo.energie_label ? (
@@ -503,10 +477,10 @@ function VboCard({
 			) : (
 				<div
 					style={{
-						marginTop: "6px",
-						fontSize: "10px",
-						color: "#bbb",
-						fontStyle: "italic",
+						marginTop: '6px',
+						fontSize: '10px',
+						color: '#bbb',
+						fontStyle: 'italic',
 					}}
 				>
 					No energy label registered
@@ -531,7 +505,7 @@ export function BuildingsPanel({
 	const address = fmtAddress(buildingInfo?.address);
 
 	return (
-		<div style={{ padding: "0 4px" }}>
+		<div style={{ padding: '0 4px' }}>
 			<h3>3D Buildings</h3>
 
 			{/* ── 3DBAG ── */}
@@ -542,7 +516,7 @@ export function BuildingsPanel({
 			/>
 
 			{/* ── Google Photorealistic 3D Tiles ── */}
-			<div style={{ marginTop: "8px" }}>
+			<div style={{ marginTop: '8px' }}>
 				<CheckboxItem
 					label="Google Photorealistic 3D Tiles (Visual Only)"
 					checked={showGoogleTiles}
@@ -552,81 +526,75 @@ export function BuildingsPanel({
 			{showGoogleTiles && (
 				<div
 					style={{
-						marginTop: "20px",
-						marginBottom: "4px",
-						backgroundColor: "#ef5e5e",
-						padding: "8px 10px",
-						borderRadius: "6px",
-						fontSize: "12px",
-						color: "#000000",
-						borderLeft: "3px solid #ae1919",
+						marginTop: '20px',
+						marginBottom: '4px',
+						backgroundColor: '#ef5e5e',
+						padding: '8px 10px',
+						borderRadius: '6px',
+						fontSize: '12px',
+						color: '#000000',
+						borderLeft: '3px solid #ae1919',
 					}}
 				>
-					Google Photorealistic 3D Tiles are active. This is only for
-					visualization purposes. Data / PET or Tree data cannot be accessed.
+					Google Photorealistic 3D Tiles are active. This is only for visualization
+					purposes. Data / PET or Tree data cannot be accessed.
 					<br />
 					<br />
-					WARNING : Intensive hardware requirements. May cause browser
-					instability or crashes.
+					WARNING : Intensive hardware requirements. May cause browser instability or
+					crashes.
 				</div>
 			)}
 
 			{/* Intro hint */}
 			<div
 				style={{
-					marginTop: "1rem",
-					backgroundColor: "#f1e9e9",
-					padding: "10px",
-					borderRadius: "6px",
-					fontStyle: "italic",
-					fontSize: "13px",
+					marginTop: '1rem',
+					backgroundColor: '#f1e9e9',
+					padding: '10px',
+					borderRadius: '6px',
+					fontStyle: 'italic',
+					fontSize: '13px',
 				}}
 			>
-				<span
-					style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}
-				>
+				<span style={{ fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>
 					About buildings
 				</span>
-				<p style={{ margin: "4px 0" }}>
-					When buildings are enabled, click any building on the map to see its
-					details here.
+				<p style={{ margin: '4px 0' }}>
+					When buildings are enabled, click any building on the map to see its details
+					here.
 				</p>
-				<p style={{ margin: "4px 0" }}>
-					This includes construction year, 3D geometry, energy performance, and
-					active units.
+				<p style={{ margin: '4px 0' }}>
+					This includes construction year, 3D geometry, energy performance, and active
+					units.
 				</p>
 			</div>
 
 			{/* ── Building details ── */}
 			{buildingInfo && (
-				<div style={{ marginTop: "14px" }}>
+				<div style={{ marginTop: '14px' }}>
 					{/* Identity */}
-					<div style={{ marginBottom: "12px" }}>
-						<div
-							style={{ fontWeight: 700, fontSize: "14px", marginBottom: "4px" }}
-						>
+					<div style={{ marginBottom: '12px' }}>
+						<div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>
 							Selected Building
 						</div>
 						{address && (
-							<div style={{ marginBottom: "4px" }}>
+							<div style={{ marginBottom: '4px' }}>
 								{address.line1 && (
 									<div
-										style={{ fontSize: "13px", fontWeight: 600, color: "#111" }}
+										style={{ fontSize: '13px', fontWeight: 600, color: '#111' }}
 									>
 										{address.line1}
 									</div>
 								)}
 								{address.line2 && (
-									<div style={{ fontSize: "12px", color: "#555" }}>
+									<div style={{ fontSize: '12px', color: '#555' }}>
 										{address.line2}
 									</div>
 								)}
 							</div>
 						)}
-						<div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-							<code style={{ fontSize: "10px", color: "#aaa" }}>
-								BAG ID: {bagId}
-							</code>
+						<div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+							<code style={{ fontSize: '10px', color: '#aaa' }}>BAG ID: {bagId}</code>
 							<InfoTooltip text="Basisregistratie Adressen en Gebouwen — the national building ID. Use it to search for this building on EP-Online." />
 						</div>
 					</div>
@@ -636,21 +604,18 @@ export function BuildingsPanel({
 						<div>
 							<span style={lbl}>Year built</span>
 							<span style={val}>
-								{buildingInfo.pand_data?.construction_year ?? "—"}
+								{buildingInfo.pand_data?.construction_year ?? '—'}
 							</span>
 						</div>
 						<div>
 							<span style={lbl}>Status</span>
-							<span style={val}>{buildingInfo.pand_data?.status ?? "—"}</span>
+							<span style={val}>{buildingInfo.pand_data?.status ?? '—'}</span>
 						</div>
 					</div>
 
 					{/* Building-level EP-Online energy */}
 					{buildingInfo.pand_energie_data && (
-						<PandEnergieSection
-							data={buildingInfo.pand_energie_data}
-							bagId={bagId}
-						/>
+						<PandEnergieSection data={buildingInfo.pand_energie_data} bagId={bagId} />
 					)}
 
 					{/* 3D Geometry */}
@@ -660,62 +625,62 @@ export function BuildingsPanel({
 							<div style={grid3}>
 								<div>
 									<span style={lbl}>Height</span>
-									<span style={val}>{fmt(tp.hoogte, 1, "m")}</span>
+									<span style={val}>{fmt(tp.hoogte, 1, 'm')}</span>
 								</div>
 								<div>
 									<span style={lbl}>Floors</span>
-									<span style={val}>{tp.bouwlagen ?? "—"}</span>
+									<span style={val}>{tp.bouwlagen ?? '—'}</span>
 								</div>
 								<div>
 									<span style={lbl}>Roof type</span>
 									<span style={val}>{roofTypeLabel(tp.dak_type)}</span>
 								</div>
 							</div>
-							<div style={{ ...grid2, marginTop: "10px" }}>
+							<div style={{ ...grid2, marginTop: '10px' }}>
 								<div>
 									<span style={lbl}>Roof slope</span>
-									<span style={val}>{fmt(tp.hellingshoek, 1, "°")}</span>
+									<span style={val}>{fmt(tp.hellingshoek, 1, '°')}</span>
 								</div>
 								<div>
 									<span style={lbl}>Volume</span>
 									<span style={val}>
 										{tp.volume_lod22 != null
 											? `${Math.round(tp.volume_lod22)} m³`
-											: "—"}
+											: '—'}
 									</span>
 								</div>
 							</div>
 							{(tp.opp_grond != null ||
 								tp.opp_dak_plat != null ||
 								tp.opp_dak_schuin != null) && (
-								<div style={{ ...grid3, marginTop: "10px" }}>
+								<div style={{ ...grid3, marginTop: '10px' }}>
 									<div>
 										<span style={lbl}>Footprint</span>
-										<span style={val}>{fmt(tp.opp_grond, 0, "m²")}</span>
+										<span style={val}>{fmt(tp.opp_grond, 0, 'm²')}</span>
 									</div>
 									<div>
 										<div
 											style={{
-												display: "flex",
-												alignItems: "center",
-												gap: "3px",
+												display: 'flex',
+												alignItems: 'center',
+												gap: '3px',
 											}}
 										>
 											<span style={lbl}>Flat roof</span>
 										</div>
-										<span style={val}>{fmt(tp.opp_dak_plat, 0, "m²")}</span>
+										<span style={val}>{fmt(tp.opp_dak_plat, 0, 'm²')}</span>
 									</div>
 									<div>
 										<div
 											style={{
-												display: "flex",
-												alignItems: "center",
-												gap: "3px",
+												display: 'flex',
+												alignItems: 'center',
+												gap: '3px',
 											}}
 										>
 											<span style={lbl}>Slant roof</span>
 										</div>
-										<span style={val}>{fmt(tp.opp_dak_schuin, 0, "m²")}</span>
+										<span style={val}>{fmt(tp.opp_dak_schuin, 0, 'm²')}</span>
 									</div>
 								</div>
 							)}
@@ -727,20 +692,18 @@ export function BuildingsPanel({
 						<div style={divider}>
 							<div
 								style={{
-									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "baseline",
-									marginBottom: "10px",
+									display: 'flex',
+									justifyContent: 'space-between',
+									alignItems: 'baseline',
+									marginBottom: '10px',
 								}}
 							>
 								<div style={sectionTitle}>Active Units</div>
-								<div style={{ fontSize: "11px", color: "#888" }}>
-									{activeVbos.length} unit{activeVbos.length !== 1 ? "s" : ""}
+								<div style={{ fontSize: '11px', color: '#888' }}>
+									{activeVbos.length} unit{activeVbos.length !== 1 ? 's' : ''}
 								</div>
 							</div>
-							<div
-								style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-							>
+							<div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 								{activeVbos.map((vbo, i) => (
 									<VboCard
 										key={vbo.bag_id}

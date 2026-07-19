@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react';
 import {
 	fetchBuildingMetadataByBagId,
 	fetchBuildingMetadataByRD,
 	type BuildingApiResponse,
 	type TileProperties,
-} from "./lib/buildingMetadataApi";
-import { lonLatToRd } from "../../map/utils/crs";
+} from './lib/buildingMetadataApi';
+import { lonLatToRd } from '../../map/utils/crs';
 
 type UseBuildingHighlightOptions = {
 	enabled: boolean;
@@ -49,7 +49,7 @@ export function useBuildingHighlight({ enabled }: UseBuildingHighlightOptions) {
 					setBuildingInfo(data);
 				})
 				.catch((err) => {
-					console.error("Failed to fetch building metadata:", err);
+					console.error('Failed to fetch building metadata:', err);
 					setBuildingInfo(null);
 				});
 		},

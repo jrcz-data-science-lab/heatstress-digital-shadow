@@ -1,17 +1,16 @@
-import { useMemo } from "react";
-import { Cesium3DTileset } from "resium";
+import { useMemo } from 'react';
+import { Cesium3DTileset } from 'resium';
 import {
 	Cesium3DTileStyle,
 	Cesium3DTileColorBlendMode,
 	Cartesian3,
 	Matrix4,
 	ShadowMode,
-} from "cesium";
+} from 'cesium';
 
 // 3D BAG — LoD2.2 3D Tiles (Netherlands national building dataset)
 // Docs: https://docs.3dbag.nl/en/delivery/webservices/
-const LOD22_URL =
-	"https://data.3dbag.nl/v20250903/cesium3dtiles/lod22/tileset.json";
+const LOD22_URL = 'https://data.3dbag.nl/v20250903/cesium3dtiles/lod22/tileset.json';
 
 // Geographic center of Middelburg — used to compute the ECEF radial (up) direction
 // for the height offset translation. Using the actual project location ensures the
@@ -31,11 +30,7 @@ type Props = {
 	shadowsEnabled?: boolean;
 };
 
-export function BAG3DTileset({
-	heightOffset = 0,
-	selectedBagId,
-	shadowsEnabled = false,
-}: Props) {
+export function BAG3DTileset({ heightOffset = 0, selectedBagId, shadowsEnabled = false }: Props) {
 	// Translate the tileset radially (along the ECEF up-direction at the NL center).
 	// Matrix4.IDENTITY when heightOffset is 0 so no transform is applied.
 	const modelMatrix = useMemo(() => {
@@ -58,7 +53,7 @@ export function BAG3DTileset({
 			color: {
 				conditions: [
 					[`\${identificatie} === '${fullId}'`, SELECTED_COLOR_HIGHLIGHT],
-					["true", DEFAULT_COLOR],
+					['true', DEFAULT_COLOR],
 				],
 			},
 		});

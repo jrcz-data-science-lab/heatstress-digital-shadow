@@ -6,8 +6,8 @@ import {
 	useMemo,
 	useRef,
 	useState,
-} from "react";
-import { Viewer, CameraFlyTo } from "resium";
+} from 'react';
+import { Viewer, CameraFlyTo } from 'resium';
 import {
 	Cartesian3,
 	Cartographic,
@@ -24,13 +24,13 @@ import {
 	buildModuleUrl,
 	ShadowMode,
 	Terrain,
-} from "cesium";
-import type { TileProperties } from "../features/buildings-3d/lib/buildingMetadataApi";
+} from 'cesium';
+import type { TileProperties } from '../features/buildings-3d/lib/buildingMetadataApi';
 
 // ── Cesium Ion token ──────────────────────────────────────────────────────────
 // Set via VITE_CESIUM_ION_TOKEN in your .env.local file.
 // All default basemaps (Bing Maps, Esri, etc.) require a valid Ion token.
-Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_TOKEN ?? "";
+Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_TOKEN ?? '';
 
 export type CesiumClickInfo = {
 	coordinate: [lon: number, lat: number] | null;
@@ -70,18 +70,10 @@ const PITCH_3D = CesiumMath.toRadians(-45); // tilted perspective
 const PITCH_2D = CesiumMath.toRadians(-90); // straight down
 
 const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
-	{
-		children,
-		onLeftClick,
-		isEditingMode,
-		showSunShadow = false,
-		simulationTime,
-	},
+	{ children, onLeftClick, isEditingMode, showSunShadow = false, simulationTime },
 	ref,
 ) {
-	const viewerRef = useRef<{ cesiumElement: import("cesium").Viewer } | null>(
-		null,
-	);
+	const viewerRef = useRef<{ cesiumElement: import('cesium').Viewer } | null>(null);
 	const [isPerspective, setIsPerspective] = useState(true);
 	const [initialFlyDone, setInitialFlyDone] = useState(false);
 	// World terrain gives Cesium real ground elevations so 3D BAG buildings
@@ -98,25 +90,23 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 		// Strip anything not in the account: API-key Google/Azure Maps,
 		// Natural Earth II and Sentinel-2 (not in this Ion account).
 		const REMOVE = [
-			"Google Maps", // API-key based — replaced by Ion-hosted versions below
-			"Azure Maps", // Needs separate Azure key
-			"Natural Earth", // Ion asset not in this account
-			"Sentinel", // Ion asset not in this account
+			'Google Maps', // API-key based — replaced by Ion-hosted versions below
+			'Azure Maps', // Needs separate Azure key
+			'Natural Earth', // Ion asset not in this account
+			'Sentinel', // Ion asset not in this account
 		];
 		const kept = pickerVm.imageryProviderViewModels.filter(
 			(vm) => !REMOVE.some((kw) => vm.name.includes(kw)),
 		);
 
 		// Add the Ion-hosted Google Maps 2D assets (from this account).
-		const ICON = buildModuleUrl(
-			"Widgets/Images/ImageryProviders/openstreetmap.png",
-		);
+		const ICON = buildModuleUrl('Widgets/Images/ImageryProviders/openstreetmap.png');
 		const ionGoogle: ProviderViewModel[] = [
-			{ name: "Google Maps 2D Satellite", assetId: 3830182 },
-			{ name: "Google Maps 2D Satellite with Labels", assetId: 3830183 },
-			{ name: "Google Maps 2D Roadmap", assetId: 3830184 },
-			{ name: "Google Maps 2D Labels Only", assetId: 3830185 },
-			{ name: "Google Maps 2D Contour", assetId: 3830186 },
+			{ name: 'Google Maps 2D Satellite', assetId: 3830182 },
+			{ name: 'Google Maps 2D Satellite with Labels', assetId: 3830183 },
+			{ name: 'Google Maps 2D Roadmap', assetId: 3830184 },
+			{ name: 'Google Maps 2D Labels Only', assetId: 3830185 },
+			{ name: 'Google Maps 2D Contour', assetId: 3830186 },
 		].map(
 			({ name, assetId }) =>
 				new ProviderViewModel({
@@ -137,94 +127,90 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 
 		const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
 
-		handler.setInputAction(
-			(movement: { position: import("cesium").Cartesian2 }) => {
-				const scene = viewer.scene;
+		handler.setInputAction((movement: { position: import('cesium').Cartesian2 }) => {
+			const scene = viewer.scene;
 
-				const picked = scene.pick(movement.position);
-				const pickedEntityId: string | undefined =
-					picked?.id?.id ?? picked?.id ?? undefined;
+			const picked = scene.pick(movement.position);
+			const pickedEntityId: string | undefined = picked?.id?.id ?? picked?.id ?? undefined;
 
-				// Extract BAG ID and all useful 3D BAG tileset properties when a tile feature is clicked.
-				let bagId: string | undefined;
-				let tileProperties: TileProperties | undefined;
-				if (picked instanceof Cesium3DTileFeature) {
-					const raw: string | undefined = picked.getProperty("identificatie");
-					// Strip "NL.IMBAG.Pand." prefix — Kadaster API only wants the numeric part.
-					bagId = raw?.replace(/^NL\.IMBAG\.Pand\./, "") ?? undefined;
+			// Extract BAG ID and all useful 3D BAG tileset properties when a tile feature is clicked.
+			let bagId: string | undefined;
+			let tileProperties: TileProperties | undefined;
+			if (picked instanceof Cesium3DTileFeature) {
+				const raw: string | undefined = picked.getProperty('identificatie');
+				// Strip "NL.IMBAG.Pand." prefix — Kadaster API only wants the numeric part.
+				bagId = raw?.replace(/^NL\.IMBAG\.Pand\./, '') ?? undefined;
 
-					// getProperty returns null for missing attrs — coerce to undefined.
-					// For booleans, 3D Tiles may return 0/1 (int) instead of false/true,
-					// so we explicitly cast those to boolean.
-					const p = (name: string) => {
-						const v = picked.getProperty(name);
-						return v != null ? v : undefined;
-					};
-					const pBool = (name: string): boolean | undefined => {
-						const v = picked.getProperty(name);
-						if (v == null) return undefined;
-						return Boolean(v);
-					};
+				// getProperty returns null for missing attrs — coerce to undefined.
+				// For booleans, 3D Tiles may return 0/1 (int) instead of false/true,
+				// so we explicitly cast those to boolean.
+				const p = (name: string) => {
+					const v = picked.getProperty(name);
+					return v != null ? v : undefined;
+				};
+				const pBool = (name: string): boolean | undefined => {
+					const v = picked.getProperty(name);
+					if (v == null) return undefined;
+					return Boolean(v);
+				};
 
-					const hMaaiveld: number | undefined = p("b3_h_maaiveld");
-					// Try height attrs in order of preference — complex buildings (churches,
-					// spires) often have null for the median (50p) but valid values for others.
-					const hDak50p: number | undefined = p("b3_h_dak_50p");
-					const hDak70p: number | undefined = p("b3_h_dak_70p");
-					const hDakMax: number | undefined = p("b3_h_dak_max");
-					const hNok: number | undefined = p("b3_h_nok");
-					const hDakBest = hDak50p ?? hDak70p ?? hDakMax ?? hNok;
+				const hMaaiveld: number | undefined = p('b3_h_maaiveld');
+				// Try height attrs in order of preference — complex buildings (churches,
+				// spires) often have null for the median (50p) but valid values for others.
+				const hDak50p: number | undefined = p('b3_h_dak_50p');
+				const hDak70p: number | undefined = p('b3_h_dak_70p');
+				const hDakMax: number | undefined = p('b3_h_dak_max');
+				const hNok: number | undefined = p('b3_h_nok');
+				const hDakBest = hDak50p ?? hDak70p ?? hDakMax ?? hNok;
 
-					tileProperties = {
-						h_maaiveld: hMaaiveld,
-						h_dak_50p: hDak50p,
-						h_dak_max: hDakMax,
-						// Height above ground — use the best available roof height attr.
-						hoogte:
-							hDakBest != null && hMaaiveld != null
-								? Math.round((hDakBest - hMaaiveld) * 10) / 10
-								: undefined,
-						dak_type: p("b3_dak_type"),
-						hellingshoek: p("b3_hellingshoek"),
-						bouwlagen: p("b3_bouwlagen"),
-						volume_lod22: p("b3_volume_lod22"),
-						opp_grond: p("b3_opp_grond"),
-						opp_dak_plat: p("b3_opp_dak_plat"),
-						opp_dak_schuin: p("b3_opp_dak_schuin"),
-						kwaliteitsindicator: pBool("b3_kwaliteitsindicator"),
-						rmse_lod22: p("b3_rmse_lod22"),
-						pw_datum: p("b3_pw_datum"),
-						mutatie_ahn4_ahn5: pBool("b3_mutatie_ahn4_ahn5"),
-					};
-				}
+				tileProperties = {
+					h_maaiveld: hMaaiveld,
+					h_dak_50p: hDak50p,
+					h_dak_max: hDakMax,
+					// Height above ground — use the best available roof height attr.
+					hoogte:
+						hDakBest != null && hMaaiveld != null
+							? Math.round((hDakBest - hMaaiveld) * 10) / 10
+							: undefined,
+					dak_type: p('b3_dak_type'),
+					hellingshoek: p('b3_hellingshoek'),
+					bouwlagen: p('b3_bouwlagen'),
+					volume_lod22: p('b3_volume_lod22'),
+					opp_grond: p('b3_opp_grond'),
+					opp_dak_plat: p('b3_opp_dak_plat'),
+					opp_dak_schuin: p('b3_opp_dak_schuin'),
+					kwaliteitsindicator: pBool('b3_kwaliteitsindicator'),
+					rmse_lod22: p('b3_rmse_lod22'),
+					pw_datum: p('b3_pw_datum'),
+					mutatie_ahn4_ahn5: pBool('b3_mutatie_ahn4_ahn5'),
+				};
+			}
 
-				// Try pickPosition first (works for 3D entities/tiles), fall back to ellipsoid
-				const cartesian =
-					scene.pickPosition(movement.position) ??
-					viewer.camera.pickEllipsoid(movement.position);
-				if (!cartesian) {
-					onLeftClick({
-						coordinate: null,
-						pickedEntityId,
-						bagId,
-						tileProperties,
-					});
-					return;
-				}
-
-				const cartographic = Cartographic.fromCartesian(cartesian);
-				const lon = CesiumMath.toDegrees(cartographic.longitude);
-				const lat = CesiumMath.toDegrees(cartographic.latitude);
-
+			// Try pickPosition first (works for 3D entities/tiles), fall back to ellipsoid
+			const cartesian =
+				scene.pickPosition(movement.position) ??
+				viewer.camera.pickEllipsoid(movement.position);
+			if (!cartesian) {
 				onLeftClick({
-					coordinate: [lon, lat],
+					coordinate: null,
 					pickedEntityId,
 					bagId,
 					tileProperties,
 				});
-			},
-			ScreenSpaceEventType.LEFT_CLICK,
-		);
+				return;
+			}
+
+			const cartographic = Cartographic.fromCartesian(cartesian);
+			const lon = CesiumMath.toDegrees(cartographic.longitude);
+			const lat = CesiumMath.toDegrees(cartographic.latitude);
+
+			onLeftClick({
+				coordinate: [lon, lat],
+				pickedEntityId,
+				bagId,
+				tileProperties,
+			});
+		}, ScreenSpaceEventType.LEFT_CLICK);
 
 		return () => {
 			handler.destroy();
@@ -237,11 +223,7 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 
 		const pos = viewer.camera.positionCartographic;
 		viewer.camera.flyTo({
-			destination: Cartesian3.fromRadians(
-				pos.longitude,
-				pos.latitude,
-				pos.height,
-			),
+			destination: Cartesian3.fromRadians(pos.longitude, pos.latitude, pos.height),
 			orientation: {
 				heading: viewer.camera.heading,
 				pitch: isPerspective ? PITCH_2D : PITCH_3D,
@@ -308,10 +290,10 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 	return (
 		<div
 			style={{
-				position: "absolute",
-				height: "100dvh",
-				width: "100dvw",
-				cursor: isEditingMode ? "crosshair" : "default",
+				position: 'absolute',
+				height: '100dvh',
+				width: '100dvw',
+				cursor: isEditingMode ? 'crosshair' : 'default',
 			}}
 		>
 			<Viewer
