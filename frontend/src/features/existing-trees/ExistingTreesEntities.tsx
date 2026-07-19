@@ -164,7 +164,7 @@ export function ExistingTreesEntities({
 			removeListener();
 			abortRef.current?.abort();
 		};
-	}, [viewer]);
+	}, [viewer, onStatusChange]);
 
 	return (
 		<>
