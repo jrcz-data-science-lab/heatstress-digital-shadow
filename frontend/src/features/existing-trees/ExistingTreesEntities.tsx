@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { Entity, ModelGraphics, PointGraphics, useCesium } from "resium";
-import { Cartesian3, Color, HeightReference, Math as CesiumMath } from "cesium";
+import { useEffect, useRef, useState } from 'react';
+import { Entity, ModelGraphics, PointGraphics, useCesium } from 'resium';
+import { Cartesian3, Color, HeightReference, Math as CesiumMath } from 'cesium';
 
 /** Below this altitude: full 3D tree models */
 const HIGH_DETAIL_HEIGHT = 500;
@@ -16,10 +16,9 @@ const MAX_PAGES = 10;
 /** Scale for the 3D pine model (slightly smaller than user-placed trees at 7.5) */
 const TREE_SCALE = 5;
 
-const PDOK_BASE =
-	"https://api.pdok.nl/lv/bgt/ogc/v1/collections/vegetatieobject_punt/items";
+const PDOK_BASE = 'https://api.pdok.nl/lv/bgt/ogc/v1/collections/vegetatieobject_punt/items';
 
-type LodLevel = "high" | "low" | "none";
+type LodLevel = 'high' | 'low' | 'none';
 
 type ExistingTreeData = {
 	id: string;
@@ -42,18 +41,18 @@ type Props = {
 };
 
 function getLod(height: number): LodLevel {
-	if (height <= HIGH_DETAIL_HEIGHT) return "high";
-	if (height <= LOW_DETAIL_HEIGHT) return "low";
-	return "none";
+	if (height <= HIGH_DETAIL_HEIGHT) return 'high';
+	if (height <= LOW_DETAIL_HEIGHT) return 'low';
+	return 'none';
 }
 
 export function ExistingTreesEntities({
-	modelUrl = "/models/tree-pine.glb",
+	modelUrl = '/models/tree-pine.glb',
 	onStatusChange,
 }: Props) {
 	const { viewer } = useCesium();
 	const [trees, setTrees] = useState<ExistingTreeData[]>([]);
-	const [lod, setLod] = useState<LodLevel>("none");
+	const [lod, setLod] = useState<LodLevel>('none');
 	const abortRef = useRef<AbortController | null>(null);
 
 	useEffect(() => {
@@ -63,9 +62,9 @@ export function ExistingTreesEntities({
 			const height = viewer!.camera.positionCartographic.height;
 			const currentLod = getLod(height);
 
-			if (currentLod === "none") {
+			if (currentLod === 'none') {
 				setTrees([]);
-				setLod("none");
+				setLod('none');
 				onStatusChange?.({
 					loading: false,
 					count: 0,
@@ -99,8 +98,7 @@ export function ExistingTreesEntities({
 
 			try {
 				const accumulated: ExistingTreeData[] = [];
-				let nextUrl: string | null =
-					`${PDOK_BASE}?bbox=${bbox}&f=json&limit=${PAGE_SIZE}`;
+				let nextUrl: string | null = `${PDOK_BASE}?bbox=${bbox}&f=json&limit=${PAGE_SIZE}`;
 				let page = 0;
 
 				while (nextUrl && page < MAX_PAGES) {
@@ -133,7 +131,7 @@ export function ExistingTreesEntities({
 					});
 
 					// Follow the cursor to the next page if one exists
-					const next = json.links?.find((l) => l.rel === "next");
+					const next = json.links?.find((l) => l.rel === 'next');
 					nextUrl = next?.href ?? null;
 					page++;
 				}
@@ -146,8 +144,8 @@ export function ExistingTreesEntities({
 					tooFarOut: false,
 				});
 			} catch (e) {
-				if (e instanceof Error && e.name === "AbortError") return;
-				console.error("Failed to fetch BGT existing trees from PDOK:", e);
+				if (e instanceof Error && e.name === 'AbortError') return;
+				console.error('Failed to fetch BGT existing trees from PDOK:', e);
 				onStatusChange?.({
 					loading: false,
 					count: 0,
@@ -176,7 +174,7 @@ export function ExistingTreesEntities({
 					id={`existing-tree-${tree.id}`}
 					position={Cartesian3.fromDegrees(tree.lon, tree.lat, 0)}
 				>
-					{lod === "high" ? (
+					{lod === 'high' ? (
 						<ModelGraphics
 							uri={modelUrl}
 							scale={TREE_SCALE}
@@ -186,8 +184,8 @@ export function ExistingTreesEntities({
 					) : (
 						<PointGraphics
 							pixelSize={5}
-							color={Color.fromCssColorString("#2d8a4e")}
-							outlineColor={Color.fromCssColorString("#1a5c33")}
+							color={Color.fromCssColorString('#2d8a4e')}
+							outlineColor={Color.fromCssColorString('#1a5c33')}
 							outlineWidth={1}
 							heightReference={HeightReference.CLAMP_TO_GROUND}
 						/>

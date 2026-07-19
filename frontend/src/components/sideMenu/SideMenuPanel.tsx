@@ -1,4 +1,4 @@
-import type { SideMenuItem } from "./SideMenuItem";
+import type { SideMenuItem } from './SideMenuItem';
 
 interface PanelProps {
 	activeItem?: SideMenuItem;
@@ -12,32 +12,32 @@ const SideMenuPanel: React.FC<PanelProps> = ({ activeItem, onClose }) => {
 		<div
 			style={{
 				width: 350,
-				background: "#fff",
-				borderLeft: "1px solid #ccc",
+				background: '#fff',
+				borderLeft: '1px solid #ccc',
 				padding: 20,
 				marginTop: 0,
 				paddingTop: 0,
-				position: "relative",
-				height: "100%",
-				overflowY: "auto",
-				boxSizing: "border-box",
+				position: 'relative',
+				height: '100%',
+				overflowY: 'auto',
+				boxSizing: 'border-box',
 			}}
 		>
 			<button
 				onClick={onClose}
 				style={{
-					position: "absolute",
+					position: 'absolute',
 					top: 5,
 					right: 10,
-					background: "transparent",
-					border: "none",
+					background: 'transparent',
+					border: 'none',
 					fontSize: 20,
-					cursor: "pointer",
+					cursor: 'pointer',
 					width: 50,
-					color: "black",
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
+					color: 'black',
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'center',
 				}}
 				aria-label="Close panel"
 			>

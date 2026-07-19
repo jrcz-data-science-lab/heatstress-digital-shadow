@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { Entity, ModelGraphics } from "resium";
-import { Cartesian3, HeightReference } from "cesium";
-import { rdToLonLat } from "../../map/utils/crs";
-import { BBOX } from "../../map/utils/constants";
+import { useEffect, useState } from 'react';
+import { Entity, ModelGraphics } from 'resium';
+import { Cartesian3, HeightReference } from 'cesium';
+import { rdToLonLat } from '../../map/utils/crs';
+import { BBOX } from '../../map/utils/constants';
 
 type TreeData = {
 	id: string;
@@ -15,9 +15,7 @@ type Props = {
 	modelUrl?: string;
 };
 
-export function StaticTreesEntities({
-	modelUrl = "/models/tree-pine.glb",
-}: Props) {
+export function StaticTreesEntities({ modelUrl = '/models/tree-pine.glb' }: Props) {
 	const [trees, setTrees] = useState<TreeData[]>([]);
 
 	useEffect(() => {
@@ -31,10 +29,7 @@ export function StaticTreesEntities({
 				const features = (json.features || []) as {
 					id: string;
 					geometry: { coordinates: [number, number] };
-					properties: { relatieve_hoogteligging?: number } & Record<
-						string,
-						unknown
-					>;
+					properties: { relatieve_hoogteligging?: number } & Record<string, unknown>;
 				}[];
 
 				const data: TreeData[] = features.map((feature) => {
@@ -47,7 +42,7 @@ export function StaticTreesEntities({
 
 				if (!cancelled) setTrees(data);
 			} catch (e) {
-				console.error("Failed to fetch static trees:", e);
+				console.error('Failed to fetch static trees:', e);
 			}
 		}
 

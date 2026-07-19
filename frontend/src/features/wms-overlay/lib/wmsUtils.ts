@@ -7,36 +7,36 @@ export type LonLatBBox = [west: number, south: number, east: number, north: numb
 const GFI_DELTA = 0.0005;
 
 export function buildGetFeatureInfoUrl({
-  baseUrl,
-  layerName,
-  coord,
-  style = 'default',
-  infoFormat = 'application/json',
+	baseUrl,
+	layerName,
+	coord,
+	style = 'default',
+	infoFormat = 'application/json',
 }: {
-  baseUrl: string;
-  layerName: string;
-  coord: [number, number];
-  style?: string;
-  infoFormat?: string;
+	baseUrl: string;
+	layerName: string;
+	coord: [number, number];
+	style?: string;
+	infoFormat?: string;
 }) {
-  const [lon, lat] = coord;
+	const [lon, lat] = coord;
 
-  // Tiny 1×1 BBOX centred on the click. QGIS converts I=0,J=0 back to the
-  // BBOX centre, so this queries exactly the clicked geographic point.
-  const bboxParam = `${lon - GFI_DELTA},${lat - GFI_DELTA},${lon + GFI_DELTA},${lat + GFI_DELTA}`;
+	// Tiny 1×1 BBOX centred on the click. QGIS converts I=0,J=0 back to the
+	// BBOX centre, so this queries exactly the clicked geographic point.
+	const bboxParam = `${lon - GFI_DELTA},${lat - GFI_DELTA},${lon + GFI_DELTA},${lat + GFI_DELTA}`;
 
-  const p = new URLSearchParams({
-    REQUEST: 'GetFeatureInfo',
-    LAYERS: layerName,
-    QUERY_LAYERS: layerName,
-    STYLES: style,
-    BBOX: bboxParam,
-    WIDTH: '1',
-    HEIGHT: '1',
-    I: '0',
-    J: '0',
-    INFO_FORMAT: infoFormat,
-  });
+	const p = new URLSearchParams({
+		REQUEST: 'GetFeatureInfo',
+		LAYERS: layerName,
+		QUERY_LAYERS: layerName,
+		STYLES: style,
+		BBOX: bboxParam,
+		WIDTH: '1',
+		HEIGHT: '1',
+		I: '0',
+		J: '0',
+		INFO_FORMAT: infoFormat,
+	});
 
-  return `${baseUrl}${baseUrl.endsWith('?') ? '' : '?'}${p.toString()}`;
+	return `${baseUrl}${baseUrl.endsWith('?') ? '' : '?'}${p.toString()}`;
 }

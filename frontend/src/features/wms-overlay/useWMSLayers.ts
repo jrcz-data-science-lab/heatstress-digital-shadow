@@ -1,13 +1,13 @@
-import { useEffect } from "react";
-import { useQgisFeatureInfo } from "./lib/qgisFeatureInfo";
-import type { QgisLayerId } from "./lib/qgisLayers";
-import { useWMSLegend } from "./useWMSLegend";
+import { useEffect } from 'react';
+import { useQgisFeatureInfo } from './lib/qgisFeatureInfo';
+import type { QgisLayerId } from './lib/qgisLayers';
+import { useWMSLegend } from './useWMSLegend';
 
 // Broad bounds covering all WMS layers in Zeeland (Middelburg, Kapelle, etc.)
 export const WMS_BOUNDS: [number, number, number, number] = [
-	3.3,  // west
+	3.3, // west
 	51.3, // south
-	4.2,  // east
+	4.2, // east
 	51.7, // north
 ];
 
@@ -19,11 +19,8 @@ type UseWMSLayersOpts = {
 	overlayLayerId: QgisLayerId;
 };
 
-export function useWMSLayers({
-	showOverlay,
-	overlayLayerId,
-}: UseWMSLayersOpts) {
-	const WMS_BASE_URL = "/backend/qgis/wms";
+export function useWMSLayers({ showOverlay, overlayLayerId }: UseWMSLayersOpts) {
+	const WMS_BASE_URL = '/backend/qgis/wms';
 
 	const {
 		legend,

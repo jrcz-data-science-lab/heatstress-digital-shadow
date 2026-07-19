@@ -1,6 +1,6 @@
-import type { QgisLayerId } from "../../features/wms-overlay/lib/qgisLayers";
-import { QGIS_OVERLAY_LAYERS } from "../../features/wms-overlay/lib/qgisLayers";
-import CheckboxItem from "./items/CheckboxItem";
+import type { QgisLayerId } from '../../features/wms-overlay/lib/qgisLayers';
+import { QGIS_OVERLAY_LAYERS } from '../../features/wms-overlay/lib/qgisLayers';
+import CheckboxItem from './items/CheckboxItem';
 
 export type OverlayLayerConfig = {
 	id: QgisLayerId;
@@ -36,10 +36,7 @@ export function OverlayLayersPanel({
 
 	const move = (index: number, direction: 1 | -1) => {
 		const next = [...layers];
-		[next[index], next[index + direction]] = [
-			next[index + direction],
-			next[index],
-		];
+		[next[index], next[index + direction]] = [next[index + direction], next[index]];
 		onChange(next);
 	};
 
@@ -60,9 +57,9 @@ export function OverlayLayersPanel({
 
 			<hr
 				style={{
-					border: "none",
-					borderTop: "1px solid #e5e5e5",
-					margin: "12px 0",
+					border: 'none',
+					borderTop: '1px solid #e5e5e5',
+					margin: '12px 0',
 				}}
 			/>
 
@@ -72,10 +69,10 @@ export function OverlayLayersPanel({
 					<p style={sectionLabelStyle}>Active layers</p>
 					<div
 						style={{
-							display: "flex",
-							flexDirection: "column",
-							gap: "6px",
-							marginBottom: "16px",
+							display: 'flex',
+							flexDirection: 'column',
+							gap: '6px',
+							marginBottom: '16px',
 						}}
 					>
 						{reversed.map((layer) => {
@@ -91,10 +88,10 @@ export function OverlayLayersPanel({
 									{/* Card header: name + controls */}
 									<div
 										style={{
-											display: "flex",
-											alignItems: "center",
-											gap: "6px",
-											marginBottom: "10px",
+											display: 'flex',
+											alignItems: 'center',
+											gap: '6px',
+											marginBottom: '10px',
 										}}
 									>
 										{/* Layer name — truncates instead of wrapping */}
@@ -105,9 +102,9 @@ export function OverlayLayersPanel({
 										{/* Reorder + remove buttons */}
 										<div
 											style={{
-												display: "flex",
-												gap: "2px",
-												marginLeft: "auto",
+												display: 'flex',
+												gap: '2px',
+												marginLeft: 'auto',
 												flexShrink: 0,
 											}}
 										>
@@ -115,7 +112,10 @@ export function OverlayLayersPanel({
 												onClick={() => move(index, 1)}
 												disabled={isTop}
 												title="Move up in stack"
-												style={{ ...iconBtnStyle, opacity: isTop ? 0.25 : 0.7 }}
+												style={{
+													...iconBtnStyle,
+													opacity: isTop ? 0.25 : 0.7,
+												}}
 											>
 												↑
 											</button>
@@ -132,15 +132,15 @@ export function OverlayLayersPanel({
 											</button>
 											<div
 												style={{
-													width: "1px",
-													background: "#e0e0e0",
-													margin: "0 2px",
+													width: '1px',
+													background: '#e0e0e0',
+													margin: '0 2px',
 												}}
 											/>
 											<button
 												onClick={() => removeLayer(layer.id)}
 												title="Remove layer"
-												style={{ ...iconBtnStyle, color: "#c0392b" }}
+												style={{ ...iconBtnStyle, color: '#c0392b' }}
 											>
 												✕
 											</button>
@@ -150,9 +150,9 @@ export function OverlayLayersPanel({
 									{/* Opacity slider */}
 									<div
 										style={{
-											display: "flex",
-											alignItems: "center",
-											gap: "8px",
+											display: 'flex',
+											alignItems: 'center',
+											gap: '8px',
 										}}
 									>
 										<span style={sliderLabelStyle}>Opacity</span>
@@ -167,15 +167,15 @@ export function OverlayLayersPanel({
 											}
 											style={{
 												flex: 1,
-												cursor: "pointer",
-												accentColor: "#2563eb",
+												cursor: 'pointer',
+												accentColor: '#2563eb',
 											}}
 										/>
 										<span
 											style={{
 												...sliderLabelStyle,
-												minWidth: "34px",
-												textAlign: "right",
+												minWidth: '34px',
+												textAlign: 'right',
 											}}
 										>
 											{Math.round(layer.opacity * 100)}%
@@ -190,7 +190,7 @@ export function OverlayLayersPanel({
 
 			{/* ── Layer picker ── */}
 			<p style={sectionLabelStyle}>Layers</p>
-			<div style={{ display: "flex", flexDirection: "column" }}>
+			<div style={{ display: 'flex', flexDirection: 'column' }}>
 				{QGIS_OVERLAY_LAYERS.map((layer) => {
 					const isActive = activeIds.has(layer.id);
 					return (
@@ -202,17 +202,17 @@ export function OverlayLayersPanel({
 									isActive ? removeLayer(layer.id) : addLayer(layer.id)
 								}
 								style={{
-									cursor: "pointer",
-									accentColor: "#2563eb",
-									width: "15px",
-									height: "15px",
+									cursor: 'pointer',
+									accentColor: '#2563eb',
+									width: '15px',
+									height: '15px',
 									flexShrink: 0,
 								}}
 							/>
 							<span
 								style={{
-									fontSize: "0.875rem",
-									color: isActive ? "#111" : "#555",
+									fontSize: '0.875rem',
+									color: isActive ? '#111' : '#555',
 								}}
 							>
 								{layer.label}
@@ -223,16 +223,15 @@ export function OverlayLayersPanel({
 			</div>
 
 			{/* ── Methodology note ── */}
-			<hr style={{ border: "none", borderTop: "1px solid #e5e5e5", margin: "16px 0 12px" }} />
+			<hr style={{ border: 'none', borderTop: '1px solid #e5e5e5', margin: '16px 0 12px' }} />
 			<p style={sectionLabelStyle}>About this data</p>
 			<p style={infoTextStyle}>
-				The perceived temperature (PET) has been calculated for every outdoor
-				location for the period between 12:00 and 18:00. July 1, 2015 was chosen
-				as a representative tropical day (RIVM, 2019). A maximum temperature of
-				33.1&nbsp;°C was measured in De Bilt on that day. The measured air
-				temperature, solar radiation, and humidity from that day in De Bilt were
-				used to calculate the perceived temperature across the Netherlands.
-				Additionally, a near-calm wind situation was assumed for the entire
+				The perceived temperature (PET) has been calculated for every outdoor location for
+				the period between 12:00 and 18:00. July 1, 2015 was chosen as a representative
+				tropical day (RIVM, 2019). A maximum temperature of 33.1&nbsp;°C was measured in De
+				Bilt on that day. The measured air temperature, solar radiation, and humidity from
+				that day in De Bilt were used to calculate the perceived temperature across the
+				Netherlands. Additionally, a near-calm wind situation was assumed for the entire
 				Netherlands.
 			</p>
 		</div>
@@ -240,66 +239,66 @@ export function OverlayLayersPanel({
 }
 
 const sectionLabelStyle: React.CSSProperties = {
-	fontSize: "0.7rem",
+	fontSize: '0.7rem',
 	fontWeight: 600,
-	color: "#999",
-	textTransform: "uppercase",
-	letterSpacing: "0.06em",
-	margin: "0 0 8px",
+	color: '#999',
+	textTransform: 'uppercase',
+	letterSpacing: '0.06em',
+	margin: '0 0 8px',
 };
 
 const cardStyle: React.CSSProperties = {
-	background: "#fff",
-	border: "1px solid #e8e8e8",
-	borderLeft: "3px solid #2563eb",
-	borderRadius: "6px",
-	padding: "10px 12px",
+	background: '#fff',
+	border: '1px solid #e8e8e8',
+	borderLeft: '3px solid #2563eb',
+	borderRadius: '6px',
+	padding: '10px 12px',
 };
 
 const layerNameStyle: React.CSSProperties = {
-	fontSize: "0.875rem",
+	fontSize: '0.875rem',
 	fontWeight: 600,
-	color: "#111",
+	color: '#111',
 	flex: 1,
 	minWidth: 0,
-	overflow: "hidden",
-	textOverflow: "ellipsis",
-	whiteSpace: "nowrap",
+	overflow: 'hidden',
+	textOverflow: 'ellipsis',
+	whiteSpace: 'nowrap',
 };
 
 const iconBtnStyle: React.CSSProperties = {
-	background: "none",
-	border: "none",
-	cursor: "pointer",
-	fontSize: "0.875rem",
-	width: "24px",
-	height: "24px",
-	display: "flex",
-	alignItems: "center",
-	justifyContent: "center",
-	borderRadius: "4px",
+	background: 'none',
+	border: 'none',
+	cursor: 'pointer',
+	fontSize: '0.875rem',
+	width: '24px',
+	height: '24px',
+	display: 'flex',
+	alignItems: 'center',
+	justifyContent: 'center',
+	borderRadius: '4px',
 	lineHeight: 1,
 	padding: 0,
 };
 
 const sliderLabelStyle: React.CSSProperties = {
-	fontSize: "0.75rem",
-	color: "#777",
+	fontSize: '0.75rem',
+	color: '#777',
 	flexShrink: 0,
 };
 
 const checkboxRowStyle: React.CSSProperties = {
-	display: "flex",
-	alignItems: "center",
-	gap: "10px",
-	padding: "7px 4px",
-	cursor: "pointer",
-	borderBottom: "1px solid #f0f0f0",
+	display: 'flex',
+	alignItems: 'center',
+	gap: '10px',
+	padding: '7px 4px',
+	cursor: 'pointer',
+	borderBottom: '1px solid #f0f0f0',
 };
 
 const infoTextStyle: React.CSSProperties = {
-	fontSize: "0.8rem",
-	color: "#555",
+	fontSize: '0.8rem',
+	color: '#555',
 	lineHeight: 1.55,
 	margin: 0,
 };
