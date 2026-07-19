@@ -2,7 +2,7 @@ services:
   nginx:
     image: nginx:latest
     volumes:
-      - ./server/conf/nginx-fcgi-sample.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
     ports:
       - "8010:80"
     networks:
@@ -46,9 +46,16 @@ services:
       - ./qgis:/app
       - ./data:/data
     environment:
-      QT_QPA_PLATFORM: offscreen
-      DATA_PATH: /data
-    networks:
+      - QT_QPA_PLATFORM=offscreen
+      - QGIS_PREFIX_PATH=/usr
+      - PYTHONPATH=/usr/share/qgis/python
+      - LD_LIBRARY_PATH=/usr/lib/qgis
+      - DATA_PATH=/data
+      - GDAL_NUM_THREADS=ALL_CPUS
+      - GDAL_CACHEMAX=512
+      - CPL_NUM_CPUS=ALL_CPUS
+      - GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR
+    networks: 
       - qgis-server-net
 
   backend:
@@ -74,6 +81,7 @@ services:
       - /app/node_modules
     environment:
       NODE_ENV: development
+    command: sh -c "npm ci --include=dev && exec npm run dev -- --host"
 
 networks:
   qgis-server-net:

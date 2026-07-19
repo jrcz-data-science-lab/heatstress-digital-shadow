@@ -5,15 +5,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo under $GITHUB_WORKSPACE
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v5
         with:
           node-version: '22.x'
 
       - name: Install dependencies in the frontend
-        run: npm install 
+        run: npm ci
         working-directory: ./frontend
 
       - name: Run ESLint checks in the frontend

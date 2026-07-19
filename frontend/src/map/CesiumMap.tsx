@@ -6,6 +6,7 @@ import {
 	useMemo,
 	useRef,
 	useState,
+	useCallback,
 } from 'react';
 import { Viewer, CameraFlyTo } from 'resium';
 import {
@@ -217,7 +218,7 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 		};
 	}, [onLeftClick]);
 
-	const handleTogglePerspective = () => {
+	const handleTogglePerspective = useCallback(() => {
 		const viewer = viewerRef.current?.cesiumElement;
 		if (!viewer) return;
 
@@ -232,14 +233,14 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 			duration: 0.2,
 		});
 		setIsPerspective((prev) => !prev);
-	};
+	}, [isPerspective]);
 
 	useImperativeHandle(
 		ref,
 		() => ({
 			togglePerspective: handleTogglePerspective,
 		}),
-		[isPerspective],
+		[handleTogglePerspective],
 	);
 
 	// One-time render quality boost — MSAA smooths all 3D geometry edges regardless
@@ -248,7 +249,7 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 		const viewer = viewerRef.current?.cesiumElement;
 		if (!viewer) return;
 		viewer.scene.msaaSamples = 4;
-		viewer.scene.fxaa = true;
+		viewer.scene.postProcessStages.fxaa.enabled = true;
 	}, []);
 
 	// Enable/disable Cesium shadow map and sun-based globe lighting.
