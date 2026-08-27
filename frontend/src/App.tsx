@@ -34,6 +34,8 @@ import { PerspectiveIcon } from './components/icons/PerspectiveIcon';
 import { InformationIcon } from './components/icons/InformationIcon';
 import { SunIcon } from './components/icons/SunIcon';
 import { SunShadowPanel } from './components/panels/SunShadowPanel';
+import { WindPanel } from './components/panels/WindPanel';
+import { WindIcon } from './components/icons/WindIcon';
 import { PerformanceOverlay } from './components/performance/PerformanceOverlay';
 
 export default function App() {
@@ -234,6 +236,12 @@ export default function App() {
 			icon: <InformationIcon />,
 			label: 'Information',
 			panel: <InformationPanel />,
+		},
+		{
+			id: 'wind',
+			icon: <WindIcon />,
+			label: 'Wind Reduction',
+			panel: <WindPanel />,
 		},
 	];
 

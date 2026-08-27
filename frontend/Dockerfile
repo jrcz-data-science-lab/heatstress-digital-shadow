@@ -4,13 +4,11 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
-
-ENV NODE_ENV=development
-
 RUN npm ci --include=dev
 
 COPY . ./
+
+ENV NODE_ENV=development
 
 EXPOSE 5173
 

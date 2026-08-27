@@ -123,6 +123,6 @@ def burn_point_to_raster(req: PlacedObjectsRequest, session_id: Optional[str] = 
     return {
         "status": "success",
         "message": f"Burned {len(req.points)} point(s) into raster.",
-        "params": {"points": [p.dict() for p in req.points]},
+        "params": {"points": [p.model_dump() for p in req.points]},
         "output": pet_raster,
     }
