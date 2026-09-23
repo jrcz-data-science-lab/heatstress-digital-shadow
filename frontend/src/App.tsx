@@ -38,6 +38,7 @@ import { SunShadowPanel } from './components/panels/SunShadowPanel';
 import { WindPanel } from './components/panels/WindPanel';
 import { WindIcon } from './components/icons/WindIcon';
 import { PerformanceOverlay } from './components/performance/PerformanceOverlay';
+import { ComparisonSlider } from './components/comparison/ComparisonSlider';
 
 export default function App() {
 	const [showBuildings, setShowBuildings] = React.useState(false);
@@ -72,8 +73,8 @@ export default function App() {
 	const [overlayLayers, setOverlayLayers] = useState<OverlayLayerConfig[]>([
 		{ id: QGIS_OVERLAY_LAYERS[0].id, opacity: 1 },
 	]);
-	const [comparisonEnabled] = useState(false);
-	const [comparisonPosition] = useState(0.5);
+	const [comparisonEnabled, setComparisonEnabled] = useState(false);
+	const [comparisonPosition, setComparisonPosition] = useState(0.5);
 
 	const {
 		objectsToSave,
@@ -266,7 +267,7 @@ export default function App() {
 							splitDirection={SplitDirection.LEFT}
 						/>
 						<WMSOverlayLayer
-							layerId={QGIS_OVERLAY_LAYERS[1].id}
+							layerId={QGIS_OVERLAY_LAYERS[3].id}
 							objectsVersion={objectsVersion}
 							splitDirection={SplitDirection.RIGHT}
 						/>
@@ -300,6 +301,13 @@ export default function App() {
 
 				{showGoogleTiles && <GooglePhotorealisticTileset shadowsEnabled={showSunShadow} />}
 			</CesiumMap>
+
+			<ComparisonSlider
+				enabled={comparisonEnabled}
+				position={comparisonPosition}
+				onEnabledChange={setComparisonEnabled}
+				onPositionChange={setComparisonPosition}
+			/>
 
 			{isProcessing && (
 				<LoadingIndicator
