@@ -1,6 +1,7 @@
 import type { MeasureType } from './features/objects/lib/objectLayer';
 import type { SideMenuItem } from './components/sideMenu/SideMenuItem';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { SplitDirection } from 'cesium';
 import CesiumMap, { type CesiumClickInfo, type CesiumMapHandle } from './map/CesiumMap';
 import { WMSOverlayLayer } from './features/wms-overlay/WMSOverlayLayer';
 import { StaticTreesEntities } from './features/objects/StaticTreesEntities';
@@ -71,6 +72,8 @@ export default function App() {
 	const [overlayLayers, setOverlayLayers] = useState<OverlayLayerConfig[]>([
 		{ id: QGIS_OVERLAY_LAYERS[0].id, opacity: 1 },
 	]);
+	const [comparisonEnabled] = useState(false);
+	const [comparisonPosition] = useState(0.5);
 
 	const {
 		objectsToSave,
@@ -253,15 +256,31 @@ export default function App() {
 				isEditingMode={isEditingMode}
 				showSunShadow={showSunShadow}
 				simulationTime={showSunShadow ? simulationDate : null}
+				splitPosition={comparisonEnabled ? comparisonPosition : undefined}
 			>
-				{overlayLayers.map((layer) => (
-					<WMSOverlayLayer
-						key={layer.id}
-						layerId={layer.id}
-						objectsVersion={objectsVersion}
-						opacity={layer.opacity}
-					/>
-				))}
+				{comparisonEnabled ? (
+					<>
+						<WMSOverlayLayer
+							layerId={QGIS_OVERLAY_LAYERS[0].id}
+							objectsVersion={objectsVersion}
+							splitDirection={SplitDirection.LEFT}
+						/>
+						<WMSOverlayLayer
+							layerId={QGIS_OVERLAY_LAYERS[1].id}
+							objectsVersion={objectsVersion}
+							splitDirection={SplitDirection.RIGHT}
+						/>
+					</>
+				) : (
+					overlayLayers.map((layer) => (
+						<WMSOverlayLayer
+							key={layer.id}
+							layerId={layer.id}
+							objectsVersion={objectsVersion}
+							opacity={layer.opacity}
+						/>
+					))
+				)}
 
 				{showExistingTrees && <ExistingTreesEntities onStatusChange={setTreeLoadStatus} />}
 

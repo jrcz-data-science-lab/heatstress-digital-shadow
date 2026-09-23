@@ -52,6 +52,7 @@ type Props = {
 	isEditingMode?: boolean;
 	showSunShadow?: boolean;
 	simulationTime?: Date | null;
+	splitPosition?: number; // 0.0 (left) to 1.0 (right) for split-screen view
 };
 
 // Home button position and default view rectangle are set to cover Zeeland by default, but can be adjusted as needed.
@@ -71,7 +72,14 @@ const PITCH_3D = CesiumMath.toRadians(-45); // tilted perspective
 const PITCH_2D = CesiumMath.toRadians(-90); // straight down
 
 const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
-	{ children, onLeftClick, isEditingMode, showSunShadow = false, simulationTime },
+	{
+		children,
+		onLeftClick,
+		isEditingMode,
+		showSunShadow = false,
+		simulationTime,
+		splitPosition,
+	},
 	ref,
 ) {
 	const viewerRef = useRef<{ cesiumElement: import('cesium').Viewer } | null>(null);
@@ -280,6 +288,14 @@ const CesiumMap = forwardRef<CesiumMapHandle, Props>(function CesiumMap(
 		// Stop Cesium's own real-time clock advance so we control time manually.
 		viewer.clock.shouldAnimate = false;
 	}, [showSunShadow]);
+
+	// Sync the Cesium split position to the comparison slider.
+	useEffect(() => {
+		const viewer = viewerRef.current?.cesiumElement;
+		if (!viewer) return;
+
+		viewer.scene.splitPosition = Math.min(1, Math.max(0, splitPosition ?? 0.5));
+	}, [splitPosition]);
 
 	// Sync the Cesium clock to the manually chosen simulation time.
 	useEffect(() => {
