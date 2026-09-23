@@ -15,7 +15,7 @@ import { GooglePhotorealisticTileset } from './features/buildings-3d/GooglePhoto
 import { useUserObjectsLayer } from './features/objects/useUserObjectsLayer';
 import { useWMSLayers } from './features/wms-overlay/useWMSLayers';
 import { useBuildingHighlight } from './features/buildings-3d/useBuildingHighlight';
-import { QGIS_OVERLAY_LAYERS } from './features/wms-overlay/lib/qgisLayers';
+import { QGIS_OVERLAY_LAYERS, type QgisLayerId } from './features/wms-overlay/lib/qgisLayers';
 import { SideMenu } from './components/sideMenu/SideMenu';
 import { LayersIcon } from './components/icons/LayersIcon';
 import {
@@ -75,6 +75,9 @@ export default function App() {
 	]);
 	const [comparisonEnabled, setComparisonEnabled] = useState(false);
 	const [comparisonPosition, setComparisonPosition] = useState(0.5);
+	const [comparisonLeftLayer, setComparisonLeftLayer] = useState<QgisLayerId>('pet-version-1');
+	const [comparisonRightLayer, setComparisonRightLayer] =
+		useState<QgisLayerId>('wind-speed-calc');
 
 	const {
 		objectsToSave,
@@ -262,12 +265,12 @@ export default function App() {
 				{comparisonEnabled ? (
 					<>
 						<WMSOverlayLayer
-							layerId={QGIS_OVERLAY_LAYERS[0].id}
+							layerId={comparisonLeftLayer}
 							objectsVersion={objectsVersion}
 							splitDirection={SplitDirection.LEFT}
 						/>
 						<WMSOverlayLayer
-							layerId={QGIS_OVERLAY_LAYERS[3].id}
+							layerId={comparisonRightLayer}
 							objectsVersion={objectsVersion}
 							splitDirection={SplitDirection.RIGHT}
 						/>
@@ -305,8 +308,13 @@ export default function App() {
 			<ComparisonSlider
 				enabled={comparisonEnabled}
 				position={comparisonPosition}
+				leftLayerId={comparisonLeftLayer}
+				rightLayerId={comparisonRightLayer}
+				layers={QGIS_OVERLAY_LAYERS}
 				onEnabledChange={setComparisonEnabled}
 				onPositionChange={setComparisonPosition}
+				onLeftLayerChange={setComparisonLeftLayer}
+				onRightLayerChange={setComparisonRightLayer}
 			/>
 
 			{isProcessing && (
