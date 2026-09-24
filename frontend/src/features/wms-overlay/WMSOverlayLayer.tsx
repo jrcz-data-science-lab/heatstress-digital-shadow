@@ -27,5 +27,12 @@ export function WMSOverlayLayer({ layerId, objectsVersion, opacity = 1, splitDir
 		[layerId, objectsVersion],
 	);
 
-	return <ImageryLayer imageryProvider={provider} alpha={opacity} splitDirection={splitDirection} />;
+	return (
+		<ImageryLayer
+			key={layerId}
+			imageryProvider={provider}
+			alpha={opacity}
+			splitDirection={splitDirection}
+		/>
+	);
 }

@@ -79,6 +79,54 @@ export default function App() {
 	const [comparisonRightLayer, setComparisonRightLayer] =
 		useState<QgisLayerId>('wind-speed-calc');
 
+	const comparisonLayerIds = comparisonEnabled
+		? [comparisonLeftLayer, comparisonRightLayer]
+		: [];
+
+	const getExistingOpacity = (
+		layers: readonly OverlayLayerConfig[],
+		id: QgisLayerId,
+	) => layers.find((layer) => layer.id === id)?.opacity ?? 1;
+
+	const handleComparisonEnabledChange = (enabled: boolean) => {
+		if (enabled) {
+			setOverlayLayers((currentLayers) => {
+				return [comparisonLeftLayer, comparisonRightLayer].map((id) => ({
+					id,
+					opacity: getExistingOpacity(currentLayers, id),
+				}));
+			});
+		}
+		setComparisonEnabled(enabled);
+	};
+
+	const replaceComparisonLayer = (
+		side: 'left' | 'right',
+		id: QgisLayerId,
+	) => {
+		const previousId = side === 'left' ? comparisonLeftLayer : comparisonRightLayer;
+		if (side === 'left') {
+			setComparisonLeftLayer(id);
+		} else {
+			setComparisonRightLayer(id);
+		}
+
+		setOverlayLayers((currentLayers) => {
+			const nextLayers = currentLayers.filter((layer) => layer.id !== previousId);
+			const replacement = {
+				id,
+				opacity: getExistingOpacity(currentLayers, id),
+			};
+
+			return side === 'left'
+				? [replacement, ...nextLayers.filter((layer) => layer.id !== id)]
+				: [...nextLayers.filter((layer) => layer.id !== id), replacement];
+		});
+	};
+
+	const getOverlayOpacity = (id: QgisLayerId) =>
+		overlayLayers.find((layer) => layer.id === id)?.opacity ?? 1;
+
 	const {
 		objectsToSave,
 		objectTypes,
@@ -175,6 +223,7 @@ export default function App() {
 				<OverlayLayersPanel
 					layers={overlayLayers}
 					onChange={setOverlayLayers}
+					lockedLayerIds={comparisonLayerIds}
 					showExistingTrees={showExistingTrees}
 					onToggleExistingTrees={setShowExistingTrees}
 				/>
@@ -267,11 +316,13 @@ export default function App() {
 						<WMSOverlayLayer
 							layerId={comparisonLeftLayer}
 							objectsVersion={objectsVersion}
+							opacity={getOverlayOpacity(comparisonLeftLayer)}
 							splitDirection={SplitDirection.LEFT}
 						/>
 						<WMSOverlayLayer
 							layerId={comparisonRightLayer}
 							objectsVersion={objectsVersion}
+							opacity={getOverlayOpacity(comparisonRightLayer)}
 							splitDirection={SplitDirection.RIGHT}
 						/>
 					</>
@@ -311,10 +362,10 @@ export default function App() {
 				leftLayerId={comparisonLeftLayer}
 				rightLayerId={comparisonRightLayer}
 				layers={QGIS_OVERLAY_LAYERS}
-				onEnabledChange={setComparisonEnabled}
+				onEnabledChange={handleComparisonEnabledChange}
 				onPositionChange={setComparisonPosition}
-				onLeftLayerChange={setComparisonLeftLayer}
-				onRightLayerChange={setComparisonRightLayer}
+				onLeftLayerChange={(id) => replaceComparisonLayer('left', id)}
+				onRightLayerChange={(id) => replaceComparisonLayer('right', id)}
 			/>
 
 			{isProcessing && (

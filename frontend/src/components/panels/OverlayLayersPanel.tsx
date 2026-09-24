@@ -10,6 +10,7 @@ export type OverlayLayerConfig = {
 type OverlayProps = {
 	layers: OverlayLayerConfig[];
 	onChange: (layers: OverlayLayerConfig[]) => void;
+	lockedLayerIds?: readonly QgisLayerId[];
 	showExistingTrees: boolean;
 	onToggleExistingTrees: (value: boolean) => void;
 };
@@ -17,16 +18,19 @@ type OverlayProps = {
 export function OverlayLayersPanel({
 	layers,
 	onChange,
+	lockedLayerIds = [],
 	showExistingTrees,
 	onToggleExistingTrees,
 }: OverlayProps) {
 	const activeIds = new Set(layers.map((l) => l.id));
+	const lockedIds = new Set(lockedLayerIds);
 
 	const addLayer = (id: QgisLayerId) => {
 		onChange([...layers, { id, opacity: 1 }]);
 	};
 
 	const removeLayer = (id: QgisLayerId) => {
+		if (lockedIds.has(id)) return;
 		onChange(layers.filter((l) => l.id !== id));
 	};
 
@@ -139,8 +143,13 @@ export function OverlayLayersPanel({
 											/>
 											<button
 												onClick={() => removeLayer(layer.id)}
-												title="Remove layer"
-												style={{ ...iconBtnStyle, color: '#c0392b' }}
+												disabled={lockedIds.has(layer.id)}
+												title={lockedIds.has(layer.id) ? 'Comparison layer' : 'Remove layer'}
+												style={{
+													...iconBtnStyle,
+													color: '#c0392b',
+													opacity: lockedIds.has(layer.id) ? 0.25 : 1,
+												}}
 											>
 												✕
 											</button>
@@ -198,6 +207,7 @@ export function OverlayLayersPanel({
 							<input
 								type="checkbox"
 								checked={isActive}
+								disabled={isActive && lockedIds.has(layer.id)}
 								onChange={() =>
 									isActive ? removeLayer(layer.id) : addLayer(layer.id)
 								}
