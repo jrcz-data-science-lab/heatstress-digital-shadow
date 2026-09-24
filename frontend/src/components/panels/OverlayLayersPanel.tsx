@@ -10,7 +10,11 @@ export type OverlayLayerConfig = {
 type OverlayProps = {
 	layers: OverlayLayerConfig[];
 	onChange: (layers: OverlayLayerConfig[]) => void;
-	lockedLayerIds?: readonly QgisLayerId[];
+	comparisonEnabled: boolean;
+	onToggleComparison: (value: boolean) => void;
+	comparisonLeftLayer: QgisLayerId | null;
+	comparisonRightLayer: QgisLayerId | null;
+	onComparisonSideChange: (side: 'left' | 'right', layerId: QgisLayerId) => void;
 	showExistingTrees: boolean;
 	onToggleExistingTrees: (value: boolean) => void;
 };
@@ -18,19 +22,21 @@ type OverlayProps = {
 export function OverlayLayersPanel({
 	layers,
 	onChange,
-	lockedLayerIds = [],
+	comparisonEnabled,
+	onToggleComparison,
+	comparisonLeftLayer,
+	comparisonRightLayer,
+	onComparisonSideChange,
 	showExistingTrees,
 	onToggleExistingTrees,
 }: OverlayProps) {
 	const activeIds = new Set(layers.map((l) => l.id));
-	const lockedIds = new Set(lockedLayerIds);
 
 	const addLayer = (id: QgisLayerId) => {
 		onChange([...layers, { id, opacity: 1 }]);
 	};
 
 	const removeLayer = (id: QgisLayerId) => {
-		if (lockedIds.has(id)) return;
 		onChange(layers.filter((l) => l.id !== id));
 	};
 
@@ -56,6 +62,11 @@ export function OverlayLayersPanel({
 					label="Existing Trees (BGT)"
 					checked={showExistingTrees}
 					onChange={onToggleExistingTrees}
+				/>
+				<CheckboxItem
+					label="Compare layers"
+					checked={comparisonEnabled}
+					onChange={onToggleComparison}
 				/>
 			</div>
 
@@ -112,7 +123,49 @@ export function OverlayLayersPanel({
 												flexShrink: 0,
 											}}
 										>
+													{comparisonEnabled && <button
+													type="button"
+													onClick={() => onComparisonSideChange('left', layer.id)}
+													title="Compare as left layer"
+														aria-label="Compare as left layer"
+													aria-pressed={comparisonLeftLayer === layer.id}
+													style={{
+														...iconBtnStyle,
+														width: 'auto',
+														padding: '0 4px',
+														color: comparisonLeftLayer === layer.id ? '#2563eb' : '#777',
+															backgroundColor: comparisonLeftLayer === layer.id ? '#dbeafe' : 'transparent',
+														fontWeight: comparisonLeftLayer === layer.id ? 700 : 400,
+													}}
+											>
+															Left
+													</button>}
+													{comparisonEnabled && <button
+													type="button"
+													onClick={() => onComparisonSideChange('right', layer.id)}
+													title="Compare as right layer"
+														aria-label="Compare as right layer"
+													aria-pressed={comparisonRightLayer === layer.id}
+													style={{
+														...iconBtnStyle,
+														width: 'auto',
+														padding: '0 4px',
+														color: comparisonRightLayer === layer.id ? '#2563eb' : '#777',
+															backgroundColor: comparisonRightLayer === layer.id ? '#dbeafe' : 'transparent',
+														fontWeight: comparisonRightLayer === layer.id ? 700 : 400,
+													}}
+											>
+															Right
+													</button>}
+												<div
+													style={{
+														width: '1px',
+														background: '#e0e0e0',
+														margin: '0 2px',
+													}}
+												/>
 											<button
+													type="button"
 												onClick={() => move(index, 1)}
 												disabled={isTop}
 												title="Move up in stack"
@@ -124,6 +177,7 @@ export function OverlayLayersPanel({
 												↑
 											</button>
 											<button
+													type="button"
 												onClick={() => move(index, -1)}
 												disabled={isBottom}
 												title="Move down in stack"
@@ -142,13 +196,12 @@ export function OverlayLayersPanel({
 												}}
 											/>
 											<button
+													type="button"
 												onClick={() => removeLayer(layer.id)}
-												disabled={lockedIds.has(layer.id)}
-												title={lockedIds.has(layer.id) ? 'Comparison layer' : 'Remove layer'}
+													title="Remove layer"
 												style={{
 													...iconBtnStyle,
 													color: '#c0392b',
-													opacity: lockedIds.has(layer.id) ? 0.25 : 1,
 												}}
 											>
 												✕
@@ -207,7 +260,6 @@ export function OverlayLayersPanel({
 							<input
 								type="checkbox"
 								checked={isActive}
-								disabled={isActive && lockedIds.has(layer.id)}
 								onChange={() =>
 									isActive ? removeLayer(layer.id) : addLayer(layer.id)
 								}

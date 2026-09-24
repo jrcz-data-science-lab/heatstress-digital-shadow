@@ -75,53 +75,41 @@ export default function App() {
 	]);
 	const [comparisonEnabled, setComparisonEnabled] = useState(false);
 	const [comparisonPosition, setComparisonPosition] = useState(0.5);
-	const [comparisonLeftLayer, setComparisonLeftLayer] = useState<QgisLayerId>('pet-version-1');
-	const [comparisonRightLayer, setComparisonRightLayer] =
-		useState<QgisLayerId>('wind-speed-calc');
+	const [comparisonLeftLayer, setComparisonLeftLayer] = useState<QgisLayerId | null>(null);
+	const [comparisonRightLayer, setComparisonRightLayer] = useState<QgisLayerId | null>(null);
+	const comparisonReady = comparisonLeftLayer !== null && comparisonRightLayer !== null;
 
-	const comparisonLayerIds = comparisonEnabled
-		? [comparisonLeftLayer, comparisonRightLayer]
-		: [];
-
-	const getExistingOpacity = (
-		layers: readonly OverlayLayerConfig[],
-		id: QgisLayerId,
-	) => layers.find((layer) => layer.id === id)?.opacity ?? 1;
-
-	const handleComparisonEnabledChange = (enabled: boolean) => {
-		if (enabled) {
-			setOverlayLayers((currentLayers) => {
-				return [comparisonLeftLayer, comparisonRightLayer].map((id) => ({
-					id,
-					opacity: getExistingOpacity(currentLayers, id),
-				}));
-			});
-		}
-		setComparisonEnabled(enabled);
+	const handleOverlayLayersChange = (nextLayers: OverlayLayerConfig[]) => {
+		setOverlayLayers(nextLayers);
+		const activeIds = new Set(nextLayers.map((layer) => layer.id));
+		setComparisonLeftLayer((current) => (current && activeIds.has(current) ? current : null));
+		setComparisonRightLayer((current) => (current && activeIds.has(current) ? current : null));
 	};
 
-	const replaceComparisonLayer = (
-		side: 'left' | 'right',
-		id: QgisLayerId,
-	) => {
-		const previousId = side === 'left' ? comparisonLeftLayer : comparisonRightLayer;
+	const handleComparisonSideChange = (side: 'left' | 'right', layerId: QgisLayerId) => {
 		if (side === 'left') {
-			setComparisonLeftLayer(id);
+			if (comparisonLeftLayer === layerId) {
+				setComparisonLeftLayer(null);
+				return;
+			}
+			if (comparisonRightLayer === layerId) {
+				setComparisonLeftLayer(layerId);
+				setComparisonRightLayer(comparisonLeftLayer);
+				return;
+			}
+			setComparisonLeftLayer((current) => (current === layerId ? null : layerId));
 		} else {
-			setComparisonRightLayer(id);
+			if (comparisonRightLayer === layerId) {
+				setComparisonRightLayer(null);
+				return;
+			}
+			if (comparisonLeftLayer === layerId) {
+				setComparisonRightLayer(layerId);
+				setComparisonLeftLayer(comparisonRightLayer);
+				return;
+			}
+			setComparisonRightLayer((current) => (current === layerId ? null : layerId));
 		}
-
-		setOverlayLayers((currentLayers) => {
-			const nextLayers = currentLayers.filter((layer) => layer.id !== previousId);
-			const replacement = {
-				id,
-				opacity: getExistingOpacity(currentLayers, id),
-			};
-
-			return side === 'left'
-				? [replacement, ...nextLayers.filter((layer) => layer.id !== id)]
-				: [...nextLayers.filter((layer) => layer.id !== id), replacement];
-		});
 	};
 
 	const getOverlayOpacity = (id: QgisLayerId) =>
@@ -222,8 +210,12 @@ export default function App() {
 			panel: (
 				<OverlayLayersPanel
 					layers={overlayLayers}
-					onChange={setOverlayLayers}
-					lockedLayerIds={comparisonLayerIds}
+					onChange={handleOverlayLayersChange}
+					comparisonEnabled={comparisonEnabled}
+					onToggleComparison={setComparisonEnabled}
+					comparisonLeftLayer={comparisonLeftLayer}
+					comparisonRightLayer={comparisonRightLayer}
+					onComparisonSideChange={handleComparisonSideChange}
 					showExistingTrees={showExistingTrees}
 					onToggleExistingTrees={setShowExistingTrees}
 				/>
@@ -309,9 +301,9 @@ export default function App() {
 				isEditingMode={isEditingMode}
 				showSunShadow={showSunShadow}
 				simulationTime={showSunShadow ? simulationDate : null}
-				splitPosition={comparisonEnabled ? comparisonPosition : undefined}
+				splitPosition={comparisonEnabled && comparisonReady ? comparisonPosition : undefined}
 			>
-				{comparisonEnabled ? (
+				{comparisonEnabled && comparisonReady ? (
 					<>
 						<WMSOverlayLayer
 							layerId={comparisonLeftLayer}
@@ -357,15 +349,9 @@ export default function App() {
 			</CesiumMap>
 
 			<ComparisonSlider
-				enabled={comparisonEnabled}
+				enabled={comparisonEnabled && comparisonReady}
 				position={comparisonPosition}
-				leftLayerId={comparisonLeftLayer}
-				rightLayerId={comparisonRightLayer}
-				layers={QGIS_OVERLAY_LAYERS}
-				onEnabledChange={handleComparisonEnabledChange}
 				onPositionChange={setComparisonPosition}
-				onLeftLayerChange={(id) => replaceComparisonLayer('left', id)}
-				onRightLayerChange={(id) => replaceComparisonLayer('right', id)}
 			/>
 
 			{isProcessing && (
